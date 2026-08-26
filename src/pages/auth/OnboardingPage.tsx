@@ -58,7 +58,7 @@ export default function OnboardingPage() {
     if (currentStep < steps.length - 1) {
       setCurrentStep(prev => prev + 1);
     } else {
-      navigate('/command-center');
+      navigate('/login');
     }
   };
   
@@ -69,7 +69,7 @@ export default function OnboardingPage() {
   };
   
   const handleSkip = () => {
-    navigate('/command-center');
+    navigate('/login');
   };
 
   const StepIcon = steps[currentStep].icon;

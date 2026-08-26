@@ -11,8 +11,58 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Startup Validation Check
+    print("="*40)
+    print("BHAIRAV SYSTEM STARTUP DIAGNOSTICS")
+    print("="*40)
+    
+    # Core Checks
+    print(f"MongoDB: {'CONNECTED' if settings.MONGODB_URI else 'MISSING URI'}")
+    print(f"JWT Auth: {'CONFIGURED' if settings.JWT_SECRET else 'CRITICAL: MISSING JWT_SECRET'}")
+    
+    # Storage Check
+    has_storage = all([settings.STORAGE_ENDPOINT, settings.STORAGE_ACCESS_KEY, settings.STORAGE_SECRET_KEY, settings.STORAGE_BUCKET])
+    print(f"Storage: {'CONFIGURED' if has_storage else 'NOT CONFIGURED'}")
+    
+    # AI Services
+    has_ai = settings.AI_SERVICE_URL and settings.AI_SERVICE_API_KEY
+    print(f"AI Service: {'CONFIGURED' if has_ai else 'NOT CONFIGURED'}")
+    print(f"LLM: {'CONFIGURED' if settings.LLM_API_KEY else 'NOT CONFIGURED'}")
+    
+    # Vector DB
+    has_vector = settings.VECTOR_DB_URL and settings.VECTOR_DB_KEY
+    print(f"Vector DB: {'CONFIGURED' if has_vector else 'NOT CONFIGURED'}")
+    print("="*40)
+    
+    if not settings.JWT_SECRET:
+        print("CRITICAL ERROR: Cannot start application without JWT_SECRET.")
+        import sys
+        sys.exit(1)
+
     # Startup
     await connect_to_mongo()
+    
+    # Initialize Admin Account
+    from app.core.security import get_password_hash
+    from datetime import datetime
+    db = get_db()
+    if db is not None:
+        admin_email = "admin@gmail.com"
+        admin_user = await db.users.find_one({"email": admin_email})
+        if not admin_user:
+            print(f"Creating default admin account: {admin_email}")
+            await db.users.insert_one({
+                "email": admin_email,
+                "password_hash": get_password_hash("admin@123"),
+                "name": "System Admin",
+                "role_id": "admin",
+                "status": "ACTIVE",
+                "created_at": datetime.utcnow(),
+                "updated_at": datetime.utcnow()
+            })
+        else:
+            print(f"Admin account already exists: {admin_email}")
+
     yield
     # Shutdown
     await close_mongo_connection()

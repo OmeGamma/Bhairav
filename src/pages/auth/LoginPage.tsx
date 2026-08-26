@@ -1,13 +1,18 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Shield, Lock, User, AlertCircle, ArrowRight } from 'lucide-react';
 import { Footer } from '../../components/layout/Footer';
-import { authService } from '../../services/authService';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const { login } = useAuth();
+  
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -15,10 +20,10 @@ export default function LoginPage() {
     setError('');
     
     try {
-      await authService.login({ username: 'officer', password: 'password' });
-      navigate('/onboarding');
-    } catch (err) {
-      setError('Authentication failed. Please check your credentials.');
+      await login({ username, password });
+      navigate('/command-center');
+    } catch (err: any) {
+      setError(err.message || 'Authentication failed. Please check your credentials.');
     } finally {
       setIsLoading(false);
     }
@@ -48,7 +53,7 @@ export default function LoginPage() {
           <form onSubmit={handleLogin} className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-[var(--color-bhairav-text-muted)] mb-2">
-                Officer ID / Clearance Code
+                Officer Email / ID
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -57,8 +62,10 @@ export default function LoginPage() {
                 <input
                   type="text"
                   required
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
                   className="block w-full pl-10 pr-3 py-3 border border-[var(--color-bhairav-border)] rounded-md bg-[var(--color-bhairav-bg)] text-[var(--color-bhairav-text)] placeholder-[var(--color-bhairav-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--color-bhairav-primary)] focus:border-[var(--color-bhairav-primary)] transition-all sm:text-sm"
-                  placeholder="Enter your ID"
+                  placeholder="admin@gmail.com"
                 />
               </div>
             </div>
@@ -79,6 +86,8 @@ export default function LoginPage() {
                 <input
                   type="password"
                   required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   className="block w-full pl-10 pr-3 py-3 border border-[var(--color-bhairav-border)] rounded-md bg-[var(--color-bhairav-bg)] text-[var(--color-bhairav-text)] placeholder-[var(--color-bhairav-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--color-bhairav-primary)] focus:border-[var(--color-bhairav-primary)] transition-all sm:text-sm"
                   placeholder="••••••••"
                 />
@@ -98,6 +107,15 @@ export default function LoginPage() {
                 </>
               )}
             </button>
+            
+            <div className="mt-4 text-center">
+              <p className="text-sm text-[var(--color-bhairav-text-muted)]">
+                No clearance?{' '}
+                <Link to="/register" className="text-[var(--color-bhairav-primary)] hover:underline">
+                  Request Access
+                </Link>
+              </p>
+            </div>
           </form>
         </div>
         

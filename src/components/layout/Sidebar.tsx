@@ -1,9 +1,10 @@
 import { NavLink } from 'react-router-dom';
 import { 
   ShieldAlert, LayoutDashboard, Search, Bell, Map, 
-  Video, Users, FileText, Settings, ShieldQuestion
+  Video, Users, FileText, Settings, ShieldQuestion, LogOut
 } from 'lucide-react';
 import { cn } from '../../utils/cn';
+import { useAuth } from '../../contexts/AuthContext';
 
 const navItems = [
   { name: 'Command Center', path: '/command-center', icon: LayoutDashboard },
@@ -19,6 +20,7 @@ const navItems = [
 ];
 
 export function Sidebar() {
+  const { logout } = useAuth();
   return (
     <aside className="w-64 bg-[var(--color-bhairav-surface)] border-r border-[var(--color-bhairav-border)] h-full flex flex-col">
       <div className="h-16 flex items-center px-6 border-b border-[var(--color-bhairav-border)]">
@@ -47,6 +49,16 @@ export function Sidebar() {
           </NavLink>
         ))}
       </nav>
+      
+      <div className="p-4 border-t border-[var(--color-bhairav-border)]">
+        <button 
+          onClick={logout}
+          className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-md bg-[var(--color-bhairav-critical)]/10 text-[var(--color-bhairav-critical)] hover:bg-[var(--color-bhairav-critical)] hover:text-white transition-colors text-sm font-medium"
+        >
+          <LogOut size={18} />
+          Sign Out
+        </button>
+      </div>
     </aside>
   );
 }
