@@ -2,25 +2,25 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Shield, Lock, User, AlertCircle, ArrowRight } from 'lucide-react';
 import { Footer } from '../../components/layout/Footer';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../hooks/useAuth';
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const { login } = useAuth();
-  
+
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
     
     try {
-      await login({ username, password });
+      await login({ email, password });
       navigate('/command-center');
     } catch (err: any) {
       setError(err.message || 'Authentication failed. Please check your credentials.');
@@ -53,32 +53,27 @@ export default function LoginPage() {
           <form onSubmit={handleLogin} className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-[var(--color-bhairav-text-muted)] mb-2">
-                Officer Email / ID
+                Email
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <User className="h-5 w-5 text-[var(--color-bhairav-text-muted)]" />
                 </div>
                 <input
-                  type="text"
+                  type="email"
                   required
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   className="block w-full pl-10 pr-3 py-3 border border-[var(--color-bhairav-border)] rounded-md bg-[var(--color-bhairav-bg)] text-[var(--color-bhairav-text)] placeholder-[var(--color-bhairav-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--color-bhairav-primary)] focus:border-[var(--color-bhairav-primary)] transition-all sm:text-sm"
-                  placeholder="admin@gmail.com"
+                  placeholder="officer@defence.gov"
                 />
               </div>
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium text-[var(--color-bhairav-text-muted)]">
-                  Passkey
-                </label>
-                <button type="button" className="text-xs text-[var(--color-bhairav-primary)] hover:text-[var(--color-bhairav-primary-hover)] transition-colors">
-                  Forgot Passkey?
-                </button>
-              </div>
+              <label className="block text-sm font-medium text-[var(--color-bhairav-text-muted)] mb-2">
+                Password
+              </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Lock className="h-5 w-5 text-[var(--color-bhairav-text-muted)]" />
@@ -103,7 +98,7 @@ export default function LoginPage() {
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
               ) : (
                 <>
-                  Authenticate <ArrowRight size={16} />
+                  Sign In <ArrowRight size={16} />
                 </>
               )}
             </button>

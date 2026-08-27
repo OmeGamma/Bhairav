@@ -15,6 +15,13 @@ async def connect_to_mongo():
     db_instance.client = AsyncIOMotorClient(settings.MONGODB_URI)
     db_instance.db = db_instance.client[settings.DATABASE_NAME]
     logger.info("Successfully connected to MongoDB.")
+    
+    # Ensure unique index on email
+    try:
+        await db_instance.db.users.create_index("email", unique=True)
+        logger.info("Unique index on email ensured.")
+    except Exception as e:
+        logger.warning(f"Index creation warning: {e}")
 
 async def close_mongo_connection():
     logger.info("Closing MongoDB connection...")

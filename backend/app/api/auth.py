@@ -13,11 +13,11 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 @router.post("/register", response_model=UserResponse)
 async def register(user_in: UserCreate, db: AsyncIOMotorDatabase = Depends(get_db)):
-    user = await db.users.find_one({"email": user_in.email})
-    if user:
+    existing = await db.users.find_one({"email": user_in.email})
+    if existing:
         raise HTTPException(
             status_code=400,
-            detail="The user with this email already exists in the system.",
+            detail="An account with this email already exists.",
         )
     
     user_dict = user_in.model_dump()
@@ -38,15 +38,14 @@ async def login(
 ):
     user = await db.users.find_one({"email": form_data.username})
     if not user:
-        raise HTTPException(status_code=400, detail="Incorrect email or password")
+        raise HTTPException(status_code=400, detail="Invalid email or password")
     
     if not verify_password(form_data.password, user["password_hash"]):
-        raise HTTPException(status_code=400, detail="Incorrect email or password")
+        raise HTTPException(status_code=400, detail="Invalid email or password")
     
     if user.get("status") != "ACTIVE":
         raise HTTPException(status_code=400, detail="Inactive user")
 
-    # Update last login
     await db.users.update_one({"_id": user["_id"]}, {"$set": {"last_login": datetime.utcnow()}})
 
     access_token = create_access_token(subject=str(user["_id"]), role_id=user["role_id"])
@@ -58,7 +57,4 @@ async def read_current_user(current_user: UserInDB = Depends(get_current_user)):
 
 @router.post("/logout")
 async def logout(current_user: UserInDB = Depends(get_current_user)):
-    # In a fully stateless JWT architecture, the client removes the token.
-    # To properly implement logout backend-side, we would need a token blacklist.
-    # For now, we return a success response to satisfy the endpoint requirement.
     return {"msg": "Successfully logged out"}

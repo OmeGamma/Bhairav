@@ -4,14 +4,13 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  username?: string;
   role_id: string;
   status: string;
-  token?: string; // Appended locally after login
+  token?: string;
 }
 
 export interface LoginCredentials {
-  username: string; // The backend uses OAuth2PasswordRequestForm which expects 'username' (can be email)
+  email: string;
   password: string;
 }
 
@@ -19,15 +18,12 @@ export interface RegisterCredentials {
   name: string;
   email: string;
   password: string;
-  role_id: string;
-  username?: string;
 }
 
 export const authService = {
   login: async (credentials: LoginCredentials): Promise<User> => {
-    // OAuth2PasswordRequestForm requires form urlencoded data
     const formData = new URLSearchParams();
-    formData.append('username', credentials.username);
+    formData.append('username', credentials.email);
     formData.append('password', credentials.password);
 
     const response = await fetch(`${API_BASE_URL}/auth/login`, {
@@ -46,7 +42,6 @@ export const authService = {
     const data = await response.json();
     const token = data.access_token;
 
-    // After getting token, we need to fetch the user profile
     const user = await authService.verifySession(token);
     return { ...user, token };
   },

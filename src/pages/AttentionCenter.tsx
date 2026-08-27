@@ -5,8 +5,21 @@ import { LoadingState } from '../components/common/LoadingState';
 import { ErrorState } from '../components/common/ErrorState';
 import { EmptyState } from '../components/common/EmptyState';
 import { alertService } from '../services/alertService';
-import type { Alert } from '../types';
+import { eventService } from '../services/eventService';
+import type { Alert, SecurityEvent } from '../types';
 import { cn } from '../utils/cn';
+
+function eventToAlert(evt: SecurityEvent): Alert {
+  return {
+    id: evt.id,
+    title: evt.type,
+    description: evt.description,
+    severity: evt.severity,
+    timestamp: evt.timestamp,
+    category: 'security',
+    actionRequired: evt.severity === 'critical',
+  };
+}
 
 export default function AttentionCenter() {
   const [activeTab, setActiveTab] = useState<'all' | 'critical' | 'review' | 'intelligence' | 'welfare' | 'system'>('all');
@@ -20,9 +33,13 @@ export default function AttentionCenter() {
     setLoading(true);
     setError(null);
     try {
-      const data = await alertService.getAlerts();
-      setAlerts(data);
-    } catch (err) {
+      const [alertsData, eventsData] = await Promise.all([
+        alertService.getAlerts(),
+        eventService.getSecurityEvents({ severity: 'critical' }),
+      ]);
+      const eventAlerts = (eventsData || []).map(eventToAlert);
+      setAlerts([...alertsData, ...eventAlerts]);
+    } catch {
       setError('Failed to fetch attention items.');
     } finally {
       setLoading(false);
