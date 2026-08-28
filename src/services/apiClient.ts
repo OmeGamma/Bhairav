@@ -8,6 +8,26 @@ class ApiError extends Error {
   }
 }
 
+export async function fetchWithTimeout(url: string, options?: RequestInit, timeoutMs = 10000): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    return response;
+  } catch (error: any) {
+    if (error.name === 'AbortError') {
+      throw new Error('Network request timed out. Please check your connection and try again.');
+    }
+    throw new Error('Network error: Unable to reach the server.');
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
   const token = localStorage.getItem('token');
   const headers = new Headers(options.headers || {});
@@ -20,7 +40,7 @@ async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
   const url = `${API_BASE_URL}${endpoint}`;
   
   try {
-    const response = await fetch(url, { ...options, headers });
+    const response = await fetchWithTimeout(url, { ...options, headers });
     
     if (!response.ok) {
       if (response.status === 401) {
@@ -56,7 +76,12 @@ export const apiClient = {
   delete: (endpoint: string) => fetchWithAuth(endpoint, { method: 'DELETE' }),
 };
 
-// Keep simulateApiCall for components not yet migrated or using synthetic data
+/**
+ * Simulates network latency for mock API calls
+ * @param data The mock data to return
+ * @param delay Simulated delay in ms (default 800ms)
+ * @param shouldFail Simulate an error (10% chance if set to 'random', or strictly boolean)
+ */
 export async function simulateApiCall<T>(data: T, delay = 800, shouldFail: boolean | 'random' = false): Promise<T> {
   return new Promise((resolve, reject) => {
     setTimeout(() => {

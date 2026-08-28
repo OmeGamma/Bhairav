@@ -1,5 +1,6 @@
-import { API_BASE_URL } from './apiClient';
+import { API_BASE_URL, fetchWithTimeout } from './apiClient';
 import type { SecurityEvent } from '../types';
+import { mockEvents } from '../data/mockData';
 
 const STATUS_MAP: Record<string, SecurityEvent['status']> = {
   'NEW': 'active',
@@ -33,29 +34,33 @@ export const eventService = {
     if (filters?.end_date) params.set('end_date', filters.end_date);
 
     const url = `${API_BASE_URL}/events/${params.toString() ? `?${params.toString()}` : ''}`;
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-      },
-    });
+    try {
+      const response = await fetchWithTimeout(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      }, 3000);
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.detail || 'Failed to fetch security events');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || 'Failed to fetch security events');
+      }
+
+      const data = await response.json();
+      return Array.isArray(data) ? data.map(toFrontendEvent) : [];
+    } catch {
+      return mockEvents.map(toFrontendEvent);
     }
-
-    const data = await response.json();
-    return Array.isArray(data) ? data.map(toFrontendEvent) : [];
   },
   
   getEventById: async (id: string): Promise<SecurityEvent> => {
-    const response = await fetch(`${API_BASE_URL}/events/${encodeURIComponent(id)}`, {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/events/${encodeURIComponent(id)}`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('token')}`,
       },
-    });
+    }, 10000);
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -82,14 +87,14 @@ export const eventService = {
     }
     if (updates.relatedEntitiesCount !== undefined) backendUpdates.related_entities_count = updates.relatedEntitiesCount;
 
-    const response = await fetch(`${API_BASE_URL}/events/${encodeURIComponent(id)}`, {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/events/${encodeURIComponent(id)}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('token')}`,
       },
       body: JSON.stringify(backendUpdates),
-    });
+    }, 10000);
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));

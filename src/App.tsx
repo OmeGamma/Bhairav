@@ -45,7 +45,7 @@ function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          {/* Public layout: navbar + footer, no auth required */}
+          {/* Public layout: footer, no navbar */}
           <Route element={<PublicLayout />}>
             <Route path="/" element={<LandingPage />} />
             <Route path="/landing" element={<LandingPage />} />
@@ -64,11 +64,13 @@ function App() {
           {/* Auth pages: standalone, no footer */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/signup" element={<RegisterPage />} />
           
           {/* Protected layout */}
           <Route element={<ProtectedRoute />}>
             <Route element={<AppLayout />}>
               <Route path="/command-center" element={<CommandCenter />} />
+              <Route path="/command-centre" element={<CommandCenter />} />
               <Route path="/intelligence/search" element={<SearchPage />} />
               <Route path="/intelligence/events" element={<SecurityEvents />} />
               <Route path="/security/monitoring" element={<SecurityMonitoring />} />

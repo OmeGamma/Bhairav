@@ -1,12 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
-import { Shield, Lock, User, AlertCircle, ArrowRight } from 'lucide-react';
+import { Lock, User, AlertCircle, ArrowRight, Shield } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login } = useAuth();
+  const { login, isAuthenticated } = useAuth();
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -15,6 +15,12 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
 
   const redirectTo = (location.state as any)?.redirect || new URLSearchParams(location.search).get('redirect') || '/command-center';
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate(redirectTo);
+    }
+  }, [isAuthenticated, navigate, redirectTo]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,8 +43,9 @@ export default function LoginPage() {
       
       <div className="w-full max-w-md z-10 relative">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[var(--color-bhairav-surface)] border border-[var(--color-bhairav-border)] mb-6 shadow-[0_0_20px_rgba(59,130,246,0.15)]">
-            <Shield className="text-[var(--color-bhairav-primary)]" size={32} />
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-[var(--color-bhairav-primary)]/10 border border-[var(--color-bhairav-primary)]/20 mb-6 shadow-[0_0_30px_rgba(59,130,246,0.15)] relative">
+            <Shield className="text-[var(--color-bhairav-primary)]" size={40} />
+            <span className="absolute top-5 right-5 w-3 h-3 bg-[var(--color-bhairav-verified)] rounded-full animate-pulse" />
           </div>
           <h1 className="text-3xl font-bold tracking-widest mb-2">BHAIRAV</h1>
           <p className="text-[var(--color-bhairav-text-muted)] text-sm tracking-wide">SECURE INTELLIGENCE PORTAL</p>
