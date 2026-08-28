@@ -1,5 +1,25 @@
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
 
+export async function fetchWithTimeout(url: string, options?: RequestInit, timeoutMs = 10000): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    return response;
+  } catch (error: any) {
+    if (error.name === 'AbortError') {
+      throw new Error('Network request timed out. Please check your connection and try again.');
+    }
+    throw new Error('Network error: Unable to reach the server.');
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 /**
  * Simulates network latency for mock API calls
  * @param data The mock data to return

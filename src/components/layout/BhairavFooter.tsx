@@ -78,6 +78,9 @@ export function BhairavFooter() {
                 <p className="text-sm text-gray-400 leading-relaxed max-w-xs">
                   AI-powered defence and security intelligence for situational awareness, intelligence fusion, and mission readiness.
                 </p>
+                <div className="mt-6 flex items-center gap-4 text-gray-500">
+                  <span className="text-xs text-gray-600">Bhairav - By OmeGamma</span>
+                </div>
               </div>
 
               {/* Capabilities column */}
@@ -134,7 +137,7 @@ export function BhairavFooter() {
             © {currentYear} Bhairav. All rights reserved.
           </p>
           <p className="text-[11px] text-gray-600 tracking-wide">
-            <span className="text-gray-400/80">Bhairav: Shadows and Steel</span>
+            <span className="text-gray-400/80">Bhairav</span>
             <span className="mx-2 text-gray-700">•</span>
             <span className="text-gray-500">By OmeGamma</span>
           </p>

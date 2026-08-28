@@ -1,14 +1,14 @@
-import { API_BASE_URL } from './apiClient';
+import { API_BASE_URL, fetchWithTimeout } from './apiClient';
 import type { Notification } from '../types';
 
 export const notificationService = {
   getNotifications: async (): Promise<Notification[]> => {
-    const response = await fetch(`${API_BASE_URL}/notifications/`, {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/notifications/`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('token')}`,
       },
-    });
+    }, 10000);
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -19,12 +19,12 @@ export const notificationService = {
   },
 
   markAsRead: async (notificationId: string): Promise<Notification> => {
-    const response = await fetch(`${API_BASE_URL}/notifications/${encodeURIComponent(notificationId)}/read`, {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/notifications/${encodeURIComponent(notificationId)}/read`, {
       method: 'PATCH',
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('token')}`,
       },
-    });
+    }, 10000);
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));

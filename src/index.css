@@ -3,22 +3,22 @@
 @theme {
   --font-sans: 'Inter', system-ui, sans-serif;
   
-  --color-bhairav-bg: #0a0a0c;
-  --color-bhairav-surface: #121316;
-  --color-bhairav-surface-hover: #1a1b1f;
+  --color-bhairav-bg: #0B1017;
+  --color-bhairav-surface: #121923;
+  --color-bhairav-surface-hover: #1a2332;
   
-  --color-bhairav-primary: #3b82f6; /* Blue/Primary - Bhairav interaction */
+  --color-bhairav-primary: #3b82f6;
   --color-bhairav-primary-hover: #2563eb;
   
-  --color-bhairav-critical: #ef4444; /* Red - Critical */
-  --color-bhairav-warning: #f59e0b; /* Amber - Warning */
-  --color-bhairav-verified: #10b981; /* Green - Verified */
-  --color-bhairav-neutral: #6b7280; /* Neutral - Normal information */
+  --color-bhairav-critical: #ef4444;
+  --color-bhairav-warning: #f59e0b;
+  --color-bhairav-verified: #10b981;
+  --color-bhairav-neutral: #6b7280;
 
   --color-bhairav-text: #f3f4f6;
   --color-bhairav-text-muted: #9ca3af;
   
-  --color-bhairav-border: #27272a;
+  --color-bhairav-border: #1e293b;
 }
 
 @layer base {

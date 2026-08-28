@@ -1,4 +1,4 @@
-import { API_BASE_URL } from './apiClient';
+import { API_BASE_URL, fetchWithTimeout } from './apiClient';
 
 export interface User {
   id: string;
@@ -26,13 +26,13 @@ export const authService = {
     formData.append('username', credentials.email);
     formData.append('password', credentials.password);
 
-    const response = await fetch(`${API_BASE_URL}/auth/login`, {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/auth/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: formData.toString(),
-    });
+    }, 10000);
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -47,13 +47,13 @@ export const authService = {
   },
 
   register: async (credentials: RegisterCredentials): Promise<User> => {
-    const response = await fetch(`${API_BASE_URL}/auth/register`, {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/auth/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(credentials),
-    });
+    }, 10000);
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -67,12 +67,12 @@ export const authService = {
     const token = localStorage.getItem('token');
     if (token) {
       try {
-        await fetch(`${API_BASE_URL}/auth/logout`, {
+        await fetchWithTimeout(`${API_BASE_URL}/auth/logout`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`
           }
-        });
+        }, 5000);
       } catch (e) {
         console.error('Logout request failed', e);
       }
@@ -84,12 +84,12 @@ export const authService = {
     const token = tokenOverride || localStorage.getItem('token');
     if (!token) throw new Error('No token found');
 
-    const response = await fetch(`${API_BASE_URL}/auth/me`, {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/auth/me`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`
       }
-    });
+    }, 3000);
 
     if (!response.ok) {
       throw new Error('Session expired or invalid');

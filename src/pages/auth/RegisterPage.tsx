@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Shield, Lock, User, AlertCircle, ArrowRight, Mail } from 'lucide-react';
+import { Lock, User, AlertCircle, ArrowRight, Mail } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
+import { BhairavLogo } from '../../components/branding/BhairavLogo';
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -42,8 +43,8 @@ export default function RegisterPage() {
       
       <div className="w-full max-w-md z-10 relative">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[var(--color-bhairav-surface)] border border-[var(--color-bhairav-border)] mb-6 shadow-[0_0_20px_rgba(59,130,246,0.15)]">
-            <Shield className="text-[var(--color-bhairav-primary)]" size={32} />
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-[var(--color-bhairav-primary)]/10 border border-[var(--color-bhairav-primary)]/20 mb-6 shadow-[0_0_30px_rgba(59,130,246,0.15)]">
+            <BhairavLogo size={72} />
           </div>
           <h1 className="text-3xl font-bold tracking-widest mb-2">BHAIRAV</h1>
           <p className="text-[var(--color-bhairav-text-muted)] text-sm tracking-wide">REQUEST SYSTEM ACCESS</p>
