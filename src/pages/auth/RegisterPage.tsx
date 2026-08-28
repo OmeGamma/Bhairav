@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Shield, Lock, User, AlertCircle, ArrowRight, Mail } from 'lucide-react';
-import { Footer } from '../../components/layout/Footer';
 import { useAuth } from '../../hooks/useAuth';
 
 export default function RegisterPage() {
@@ -163,10 +162,6 @@ export default function RegisterPage() {
         <div className="mt-8 text-center text-xs text-[var(--color-bhairav-text-muted)]">
           <p>Access subject to verification and approval.</p>
         </div>
-      </div>
-      
-      <div className="absolute bottom-0 w-full">
-        <Footer />
       </div>
     </div>
   );

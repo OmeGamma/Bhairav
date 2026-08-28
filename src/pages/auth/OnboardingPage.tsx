@@ -5,7 +5,6 @@ import {
   Search, Bell, ShieldQuestion, Lock, ArrowRight, ArrowLeft
 } from 'lucide-react';
 import { cn } from '../../utils/cn';
-import { Footer } from '../../components/layout/Footer';
 
 const steps = [
   {
@@ -135,10 +134,6 @@ export default function OnboardingPage() {
           </div>
           
         </div>
-      </div>
-      
-      <div className="absolute bottom-0 w-full z-0">
-        <Footer />
       </div>
     </div>
   );

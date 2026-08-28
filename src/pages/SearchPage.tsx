@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search as SearchIcon, Filter, User, MapPin, Video, FileText, ArrowRight } from 'lucide-react';
+import { Search as SearchIcon, Filter, User, MapPin, Video, FileText, ArrowRight, X } from 'lucide-react';
 import { Badge } from '../components/common/Badge';
 import { cn } from '../utils/cn';
 
@@ -41,9 +41,19 @@ export default function SearchPage() {
             className="w-full bg-[var(--color-bhairav-surface)] border-2 border-[var(--color-bhairav-border)] text-lg rounded-xl pl-14 pr-32 py-5 shadow-2xl focus:outline-none focus:border-[var(--color-bhairav-primary)] focus:ring-4 focus:ring-[var(--color-bhairav-primary)]/20 transition-all placeholder:text-[var(--color-bhairav-text-muted)]/70"
           />
           <div className="absolute right-3 z-20 flex items-center gap-2">
-             <button className="bg-[var(--color-bhairav-primary)] hover:bg-[var(--color-bhairav-primary-hover)] text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors shadow-md">
-               Search
-             </button>
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="p-1.5 text-[var(--color-bhairav-text-muted)] hover:text-[var(--color-bhairav-text)] transition-colors"
+                title="Clear search"
+              >
+                <X size={18} />
+              </button>
+            )}
+            <button className="bg-[var(--color-bhairav-primary)] hover:bg-[var(--color-bhairav-primary-hover)] text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors shadow-md">
+              Search
+            </button>
           </div>
         </div>
 

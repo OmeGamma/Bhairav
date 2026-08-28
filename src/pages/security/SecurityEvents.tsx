@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Shield, Search, MapPin, Camera, Clock, ArrowLeft, ChevronRight, FileText } from 'lucide-react';
+import { Shield, Search, MapPin, Camera, Clock, ArrowLeft, ChevronRight, FileText, X } from 'lucide-react';
 import { Card } from '../../components/common/Card';
 import { Badge } from '../../components/common/Badge';
 import { LoadingState } from '../../components/common/LoadingState';
@@ -235,8 +235,17 @@ export default function SecurityEvents() {
             placeholder="Search events by ID, type, or description..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full bg-[var(--color-bhairav-bg)] border border-[var(--color-bhairav-border)] rounded-md pl-9 pr-3 py-2 text-sm focus:outline-none focus:border-[var(--color-bhairav-primary)] transition-colors"
+            className="w-full bg-[var(--color-bhairav-bg)] border border-[var(--color-bhairav-border)] rounded-md pl-9 pr-9 py-2 text-sm focus:outline-none focus:border-[var(--color-bhairav-primary)] transition-colors"
           />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch('')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--color-bhairav-text-muted)] hover:text-[var(--color-bhairav-text)] transition-colors"
+            >
+              <X size={14} />
+            </button>
+          )}
         </div>
         <select 
           value={severityFilter}

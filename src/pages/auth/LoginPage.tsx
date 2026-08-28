@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { Shield, Lock, User, AlertCircle, ArrowRight } from 'lucide-react';
-import { Footer } from '../../components/layout/Footer';
 import { useAuth } from '../../hooks/useAuth';
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
 
   const [isLoading, setIsLoading] = useState(false);
@@ -14,6 +14,8 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
+  const redirectTo = (location.state as any)?.redirect || new URLSearchParams(location.search).get('redirect') || '/command-center';
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -21,7 +23,7 @@ export default function LoginPage() {
     
     try {
       await login({ email, password });
-      navigate('/command-center');
+      navigate(redirectTo);
     } catch (err: any) {
       setError(err.message || 'Authentication failed. Please check your credentials.');
     } finally {
@@ -117,10 +119,6 @@ export default function LoginPage() {
         <div className="mt-8 text-center text-xs text-[var(--color-bhairav-text-muted)]">
           <p>Restricted Access. Authorized Personnel Only.</p>
         </div>
-      </div>
-      
-      <div className="absolute bottom-0 w-full">
-        <Footer />
       </div>
     </div>
   );

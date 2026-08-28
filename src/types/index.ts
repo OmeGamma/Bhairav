@@ -38,6 +38,18 @@ export interface Alert {
   actionRequired: boolean;
 }
 
+export interface Notification {
+  id: string;
+  user_id: string;
+  title: string;
+  message: string;
+  type: string;
+  read: boolean;
+  metadata?: Record<string, any>;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface DashboardStats {
   criticalAlerts: number;
   securityReviews: number;
