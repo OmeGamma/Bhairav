@@ -2,28 +2,49 @@
 
 @theme {
   --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, SFMono-Regular, monospace;
   
-  --color-bhairav-bg: #0a0a0c;
-  --color-bhairav-surface: #121316;
-  --color-bhairav-surface-hover: #1a1b1f;
+  /* Graphite/Slate base instead of pure black */
+  --color-bhairav-bg: #111418;
+  --color-bhairav-surface: #1E232B;
+  --color-bhairav-surface-hover: #2A323D;
   
-  --color-bhairav-primary: #3b82f6; /* Blue/Primary - Bhairav interaction */
-  --color-bhairav-primary-hover: #2563eb;
+  /* Meaningful Accents */
+  --color-bhairav-primary: #4A7C9D; /* Steel Blue for primary actions/tech data */
+  --color-bhairav-primary-hover: #3A6D8C;
   
-  --color-bhairav-critical: #ef4444; /* Red - Critical */
-  --color-bhairav-warning: #f59e0b; /* Amber - Warning */
-  --color-bhairav-verified: #10b981; /* Green - Verified */
-  --color-bhairav-neutral: #6b7280; /* Neutral - Normal information */
+  --color-bhairav-critical: #C63A3A; /* Muted Crimson - reserved only for critical */
+  --color-bhairav-warning: #D99632; /* Restrained Ochre/Amber - for attention/review */
+  --color-bhairav-verified: #3C8765; /* Muted Green - for verified status */
+  --color-bhairav-neutral: #64748B; /* Neutral */
 
-  --color-bhairav-text: #f3f4f6;
-  --color-bhairav-text-muted: #9ca3af;
+  --color-bhairav-text: #F1F5F9; /* Off-white for legibility */
+  --color-bhairav-text-muted: #94A3B8;
   
-  --color-bhairav-border: #27272a;
+  --color-bhairav-border: #334155; /* Soft border for elevation */
 }
 
 @layer base {
   body {
     @apply bg-[var(--color-bhairav-bg)] text-[var(--color-bhairav-text)] font-sans antialiased;
+  }
+}
+
+@layer utilities {
+  .severity-notch-critical {
+    @apply border-l-[3px] border-l-[var(--color-bhairav-critical)];
+  }
+  .severity-notch-warning {
+    @apply border-l-[3px] border-l-[var(--color-bhairav-warning)];
+  }
+  .severity-notch-verified {
+    @apply border-l-[3px] border-l-[var(--color-bhairav-verified)];
+  }
+  .severity-notch-primary {
+    @apply border-l-[3px] border-l-[var(--color-bhairav-primary)];
+  }
+  .font-data {
+    @apply font-mono text-[0.85em] tracking-wider;
   }
 }
 

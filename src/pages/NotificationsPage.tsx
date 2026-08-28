@@ -67,28 +67,28 @@ export default function NotificationsPage() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)]">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 border-b border-[var(--color-bhairav-border)] pb-4">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Notification Center</h2>
-          <p className="text-[var(--color-bhairav-text-muted)] mt-1">System alerts, updates, and attention items</p>
+          <h2 className="text-2xl font-bold tracking-tight text-[var(--color-bhairav-text)] uppercase">Notification Center</h2>
+          <p className="text-[10px] uppercase font-mono tracking-widest text-[var(--color-bhairav-text-muted)] mt-1">System alerts, updates, and attention items</p>
         </div>
         {unreadCount > 0 && (
           <button
             onClick={handleMarkAllAsRead}
-            className="flex items-center gap-2 px-4 py-2 bg-[var(--color-bhairav-surface)] border border-[var(--color-bhairav-border)] rounded-md text-sm hover:bg-[var(--color-bhairav-surface-hover)] transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-[var(--color-bhairav-surface)] border border-[var(--color-bhairav-border)] rounded-md text-[10px] font-bold uppercase tracking-widest text-[var(--color-bhairav-text-muted)] hover:text-[var(--color-bhairav-text)] hover:border-[var(--color-bhairav-primary)] hover:bg-[var(--color-bhairav-surface-hover)] transition-colors"
           >
-            <CheckCircle size={16} />
+            <CheckCircle size={14} />
             Mark all as read
           </button>
         )}
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-2 mb-6 border-b border-[var(--color-bhairav-border)]">
+      <div className="flex items-center gap-2 mb-6 border-b border-[var(--color-bhairav-border)]/50">
         <button
           onClick={() => setFilter('all')}
           className={cn(
-            "px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors",
+            "px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest whitespace-nowrap border-b-2 transition-colors",
             filter === 'all'
               ? "border-[var(--color-bhairav-primary)] text-[var(--color-bhairav-primary)]"
               : "border-transparent text-[var(--color-bhairav-text-muted)] hover:text-[var(--color-bhairav-text)]"
@@ -99,7 +99,7 @@ export default function NotificationsPage() {
         <button
           onClick={() => setFilter('unread')}
           className={cn(
-            "px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors flex items-center gap-2",
+            "px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest whitespace-nowrap border-b-2 transition-colors flex items-center gap-2",
             filter === 'unread'
               ? "border-[var(--color-bhairav-primary)] text-[var(--color-bhairav-primary)]"
               : "border-transparent text-[var(--color-bhairav-text-muted)] hover:text-[var(--color-bhairav-text)]"
@@ -107,7 +107,7 @@ export default function NotificationsPage() {
         >
           Unread
           {unreadCount > 0 && (
-            <span className="bg-[var(--color-bhairav-critical)] text-white text-xs px-1.5 py-0.5 rounded-full">
+            <span className="bg-[var(--color-bhairav-critical)]/20 border border-[var(--color-bhairav-critical)]/50 text-[var(--color-bhairav-critical)] text-[10px] font-bold px-2 py-0.5 rounded-full">
               {unreadCount}
             </span>
           )}
@@ -115,7 +115,7 @@ export default function NotificationsPage() {
       </div>
 
       {/* Notification List */}
-      <div className="flex-1 overflow-y-auto space-y-3">
+      <div className="flex-1 overflow-y-auto space-y-3 pr-2">
         {filteredNotifications.length === 0 ? (
           <EmptyState
             icon={Bell}
@@ -153,22 +153,22 @@ export default function NotificationsPage() {
 
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between gap-2 mb-1">
-                  <h4 className="font-semibold text-[var(--color-bhairav-text)] truncate">{notification.title}</h4>
-                  <span className="text-xs font-mono text-[var(--color-bhairav-text-muted)] whitespace-nowrap flex items-center gap-1">
+                  <h4 className="font-semibold text-[var(--color-bhairav-text)] truncate uppercase tracking-wider text-sm">{notification.title}</h4>
+                  <span className="text-[10px] uppercase font-data tracking-widest text-[var(--color-bhairav-text-muted)] whitespace-nowrap flex items-center gap-1">
                     <Clock size={12} /> {new Date(notification.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </span>
                 </div>
-                <p className="text-sm text-[var(--color-bhairav-text-muted)] line-clamp-2">{notification.message}</p>
-                <div className="flex items-center gap-3 mt-2">
+                <p className="text-sm text-[var(--color-bhairav-text-muted)] line-clamp-2 leading-relaxed">{notification.message}</p>
+                <div className="flex items-center gap-3 mt-3">
                   <Badge status={notification.read ? 'neutral' : 'warning'}>{notification.type}</Badge>
                   {!notification.read && (
-                    <span className="text-xs font-medium text-[var(--color-bhairav-primary)]">New</span>
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-bhairav-primary)] animate-pulse">New</span>
                   )}
                 </div>
               </div>
 
               <div className="shrink-0 flex items-center h-full pt-4">
-                <ChevronRight size={20} className="text-[var(--color-bhairav-text-muted)] group-hover:text-[var(--color-bhairav-primary)]" />
+                <ChevronRight size={20} className="text-[var(--color-bhairav-text-muted)] group-hover:text-[var(--color-bhairav-primary)] transition-colors" />
               </div>
             </div>
           ))

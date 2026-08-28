@@ -53,10 +53,12 @@ export const SupportCenter: React.FC = () => {
   ] : [];
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-white">Personnel Support Center</h1>
-        <p className="text-gray-400 text-sm mt-1">Request professional, medical, or welfare support</p>
+    <div className="space-y-6 flex flex-col min-h-[calc(100vh-8rem)]">
+      <div className="flex justify-between items-end border-b border-[var(--color-bhairav-border)] pb-4">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight text-[var(--color-bhairav-text)] uppercase">Personnel Support Center</h2>
+          <p className="text-[var(--color-bhairav-text-muted)] mt-1">Request professional, medical, or welfare support</p>
+        </div>
       </div>
 
       <SupportCategoryGrid onSelect={handleSelectCategory} />
@@ -69,12 +71,12 @@ export const SupportCenter: React.FC = () => {
       >
         {!requestSubmitted ? (
           <div className="space-y-6">
-            <div className="bg-gray-900/50 border border-gray-800 rounded p-4 text-sm text-gray-300">
-              You are requesting support for: <span className="font-semibold text-white">{selectedCategory}</span>
+            <div className="bg-[var(--color-bhairav-surface)] border border-[var(--color-bhairav-border)] rounded-md p-4 text-sm text-[var(--color-bhairav-text-muted)] uppercase tracking-wider">
+              You are requesting support for: <span className="font-semibold text-[var(--color-bhairav-text)]">{selectedCategory}</span>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">
+              <label className="block text-[10px] font-bold text-[var(--color-bhairav-text-muted)] mb-2 uppercase tracking-widest">
                 Additional Context (Optional)
               </label>
               <textarea 
@@ -82,25 +84,25 @@ export const SupportCenter: React.FC = () => {
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Provide any additional information..."
-                className="w-full bg-[#1a1d24] border border-gray-700 rounded-lg p-3 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors resize-none"
+                className="w-full bg-[var(--color-bhairav-bg)] border border-[var(--color-bhairav-border)] rounded-lg p-3 text-sm text-[var(--color-bhairav-text)] focus:outline-none focus:border-[var(--color-bhairav-primary)] transition-colors resize-none placeholder:text-[var(--color-bhairav-text-muted)]/50"
               ></textarea>
             </div>
 
-            <div className="bg-blue-900/10 border border-blue-900/30 rounded p-3 text-xs text-blue-200/70">
+            <div className="bg-[var(--color-bhairav-primary)]/10 border border-[var(--color-bhairav-primary)]/30 rounded-md p-3 text-xs text-[var(--color-bhairav-primary)] uppercase tracking-wider font-medium leading-relaxed">
               This request will be routed to the appropriate authorized personnel. Your privacy will be maintained in accordance with standard protocol.
             </div>
 
-            <div className="pt-4 flex gap-3">
+            <div className="pt-4 flex gap-3 border-t border-[var(--color-bhairav-border)]">
               <button 
                 onClick={() => setSelectedCategory(null)}
-                className="px-4 py-2 bg-transparent text-gray-400 hover:text-white transition-colors"
+                className="px-4 py-2 bg-transparent text-[var(--color-bhairav-text-muted)] hover:text-[var(--color-bhairav-text)] transition-colors uppercase tracking-widest font-bold text-xs"
               >
                 Cancel
               </button>
               <button 
                 onClick={handleSubmit}
                 disabled={isSubmitting}
-                className="flex-1 bg-blue-600 hover:bg-blue-500 text-white rounded font-medium transition-colors disabled:opacity-50"
+                className="flex-1 bg-[var(--color-bhairav-primary)] hover:bg-[var(--color-bhairav-primary-hover)] text-[var(--color-bhairav-text)] rounded font-medium transition-colors disabled:opacity-50 uppercase tracking-widest text-sm py-2"
               >
                 {isSubmitting ? 'Submitting...' : 'Submit Request'}
               </button>
@@ -108,20 +110,20 @@ export const SupportCenter: React.FC = () => {
           </div>
         ) : (
           <div className="space-y-8 animate-in fade-in">
-            <div className="bg-green-900/20 border border-green-900/50 rounded-lg p-5 text-center">
-              <h3 className="text-lg font-medium text-green-400 mb-1">Request Submitted</h3>
-              <p className="text-sm text-gray-400">Request ID: <span className="font-mono text-gray-300">{requestId}</span></p>
+            <div className="bg-[var(--color-bhairav-verified)]/10 border border-[var(--color-bhairav-verified)]/30 rounded-lg p-5 text-center">
+              <h3 className="text-lg font-medium text-[var(--color-bhairav-verified)] mb-1 uppercase tracking-wider">Request Submitted</h3>
+              <p className="text-sm text-[var(--color-bhairav-text-muted)]">Request ID: <span className="font-data text-[var(--color-bhairav-text)]">{requestId}</span></p>
             </div>
 
             <div>
-              <h4 className="text-sm font-medium text-gray-300 uppercase tracking-wider mb-4">Status Tracking</h4>
+              <h4 className="text-[10px] font-bold text-[var(--color-bhairav-text-muted)] uppercase tracking-widest mb-4 border-b border-[var(--color-bhairav-border)] pb-2">Status Tracking</h4>
               <Timeline events={timelineEvents} />
             </div>
 
-            <div className="pt-4 border-t border-gray-800">
+            <div className="pt-4 border-t border-[var(--color-bhairav-border)]">
               <button 
                 onClick={() => setSelectedCategory(null)}
-                className="w-full py-2 bg-gray-800 hover:bg-gray-700 text-white rounded transition-colors"
+                className="w-full py-2 bg-[var(--color-bhairav-surface)] hover:bg-[var(--color-bhairav-surface-hover)] border border-[var(--color-bhairav-border)] text-[var(--color-bhairav-text)] rounded transition-colors uppercase tracking-widest text-sm font-bold"
               >
                 Close
               </button>

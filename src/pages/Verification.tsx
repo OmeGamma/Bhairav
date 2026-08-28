@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { UploadDropzone } from '../components/Verification/UploadDropzone';
 import { DocumentPreview } from '../components/Verification/DocumentPreview';
 import { ExplainAnalysisModal } from '../components/Verification/ExplainAnalysisModal';
-import { StatusBadge } from '../components/Shared/StatusBadge';
 import { submitForVerification } from '../services/verificationService';
 import { VerificationResult } from '../types/verification';
+import { Badge } from '../components/common/Badge';
 
 export const Verification: React.FC = () => {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -36,30 +36,30 @@ export const Verification: React.FC = () => {
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <div className="flex justify-between items-center mb-6">
+    <div className="space-y-6 flex flex-col min-h-[calc(100vh-8rem)]">
+      <div className="flex justify-between items-end border-b border-[var(--color-bhairav-border)] pb-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">Identity Verification</h1>
-          <p className="text-gray-400 text-sm mt-1">Secure identity and document analysis workspace</p>
+          <h2 className="text-2xl font-bold tracking-tight uppercase">Identity Verification</h2>
+          <p className="text-[var(--color-bhairav-text-muted)] mt-1">Secure identity and document analysis workspace</p>
         </div>
         
         {/* Progress Flow UI */}
-        <div className="hidden md:flex items-center text-xs text-gray-500 font-medium space-x-2">
-          <span className={photoFile ? 'text-blue-400' : ''}>PHOTO</span>
+        <div className="hidden md:flex items-center text-[10px] uppercase tracking-widest text-[var(--color-bhairav-text-muted)] space-x-3">
+          <span className={photoFile ? 'text-[var(--color-bhairav-primary)] font-bold' : ''}>Photo</span>
           <span>→</span>
-          <span className={documentFile ? 'text-blue-400' : ''}>DOCUMENT</span>
+          <span className={documentFile ? 'text-[var(--color-bhairav-primary)] font-bold' : ''}>Document</span>
           <span>→</span>
-          <span className={isProcessing ? 'text-blue-400 animate-pulse' : result ? 'text-green-400' : ''}>ANALYSIS</span>
+          <span className={isProcessing ? 'text-[var(--color-bhairav-primary)] animate-pulse font-bold' : result ? 'text-[var(--color-bhairav-verified)] font-bold' : ''}>Analysis</span>
           <span>→</span>
-          <span className={result ? 'text-white' : ''}>REVIEW</span>
+          <span className={result ? 'text-[var(--color-bhairav-text)] font-bold' : ''}>Review</span>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1">
         {/* Left Column: Upload */}
-        <div className="lg:col-span-5 space-y-4">
-          <div className="bg-[#12141a] border border-gray-800 rounded-lg p-5 shadow-sm">
-            <h2 className="text-base font-semibold text-gray-200 mb-4">Verification Subjects</h2>
+        <div className="lg:col-span-5 space-y-6">
+          <div className="bg-[var(--color-bhairav-surface)] border border-[var(--color-bhairav-border)] rounded-xl p-5 shadow-sm">
+            <h3 className="font-semibold text-[var(--color-bhairav-text)] mb-4">Verification Subjects</h3>
             
             <div className="space-y-4">
               <UploadDropzone 
@@ -80,18 +80,18 @@ export const Verification: React.FC = () => {
               />
             </div>
             
-            <div className="mt-6 pt-4 border-t border-gray-800 flex justify-between">
+            <div className="mt-6 pt-4 border-t border-[var(--color-bhairav-border)] flex justify-between items-center">
               <button 
                 onClick={resetForm}
                 disabled={isProcessing || (!photoFile && !documentFile)}
-                className="px-4 py-2 text-sm text-gray-400 hover:text-white disabled:opacity-50"
+                className="px-4 py-2 text-sm text-[var(--color-bhairav-text-muted)] hover:text-[var(--color-bhairav-text)] disabled:opacity-50 transition-colors"
               >
                 Clear
               </button>
               <button 
                 onClick={handleSubmit}
                 disabled={isProcessing || (!photoFile && !documentFile)}
-                className="px-6 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-800 disabled:text-gray-500 text-white font-medium rounded text-sm transition-colors"
+                className="px-6 py-2 bg-[var(--color-bhairav-primary)] hover:bg-[var(--color-bhairav-primary-hover)] disabled:bg-[var(--color-bhairav-surface-hover)] disabled:text-[var(--color-bhairav-text-muted)] text-[var(--color-bhairav-text)] font-medium rounded text-sm transition-colors"
               >
                 {isProcessing ? 'Processing...' : 'Submit for Verification'}
               </button>
@@ -100,30 +100,32 @@ export const Verification: React.FC = () => {
           
           {/* Result Card */}
           {result && (
-            <div className="bg-[#12141a] border border-gray-800 rounded-lg p-5 shadow-sm animate-in fade-in slide-in-from-bottom-4">
+            <div className={`bg-[var(--color-bhairav-surface)] border border-[var(--color-bhairav-border)] rounded-xl p-5 shadow-sm animate-in fade-in slide-in-from-bottom-4 severity-notch-${result.status === 'VERIFIED' ? 'verified' : result.status === 'REVIEW REQUIRED' ? 'warning' : result.status === 'ANOMALY DETECTED' ? 'critical' : 'neutral'}`}>
               <div className="flex justify-between items-start mb-4">
-                <h2 className="text-base font-semibold text-gray-200">Verification Result</h2>
-                <StatusBadge status={result.status} />
+                <h3 className="font-semibold text-[var(--color-bhairav-text)]">Verification Result</h3>
+                <Badge status={result.status === 'VERIFIED' ? 'verified' : result.status === 'REVIEW REQUIRED' ? 'warning' : result.status === 'ANOMALY DETECTED' ? 'critical' : 'neutral'}>
+                  {result.status}
+                </Badge>
               </div>
               
-              <div className="space-y-3 mb-5">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-400">Information Consistency</span>
-                  <span className="text-gray-200">{result.informationConsistency}%</span>
+              <div className="space-y-3 mb-5 text-sm">
+                <div className="flex justify-between items-center">
+                  <span className="text-[var(--color-bhairav-text-muted)]">Information Consistency</span>
+                  <span className="font-data text-[var(--color-bhairav-text)]">{result.informationConsistency}%</span>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-400">Photo Consistency</span>
-                  <span className="text-gray-200">{result.photoConsistency}%</span>
+                <div className="flex justify-between items-center">
+                  <span className="text-[var(--color-bhairav-text-muted)]">Photo Consistency</span>
+                  <span className="font-data text-[var(--color-bhairav-text)]">{result.photoConsistency}%</span>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-400">Document Integrity</span>
-                  <span className="text-gray-200">{result.documentIntegrity}%</span>
+                <div className="flex justify-between items-center">
+                  <span className="text-[var(--color-bhairav-text-muted)]">Document Integrity</span>
+                  <span className="font-data text-[var(--color-bhairav-text)]">{result.documentIntegrity}%</span>
                 </div>
               </div>
               
               <button 
                 onClick={() => setIsExplainModalOpen(true)}
-                className="w-full py-2 bg-gray-800 hover:bg-gray-700 text-white border border-gray-700 rounded text-sm font-medium transition-colors"
+                className="w-full py-2 bg-[var(--color-bhairav-bg)] hover:bg-[var(--color-bhairav-surface-hover)] border border-[var(--color-bhairav-border)] text-[var(--color-bhairav-text)] rounded text-sm font-medium transition-colors"
               >
                 Explain Analysis
               </button>
@@ -132,7 +134,7 @@ export const Verification: React.FC = () => {
         </div>
         
         {/* Right Column: Preview & Analysis */}
-        <div className="lg:col-span-7">
+        <div className="lg:col-span-7 h-full">
           <DocumentPreview 
             photoFile={photoFile} 
             documentFile={documentFile} 

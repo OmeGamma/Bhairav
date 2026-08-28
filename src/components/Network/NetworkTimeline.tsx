@@ -38,16 +38,16 @@ export const NetworkTimeline: React.FC<NetworkTimelineProps> = ({ entity }) => {
   ] : [];
 
   return (
-    <div className="bg-[#12141a] border border-gray-800 rounded-lg p-4 h-full flex flex-col">
-      <h3 className="text-sm font-semibold text-gray-200 mb-4 pb-2 border-b border-gray-800">
+    <div className="bg-[var(--color-bhairav-surface)] h-full flex flex-col">
+      <h3 className="text-sm font-semibold text-[var(--color-bhairav-text)] mb-4 p-4 pb-2 border-b border-[var(--color-bhairav-border)] bg-[var(--color-bhairav-surface-hover)] uppercase tracking-wider">
         Entity Timeline {entity ? `- ${entity.label}` : ''}
       </h3>
       
-      <div className="flex-1 overflow-y-auto pr-2">
+      <div className="flex-1 overflow-y-auto pr-2 p-4 pt-0">
         {entity ? (
           <Timeline events={events} />
         ) : (
-          <div className="h-full flex items-center justify-center text-sm text-gray-500">
+          <div className="h-full flex items-center justify-center text-sm text-[var(--color-bhairav-text-muted)] font-mono tracking-wider">
             Select an entity in the graph to view its timeline.
           </div>
         )}

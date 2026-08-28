@@ -12,17 +12,17 @@ export const AskBhairav: React.FC = () => {
   };
 
   return (
-    <div className="h-[calc(100vh-64px)] bg-[#0b0c10] flex flex-col p-4 md:p-6">
-      <div className="mb-4 flex items-center gap-4">
+    <div className="h-[calc(100vh-8rem)] flex flex-col">
+      <div className="mb-6 flex items-center gap-4 border-b border-[var(--color-bhairav-border)] pb-4">
         <button
-          onClick={() => navigate('/command-center')}
-          className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors"
+          onClick={() => navigate(-1)}
+          className="flex items-center justify-center w-10 h-10 rounded-md bg-[var(--color-bhairav-bg)] border border-[var(--color-bhairav-border)] text-[var(--color-bhairav-text-muted)] hover:text-[var(--color-bhairav-text)] hover:border-[var(--color-bhairav-primary)]/50 transition-colors"
         >
-          <ArrowLeft size={16} /> Back
+          <ArrowLeft size={18} />
         </button>
         <div>
-          <h1 className="text-2xl font-bold text-white">Ask Bhairav</h1>
-          <p className="text-gray-400 text-sm mt-1">Unified AI Assistant for Defence & Security Intelligence</p>
+          <h1 className="text-2xl font-bold tracking-tight text-[var(--color-bhairav-text)] uppercase">Ask Bhairav</h1>
+          <p className="text-[10px] uppercase font-mono tracking-widest text-[var(--color-bhairav-text-muted)] mt-1">Unified AI Assistant for Defence & Security Intelligence</p>
         </div>
       </div>
 

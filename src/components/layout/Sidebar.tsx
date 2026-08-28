@@ -37,10 +37,10 @@ export function Sidebar() {
             to={item.path}
             className={({ isActive }) =>
               cn(
-                "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                "flex items-center gap-3 px-3 py-2 rounded-r-md text-sm font-medium transition-colors border-l-[3px]",
                 isActive 
-                  ? "bg-[var(--color-bhairav-primary)]/10 text-[var(--color-bhairav-primary)]" 
-                  : "text-[var(--color-bhairav-text-muted)] hover:bg-[var(--color-bhairav-surface-hover)] hover:text-[var(--color-bhairav-text)]"
+                  ? "border-[var(--color-bhairav-primary)] bg-[var(--color-bhairav-primary)]/10 text-[var(--color-bhairav-text)]" 
+                  : "border-transparent text-[var(--color-bhairav-text-muted)] hover:bg-[var(--color-bhairav-surface-hover)] hover:text-[var(--color-bhairav-text)]"
               )
             }
           >

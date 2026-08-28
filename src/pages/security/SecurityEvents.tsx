@@ -298,7 +298,7 @@ export default function SecurityEvents() {
               <div 
                 key={evt.id}
                 onClick={() => navigate(`/security/events/${evt.id}`)}
-                className="bg-[var(--color-bhairav-surface)] border border-[var(--color-bhairav-border)] p-5 rounded-xl hover:border-[var(--color-bhairav-primary)]/50 cursor-pointer transition-all group flex flex-col md:flex-row md:items-center gap-6"
+                className={`bg-[var(--color-bhairav-surface)] border-y border-r border-[var(--color-bhairav-border)] p-5 rounded-xl hover:border-[var(--color-bhairav-primary)]/50 cursor-pointer transition-all group flex flex-col md:flex-row md:items-center gap-6 severity-notch-${evt.severity}`}
               >
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">

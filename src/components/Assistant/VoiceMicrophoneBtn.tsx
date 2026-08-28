@@ -7,20 +7,20 @@ interface VoiceMicrophoneBtnProps {
 }
 
 export const VoiceMicrophoneBtn: React.FC<VoiceMicrophoneBtnProps> = ({ state, onClick }) => {
-  let btnClass = 'bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700';
+  let btnClass = 'bg-[var(--color-bhairav-surface)] border border-[var(--color-bhairav-border)] text-[var(--color-bhairav-text-muted)] hover:text-[var(--color-bhairav-text)] hover:bg-[var(--color-bhairav-surface-hover)]';
   let pulseClass = '';
   
   if (state === 'LISTENING') {
-    btnClass = 'bg-blue-600 text-white';
-    pulseClass = 'animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75';
+    btnClass = 'bg-[var(--color-bhairav-primary)] text-white border-[var(--color-bhairav-primary)]';
+    pulseClass = 'animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--color-bhairav-primary)] opacity-50';
   } else if (state === 'PROCESSING') {
-    btnClass = 'bg-yellow-600 text-white';
-    pulseClass = 'animate-spin absolute inline-flex h-full w-full rounded-full border-2 border-yellow-400 border-t-transparent';
+    btnClass = 'bg-[var(--color-bhairav-warning)] text-white border-[var(--color-bhairav-warning)]';
+    pulseClass = 'animate-spin absolute inline-flex h-full w-full rounded-full border-2 border-[var(--color-bhairav-warning)] border-t-transparent';
   } else if (state === 'RESPONDING') {
-    btnClass = 'bg-green-600 text-white';
-    pulseClass = 'animate-pulse absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-50';
+    btnClass = 'bg-[var(--color-bhairav-verified)] text-white border-[var(--color-bhairav-verified)]';
+    pulseClass = 'animate-pulse absolute inline-flex h-full w-full rounded-full bg-[var(--color-bhairav-verified)] opacity-30';
   } else if (state === 'ERROR') {
-    btnClass = 'bg-red-600 text-white';
+    btnClass = 'bg-[var(--color-bhairav-critical)] text-white border-[var(--color-bhairav-critical)]';
   }
 
   return (
