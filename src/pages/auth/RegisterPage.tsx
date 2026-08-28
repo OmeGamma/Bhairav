@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Shield, Lock, User, AlertCircle, ArrowRight, Mail } from 'lucide-react';
-import { Footer } from '../../components/layout/Footer';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../hooks/useAuth';
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -14,14 +13,21 @@ export default function RegisterPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  
+  const [confirmPassword, setConfirmPassword] = useState('');
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     setError('');
     
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
+    setIsLoading(true);
+    
     try {
-      await register({ name, email, password, role_id: 'officer' });
+      await register({ name, email, password });
       navigate('/login');
     } catch (err: any) {
       setError(err.message || 'Registration failed. Please try again.');
@@ -54,7 +60,7 @@ export default function RegisterPage() {
           <form onSubmit={handleRegister} className="space-y-5">
             <div>
               <label className="block text-sm font-medium text-[var(--color-bhairav-text-muted)] mb-2">
-                Full Name / Rank
+                Full Name
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -66,14 +72,14 @@ export default function RegisterPage() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="block w-full pl-10 pr-3 py-3 border border-[var(--color-bhairav-border)] rounded-md bg-[var(--color-bhairav-bg)] text-[var(--color-bhairav-text)] placeholder-[var(--color-bhairav-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--color-bhairav-primary)] focus:border-[var(--color-bhairav-primary)] transition-all sm:text-sm"
-                  placeholder="Commander Singh"
+                  placeholder="Officer Name"
                 />
               </div>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-[var(--color-bhairav-text-muted)] mb-2">
-                Official Email
+                Email
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -92,7 +98,7 @@ export default function RegisterPage() {
 
             <div>
               <label className="block text-sm font-medium text-[var(--color-bhairav-text-muted)] mb-2">
-                Secure Passkey
+                Password
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -109,6 +115,25 @@ export default function RegisterPage() {
               </div>
             </div>
 
+            <div>
+              <label className="block text-sm font-medium text-[var(--color-bhairav-text-muted)] mb-2">
+                Confirm Password
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Lock className="h-5 w-5 text-[var(--color-bhairav-text-muted)]" />
+                </div>
+                <input
+                  type="password"
+                  required
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="block w-full pl-10 pr-3 py-3 border border-[var(--color-bhairav-border)] rounded-md bg-[var(--color-bhairav-bg)] text-[var(--color-bhairav-text)] placeholder-[var(--color-bhairav-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--color-bhairav-primary)] focus:border-[var(--color-bhairav-primary)] transition-all sm:text-sm"
+                  placeholder="••••••••"
+                />
+              </div>
+            </div>
+
             <button
               type="submit"
               disabled={isLoading}
@@ -118,7 +143,7 @@ export default function RegisterPage() {
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
               ) : (
                 <>
-                  Submit Request <ArrowRight size={16} />
+                  Create Account <ArrowRight size={16} />
                 </>
               )}
             </button>
@@ -127,7 +152,7 @@ export default function RegisterPage() {
               <p className="text-sm text-[var(--color-bhairav-text-muted)]">
                 Already have clearance?{' '}
                 <Link to="/login" className="text-[var(--color-bhairav-primary)] hover:underline">
-                  Authenticate
+                  Sign In
                 </Link>
               </p>
             </div>
@@ -137,10 +162,6 @@ export default function RegisterPage() {
         <div className="mt-8 text-center text-xs text-[var(--color-bhairav-text-muted)]">
           <p>Access subject to verification and approval.</p>
         </div>
-      </div>
-      
-      <div className="absolute bottom-0 w-full">
-        <Footer />
       </div>
     </div>
   );

@@ -4,7 +4,7 @@ import {
   Video, Users, FileText, Settings, ShieldQuestion, LogOut
 } from 'lucide-react';
 import { cn } from '../../utils/cn';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../hooks/useAuth';
 
 const navItems = [
   { name: 'Command Center', path: '/command-center', icon: LayoutDashboard },

@@ -1,15 +1,27 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppLayout } from './components/layout/AppLayout';
+import { PublicLayout } from './components/layout/PublicLayout';
 import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 
 // Pages
 // public
 import LandingPage from './pages/public/LandingPage';
+import AboutPage from './pages/public/AboutPage';
+import ContactPage from './pages/public/ContactPage';
+import RequestAccessPage from './pages/public/RequestAccessPage';
+import SecurityPage from './pages/public/SecurityPage';
+import DataProtectionPage from './pages/public/DataProtectionPage';
+import PrivacyPolicyPage from './pages/public/PrivacyPolicyPage';
+import TermsOfServicePage from './pages/public/TermsOfServicePage';
+import CookiePolicyPage from './pages/public/CookiePolicyPage';
+import AccessibilityPage from './pages/public/AccessibilityPage';
 // auth
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import OnboardingPage from './pages/auth/OnboardingPage';
+import NotificationsPage from './pages/NotificationsPage';
+import ProfilePage from './pages/ProfilePage';
 // shell components
 import CommandCenter from './pages/command-center/CommandCenter';
 import SecurityMap from './pages/security/SecurityMap';
@@ -33,14 +45,27 @@ function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          {/* Public / Unauthenticated */}
-          <Route path="/" element={<Navigate to="/onboarding" replace />} />
-          <Route path="/landing" element={<LandingPage />} />
-          <Route path="/onboarding" element={<OnboardingPage />} />
+          {/* Public layout: navbar + footer, no auth required */}
+          <Route element={<PublicLayout />}>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/landing" element={<LandingPage />} />
+            <Route path="/onboarding" element={<OnboardingPage />} />
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/contact" element={<ContactPage />} />
+          <Route path="/request-access" element={<RequestAccessPage />} />
+          <Route path="/security" element={<SecurityPage />} />
+          <Route path="/data-protection" element={<DataProtectionPage />} />
+          <Route path="/privacy" element={<PrivacyPolicyPage />} />
+            <Route path="/terms" element={<TermsOfServicePage />} />
+            <Route path="/cookies" element={<CookiePolicyPage />} />
+            <Route path="/accessibility" element={<AccessibilityPage />} />
+          </Route>
+
+          {/* Auth pages: standalone, no footer */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           
-          {/* Authenticated Layout Routes */}
+          {/* Protected layout */}
           <Route element={<ProtectedRoute />}>
             <Route element={<AppLayout />}>
               <Route path="/command-center" element={<CommandCenter />} />
@@ -50,6 +75,8 @@ function App() {
               <Route path="/security/map" element={<SecurityMap />} />
               <Route path="/security/events/:id" element={<SecurityEvents />} />
               <Route path="/attention" element={<AttentionCenter />} />
+              <Route path="/notifications" element={<NotificationsPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
               
               {/* Member 2 Routes */}
               <Route path="/verification" element={<Verification />} />
@@ -66,7 +93,7 @@ function App() {
               
               <Route path="/reports" element={<ReportsDashboard />} />
               
-              <Route path="/settings" element={<div className="p-8 text-[var(--color-bhairav-text)]">Settings coming soon</div>} />
+              <Route path="/settings" element={<Navigate to="/profile" replace />} />
             </Route>
           </Route>
           

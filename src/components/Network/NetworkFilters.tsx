@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 interface NetworkFiltersProps {
   onFilterChange: (filters: any) => void;
@@ -6,6 +6,13 @@ interface NetworkFiltersProps {
 }
 
 export const NetworkFilters: React.FC<NetworkFiltersProps> = ({ onFilterChange, onReset }) => {
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const handleClear = () => {
+    setSearchQuery('');
+    onFilterChange({});
+  };
+
   return (
     <div className="bg-[#12141a] border border-gray-800 rounded-lg p-4 h-full overflow-y-auto">
       <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-800">
@@ -20,9 +27,22 @@ export const NetworkFilters: React.FC<NetworkFiltersProps> = ({ onFilterChange, 
           </svg>
           <input 
             type="text" 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search entity..." 
-            className="w-full pl-9 pr-4 py-2 bg-[#1a1d24] border border-gray-700 rounded text-sm text-white focus:outline-none focus:border-blue-500 transition-colors"
+            className="w-full pl-9 pr-9 py-2 bg-[#1a1d24] border border-gray-700 rounded text-sm text-white focus:outline-none focus:border-blue-500 transition-colors"
           />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={handleClear}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+          )}
         </div>
       </div>
 
