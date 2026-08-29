@@ -56,3 +56,12 @@ export interface DashboardStats {
   intelligenceUpdates: number;
   welfareFollowups: number;
 }
+
+export interface Task {
+  id: string;
+  title: string;
+  description: string;
+  status: 'pending' | 'in-progress' | 'completed';
+  assignee: string;
+  dueDate: string;
+}
