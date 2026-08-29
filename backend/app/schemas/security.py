@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator, ConfigDict
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 
@@ -82,6 +82,13 @@ class EventBase(BaseModel):
     location_id: Optional[str] = None
     camera_id: Optional[str] = None
     status: str = "NEW"
+    title: Optional[str] = None
+    location: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    related_entities_count: Optional[int] = 0
+    source: Optional[str] = "SYSTEM"
+    timestamp: Optional[datetime] = None
 
 class EventCreate(EventBase):
     pass
@@ -93,14 +100,46 @@ class EventUpdate(BaseModel):
     location_id: Optional[str] = None
     camera_id: Optional[str] = None
     status: Optional[str] = None
+    title: Optional[str] = None
+    location: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    related_entities_count: Optional[int] = None
+    source: Optional[str] = None
+    timestamp: Optional[datetime] = None
 
-class EventResponse(EventBase):
-    id: str = Field(alias="_id")
-    created_at: datetime
-    updated_at: datetime
+class EventResponse(BaseModel):
+    id: str
+    event_type: str
+    severity: str
+    description: Optional[str] = None
+    location_id: Optional[str] = None
+    camera_id: Optional[str] = None
+    status: str = "NEW"
+    title: Optional[str] = None
+    location: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    related_entities_count: Optional[int] = 0
+    source: Optional[str] = "SYSTEM"
+    timestamp: Optional[datetime] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
-    class Config:
-        populate_by_name = True
+    model_config = ConfigDict(extra='ignore')
+
+    @model_validator(mode='before')
+    @classmethod
+    def normalize(cls, data):
+        if isinstance(data, dict):
+            if '_id' in data:
+                data = data.copy()
+                data['id'] = str(data.pop('_id'))
+            if data.get('event_type') and not data.get('type'):
+                data['type'] = data['event_type']
+            if data.get('camera_id') and not data.get('cameraId'):
+                data['cameraId'] = data['camera_id']
+        return data
 
 # --- Incidents ---
 class IncidentBase(BaseModel):

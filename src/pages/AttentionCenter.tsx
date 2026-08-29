@@ -5,8 +5,21 @@ import { LoadingState } from '../components/common/LoadingState';
 import { ErrorState } from '../components/common/ErrorState';
 import { EmptyState } from '../components/common/EmptyState';
 import { alertService } from '../services/alertService';
-import type { Alert } from '../types';
+import { eventService } from '../services/eventService';
+import type { Alert, SecurityEvent } from '../types';
 import { cn } from '../utils/cn';
+
+function eventToAlert(evt: SecurityEvent): Alert {
+  return {
+    id: evt.id,
+    title: evt.type,
+    description: evt.description,
+    severity: evt.severity,
+    timestamp: evt.timestamp,
+    category: 'security',
+    actionRequired: evt.severity === 'critical',
+  };
+}
 
 export default function AttentionCenter() {
   const [activeTab, setActiveTab] = useState<'all' | 'critical' | 'review' | 'intelligence' | 'welfare' | 'system'>('all');
@@ -20,9 +33,13 @@ export default function AttentionCenter() {
     setLoading(true);
     setError(null);
     try {
-      const data = await alertService.getAlerts();
-      setAlerts(data);
-    } catch (err) {
+      const [alertsData, eventsData] = await Promise.all([
+        alertService.getAlerts(),
+        eventService.getSecurityEvents({ severity: 'critical' }),
+      ]);
+      const eventAlerts = (eventsData || []).map(eventToAlert);
+      setAlerts([...alertsData, ...eventAlerts]);
+    } catch {
       setError('Failed to fetch attention items.');
     } finally {
       setLoading(false);
@@ -55,25 +72,25 @@ export default function AttentionCenter() {
     : alerts.filter(a => a.category === activeTab || (activeTab === 'critical' && a.severity === 'critical'));
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)]">
-      <div className="flex items-center justify-between mb-6">
+    <div className="flex flex-col ">
+      <div className="flex items-center justify-between mb-6 border-b border-[var(--color-bhairav-border)] pb-4">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Attention Center</h2>
+          <h2 className="text-2xl font-bold tracking-tight text-[var(--color-bhairav-text)] uppercase">Attention Center</h2>
           <p className="text-[var(--color-bhairav-text-muted)] mt-1">Centralized hub for items requiring officer review</p>
         </div>
-        <Badge status="critical" className="px-3 py-1.5 text-sm font-bold">
+        <Badge status="critical" className="px-3 py-1.5 text-sm font-bold uppercase tracking-wider">
           {alerts.filter(a => a.severity === 'critical').length} Critical Action(s) Required
         </Badge>
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide border-b border-[var(--color-bhairav-border)]">
+      <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide border-b border-[var(--color-bhairav-border)]/50">
         {tabs.map(tab => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as any)}
             className={cn(
-              "px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors",
+              "px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest whitespace-nowrap border-b-2 transition-colors",
               activeTab === tab.id 
                 ? "border-[var(--color-bhairav-primary)] text-[var(--color-bhairav-primary)]" 
                 : "border-transparent text-[var(--color-bhairav-text-muted)] hover:text-[var(--color-bhairav-text)] hover:border-[var(--color-bhairav-border)]"
@@ -116,17 +133,17 @@ export default function AttentionCenter() {
               
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between gap-2 mb-1">
-                  <h4 className="font-semibold text-[var(--color-bhairav-text)] truncate">{alert.title}</h4>
-                  <span className="text-xs font-mono text-[var(--color-bhairav-text-muted)] whitespace-nowrap flex items-center gap-1">
+                  <h4 className="font-semibold text-[var(--color-bhairav-text)] truncate uppercase tracking-wider text-sm">{alert.title}</h4>
+                  <span className="text-[10px] font-data uppercase tracking-widest text-[var(--color-bhairav-text-muted)] whitespace-nowrap flex items-center gap-1">
                     <Clock size={12} /> {new Date(alert.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </span>
                 </div>
-                <p className="text-sm text-[var(--color-bhairav-text-muted)] line-clamp-2 mb-3">{alert.description}</p>
+                <p className="text-sm text-[var(--color-bhairav-text-muted)] line-clamp-2 mb-3 leading-relaxed">{alert.description}</p>
                 
                 <div className="flex items-center gap-3">
                   <Badge status={alert.severity}>{alert.category.toUpperCase()}</Badge>
                   {alert.actionRequired && (
-                     <span className="text-xs font-medium text-[var(--color-bhairav-critical)] bg-[var(--color-bhairav-critical)]/10 px-2 py-0.5 rounded border border-[var(--color-bhairav-critical)]/20 animate-pulse">
+                     <span className="text-[10px] uppercase font-bold tracking-widest text-[var(--color-bhairav-critical)] bg-[var(--color-bhairav-critical)]/10 px-2 py-0.5 rounded border border-[var(--color-bhairav-critical)]/20 animate-pulse">
                        ACTION REQUIRED
                      </span>
                   )}
@@ -150,12 +167,12 @@ export default function AttentionCenter() {
         {/* Selected Context Panel */}
         {selectedAlert && (
           <div className="w-1/3 min-w-[350px] bg-[var(--color-bhairav-surface)] border border-[var(--color-bhairav-border)] rounded-xl overflow-hidden flex flex-col shadow-lg animate-in fade-in slide-in-from-right-4">
-             <div className="p-4 border-b border-[var(--color-bhairav-border)] flex items-center justify-between bg-[var(--color-bhairav-surface)]/50">
+             <div className="p-4 border-b border-[var(--color-bhairav-border)] flex items-center justify-between bg-[var(--color-bhairav-surface-hover)]">
                 <div className="flex items-center gap-2">
                    <Shield className="text-[var(--color-bhairav-primary)]" size={16} />
-                   <h3 className="font-semibold text-sm">Action Context</h3>
+                   <h3 className="font-semibold text-xs uppercase tracking-wider text-[var(--color-bhairav-text)]">Action Context</h3>
                 </div>
-                <button onClick={() => setSelectedAlert(null)} className="text-[var(--color-bhairav-text-muted)] hover:text-white text-xs uppercase tracking-wider font-medium">
+                <button onClick={() => setSelectedAlert(null)} className="text-[var(--color-bhairav-text-muted)] hover:text-[var(--color-bhairav-text)] text-[10px] uppercase tracking-widest font-bold transition-colors">
                    Close
                 </button>
              </div>
@@ -164,9 +181,9 @@ export default function AttentionCenter() {
                 <div>
                    <div className="flex items-center justify-between mb-3">
                       <Badge status={selectedAlert.severity}>{selectedAlert.id}</Badge>
-                      <span className="text-xs text-[var(--color-bhairav-text-muted)] font-mono">{new Date(selectedAlert.timestamp).toLocaleString()}</span>
+                      <span className="text-[10px] text-[var(--color-bhairav-text-muted)] font-data uppercase tracking-widest">{new Date(selectedAlert.timestamp).toLocaleString()}</span>
                    </div>
-                   <h2 className="text-xl font-bold mb-2">{selectedAlert.title}</h2>
+                   <h2 className="text-xl font-bold mb-3 uppercase tracking-tight text-[var(--color-bhairav-text)]">{selectedAlert.title}</h2>
                    <p className="text-[var(--color-bhairav-text)] leading-relaxed text-sm bg-[var(--color-bhairav-bg)] p-4 rounded-lg border border-[var(--color-bhairav-border)]">
                       {selectedAlert.description}
                    </p>
@@ -174,8 +191,8 @@ export default function AttentionCenter() {
                 
                 {selectedAlert.category === 'intelligence' && (
                   <div className="space-y-3">
-                     <h4 className="text-xs font-semibold uppercase tracking-wider text-[var(--color-bhairav-text-muted)]">AI Analysis Summary</h4>
-                     <p className="text-sm border-l-2 border-[var(--color-bhairav-primary)] pl-3 text-[var(--color-bhairav-text-muted)]">
+                     <h4 className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-bhairav-text-muted)]">AI Analysis Summary</h4>
+                     <p className="text-sm border-l-2 border-[var(--color-bhairav-primary)] pl-4 text-[var(--color-bhairav-text-muted)] py-1">
                        Entity relationships have been updated based on recent cross-referencing. Review the newly generated intelligence graphs for potential threats.
                      </p>
                   </div>
@@ -183,10 +200,10 @@ export default function AttentionCenter() {
              </div>
              
              <div className="p-4 border-t border-[var(--color-bhairav-border)] bg-[var(--color-bhairav-surface)]/80 flex flex-col gap-2">
-                <button className="w-full bg-[var(--color-bhairav-primary)] hover:bg-[var(--color-bhairav-primary-hover)] text-white py-2.5 rounded-md text-sm font-medium transition-colors shadow-[0_0_15px_rgba(59,130,246,0.2)]">
+                <button className="w-full bg-[var(--color-bhairav-primary)] hover:bg-[var(--color-bhairav-primary-hover)] text-[var(--color-bhairav-text)] py-3 rounded-md text-xs font-bold uppercase tracking-widest transition-colors shadow-[0_0_15px_rgba(59,130,246,0.1)]">
                    Acknowledge & Action
                 </button>
-                <button className="w-full bg-[var(--color-bhairav-bg)] hover:bg-[var(--color-bhairav-surface-hover)] border border-[var(--color-bhairav-border)] text-white py-2.5 rounded-md text-sm transition-colors">
+                <button className="w-full bg-[var(--color-bhairav-bg)] hover:bg-[var(--color-bhairav-surface-hover)] border border-[var(--color-bhairav-border)] text-[var(--color-bhairav-text)] py-3 rounded-md text-xs font-bold uppercase tracking-widest transition-colors">
                    Delegate
                 </button>
              </div>

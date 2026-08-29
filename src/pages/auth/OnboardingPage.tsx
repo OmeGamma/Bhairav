@@ -1,17 +1,19 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  Shield, LayoutDashboard, Video, Map, 
+  LayoutDashboard, Video, Map, 
   Search, Bell, ShieldQuestion, Lock, ArrowRight, ArrowLeft
 } from 'lucide-react';
+import { BhairavLogo } from '../../components/branding/BhairavLogo';
+import { BhairavIcon } from '../../components/branding/BhairavIcon';
 import { cn } from '../../utils/cn';
-import { Footer } from '../../components/layout/Footer';
 
 const steps = [
   {
     title: "Welcome to Bhairav",
     description: "You are accessing the centralized AI-powered Defence & Security Intelligence platform. This system fuses multi-domain intelligence into a unified command view.",
-    icon: Shield
+    icon: BhairavIcon,
+    iconSize: 48
   },
   {
     title: "Command Center",
@@ -58,7 +60,7 @@ export default function OnboardingPage() {
     if (currentStep < steps.length - 1) {
       setCurrentStep(prev => prev + 1);
     } else {
-      navigate('/command-center');
+      navigate('/login');
     }
   };
   
@@ -69,7 +71,7 @@ export default function OnboardingPage() {
   };
   
   const handleSkip = () => {
-    navigate('/command-center');
+    navigate('/login');
   };
 
   const StepIcon = steps[currentStep].icon;
@@ -80,6 +82,11 @@ export default function OnboardingPage() {
         
         <div className="w-full max-w-2xl bg-[var(--color-bhairav-surface)] border border-[var(--color-bhairav-border)] rounded-2xl shadow-2xl overflow-hidden flex flex-col">
           
+          {/* Logo Header */}
+          <div className="pt-8 pb-4 flex justify-center border-b border-[var(--color-bhairav-border)]">
+            <BhairavLogo size={80} />
+          </div>
+
           {/* Progress Bar */}
           <div className="h-1.5 w-full bg-[var(--color-bhairav-bg)] flex">
             {steps.map((_, idx) => (
@@ -135,10 +142,6 @@ export default function OnboardingPage() {
           </div>
           
         </div>
-      </div>
-      
-      <div className="absolute bottom-0 w-full z-0">
-        <Footer />
       </div>
     </div>
   );

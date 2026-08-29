@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { IntelligenceCard } from '../components/Shared/IntelligenceCard';
-import { StatusBadge } from '../components/Shared/StatusBadge';
+import { Badge } from '../components/common/Badge';
 import { getWelfareIndicators } from '../services/welfareService';
 import { WelfareIndicators } from '../types/welfare';
 
@@ -17,17 +17,19 @@ export const PersonnelDashboard: React.FC = () => {
 
   if (!indicators) {
     return (
-      <div className="p-6 h-[calc(100vh-64px)] flex items-center justify-center">
-        <div className="inline-block w-8 h-8 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin"></div>
+      <div className="p-6  flex items-center justify-center">
+        <div className="inline-block w-8 h-8 border-4 border-[var(--color-bhairav-primary)]/30 border-t-[var(--color-bhairav-primary)] rounded-full animate-spin"></div>
       </div>
     );
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-white">Personnel Welfare Dashboard</h1>
-        <p className="text-gray-400 text-sm mt-1">Aggregated readiness and welfare indicators</p>
+    <div className="space-y-6 flex flex-col min-">
+      <div className="flex justify-between items-end border-b border-[var(--color-bhairav-border)] pb-4">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight text-[var(--color-bhairav-text)] uppercase">Personnel Welfare Dashboard</h2>
+          <p className="text-[var(--color-bhairav-text-muted)] mt-1">Aggregated readiness and welfare indicators</p>
+        </div>
       </div>
 
       {/* KPI Cards */}
@@ -66,24 +68,24 @@ export const PersonnelDashboard: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Check-ins */}
-        <div className="bg-[#12141a] border border-gray-800 rounded-lg p-5">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-base font-semibold text-gray-200">Recent Check-in Signals</h2>
-            <span className="text-xs text-gray-500">Anonymized</span>
+        <div className="bg-[var(--color-bhairav-surface)] border border-[var(--color-bhairav-border)] rounded-xl p-5 shadow-sm">
+          <div className="flex justify-between items-center mb-4 pb-2 border-b border-[var(--color-bhairav-border)]">
+            <h3 className="font-semibold text-[var(--color-bhairav-text)] uppercase tracking-wider text-sm">Recent Check-in Signals</h3>
+            <span className="text-[10px] text-[var(--color-bhairav-text-muted)] uppercase tracking-widest font-mono">Anonymized</span>
           </div>
           
           <div className="space-y-3">
             {indicators.recentCheckIns.map(checkIn => (
-              <div key={checkIn.id} className="bg-[#1a1d24] border border-gray-800 p-3 rounded flex justify-between items-center">
+              <div key={checkIn.id} className="bg-[var(--color-bhairav-bg)] border border-[var(--color-bhairav-border)] p-3 rounded-lg flex justify-between items-center group hover:border-[var(--color-bhairav-primary)]/50 transition-colors">
                 <div>
-                  <div className="text-sm font-medium text-white mb-1">{checkIn.status}</div>
-                  <div className="flex gap-2 text-xs">
+                  <div className="text-sm font-medium text-[var(--color-bhairav-text)] mb-1 uppercase tracking-wider">{checkIn.status}</div>
+                  <div className="flex gap-2 text-[10px] uppercase tracking-widest font-mono">
                     {checkIn.factors.map((f, i) => (
-                      <span key={i} className="text-gray-500 bg-gray-800/50 px-2 py-0.5 rounded">{f}</span>
+                      <span key={i} className="text-[var(--color-bhairav-text-muted)] bg-[var(--color-bhairav-surface)] border border-[var(--color-bhairav-border)] px-2 py-0.5 rounded">{f}</span>
                     ))}
                   </div>
                 </div>
-                <div className="text-xs text-gray-600 font-mono">
+                <div className="text-[10px] text-[var(--color-bhairav-text-muted)] font-data uppercase tracking-widest">
                   {new Date(checkIn.timestamp).toLocaleDateString()}
                 </div>
               </div>
@@ -92,25 +94,25 @@ export const PersonnelDashboard: React.FC = () => {
         </div>
 
         {/* Active Support Requests */}
-        <div className="bg-[#12141a] border border-gray-800 rounded-lg p-5">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-base font-semibold text-gray-200">Active Support Requests</h2>
+        <div className="bg-[var(--color-bhairav-surface)] border border-[var(--color-bhairav-border)] rounded-xl p-5 shadow-sm">
+          <div className="flex justify-between items-center mb-4 pb-2 border-b border-[var(--color-bhairav-border)]">
+            <h3 className="font-semibold text-[var(--color-bhairav-text)] uppercase tracking-wider text-sm">Active Support Requests</h3>
           </div>
           
           <div className="space-y-3">
             {indicators.activeRequests.map(req => (
-              <div key={req.id} className="bg-[#1a1d24] border border-gray-800 p-3 rounded flex justify-between items-center">
+              <div key={req.id} className="bg-[var(--color-bhairav-bg)] border border-[var(--color-bhairav-border)] p-3 rounded-lg flex justify-between items-center group hover:border-[var(--color-bhairav-primary)]/50 transition-colors">
                 <div>
-                  <div className="text-sm font-medium text-white mb-1">{req.category}</div>
-                  <div className="text-xs text-gray-500 font-mono">
+                  <div className="text-sm font-medium text-[var(--color-bhairav-text)] mb-1">{req.category}</div>
+                  <div className="text-[10px] text-[var(--color-bhairav-text-muted)] font-data uppercase tracking-widest">
                     ID: {req.id} • {new Date(req.timestamp).toLocaleDateString()}
                   </div>
                 </div>
-                <StatusBadge status={req.status} />
+                <Badge status={req.status === 'PENDING' ? 'neutral' : req.status === 'RESOLVED' ? 'verified' : 'warning'}>{req.status}</Badge>
               </div>
             ))}
             {indicators.activeRequests.length === 0 && (
-              <div className="text-sm text-gray-500 py-4 text-center">No active requests</div>
+              <div className="text-sm text-[var(--color-bhairav-text-muted)] py-4 text-center font-mono uppercase tracking-widest">No active requests</div>
             )}
           </div>
         </div>

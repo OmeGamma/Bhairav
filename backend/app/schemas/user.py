@@ -1,12 +1,11 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, model_validator, ConfigDict
 from typing import Optional
 from datetime import datetime
 
 class UserBase(BaseModel):
     name: str
     email: EmailStr
-    username: Optional[str] = None
-    role_id: str
+    role_id: str = "officer"
     status: str = "ACTIVE"
 
 class UserCreate(UserBase):
@@ -15,7 +14,6 @@ class UserCreate(UserBase):
 class UserUpdate(BaseModel):
     name: Optional[str] = None
     email: Optional[EmailStr] = None
-    username: Optional[str] = None
     role_id: Optional[str] = None
     status: Optional[str] = None
     password: Optional[str] = None
@@ -27,14 +25,20 @@ class UserInDB(UserBase):
     updated_at: datetime
     last_login: Optional[datetime] = None
 
-    class Config:
-        populate_by_name = True
+    model_config = ConfigDict(populate_by_name=True)
 
 class UserResponse(UserBase):
-    id: str = Field(alias="_id")
+    id: str
     created_at: datetime
     updated_at: datetime
     last_login: Optional[datetime] = None
 
-    class Config:
-        populate_by_name = True
+    model_config = ConfigDict(extra='ignore')
+
+    @model_validator(mode='before')
+    @classmethod
+    def convert_id(cls, data):
+        if isinstance(data, dict) and '_id' in data:
+            data = data.copy()
+            data['id'] = str(data.pop('_id'))
+        return data

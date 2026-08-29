@@ -1,24 +1,36 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Shield, Lock, User, AlertCircle, ArrowRight } from 'lucide-react';
-import { Footer } from '../../components/layout/Footer';
-import { authService } from '../../services/authService';
+import { useState, useEffect } from 'react';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { Lock, User, AlertCircle, ArrowRight, Shield } from 'lucide-react';
+import { useAuth } from '../../hooks/useAuth';
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { login, isAuthenticated } = useAuth();
+
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
+  const redirectTo = (location.state as any)?.redirect || new URLSearchParams(location.search).get('redirect') || '/command-center';
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate(redirectTo);
+    }
+  }, [isAuthenticated, navigate, redirectTo]);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
     
     try {
-      await authService.login({ username: 'officer', password: 'password' });
-      navigate('/onboarding');
-    } catch (err) {
-      setError('Authentication failed. Please check your credentials.');
+      await login({ email, password });
+    } catch (err: any) {
+      setError(err.message || 'Authentication failed. Please check your credentials.');
     } finally {
       setIsLoading(false);
     }
@@ -30,8 +42,9 @@ export default function LoginPage() {
       
       <div className="w-full max-w-md z-10 relative">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[var(--color-bhairav-surface)] border border-[var(--color-bhairav-border)] mb-6 shadow-[0_0_20px_rgba(59,130,246,0.15)]">
-            <Shield className="text-[var(--color-bhairav-primary)]" size={32} />
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-[var(--color-bhairav-primary)]/10 border border-[var(--color-bhairav-primary)]/20 mb-6 shadow-[0_0_30px_rgba(59,130,246,0.15)] relative">
+            <Shield className="text-[var(--color-bhairav-primary)]" size={40} />
+            <span className="absolute top-5 right-5 w-3 h-3 bg-[var(--color-bhairav-verified)] rounded-full animate-pulse" />
           </div>
           <h1 className="text-3xl font-bold tracking-widest mb-2">BHAIRAV</h1>
           <p className="text-[var(--color-bhairav-text-muted)] text-sm tracking-wide">SECURE INTELLIGENCE PORTAL</p>
@@ -48,30 +61,27 @@ export default function LoginPage() {
           <form onSubmit={handleLogin} className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-[var(--color-bhairav-text-muted)] mb-2">
-                Officer ID / Clearance Code
+                Email
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <User className="h-5 w-5 text-[var(--color-bhairav-text-muted)]" />
                 </div>
                 <input
-                  type="text"
+                  type="email"
                   required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   className="block w-full pl-10 pr-3 py-3 border border-[var(--color-bhairav-border)] rounded-md bg-[var(--color-bhairav-bg)] text-[var(--color-bhairav-text)] placeholder-[var(--color-bhairav-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--color-bhairav-primary)] focus:border-[var(--color-bhairav-primary)] transition-all sm:text-sm"
-                  placeholder="Enter your ID"
+                  placeholder="officer@defence.gov"
                 />
               </div>
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium text-[var(--color-bhairav-text-muted)]">
-                  Passkey
-                </label>
-                <button type="button" className="text-xs text-[var(--color-bhairav-primary)] hover:text-[var(--color-bhairav-primary-hover)] transition-colors">
-                  Forgot Passkey?
-                </button>
-              </div>
+              <label className="block text-sm font-medium text-[var(--color-bhairav-text-muted)] mb-2">
+                Password
+              </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Lock className="h-5 w-5 text-[var(--color-bhairav-text-muted)]" />
@@ -79,6 +89,8 @@ export default function LoginPage() {
                 <input
                   type="password"
                   required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   className="block w-full pl-10 pr-3 py-3 border border-[var(--color-bhairav-border)] rounded-md bg-[var(--color-bhairav-bg)] text-[var(--color-bhairav-text)] placeholder-[var(--color-bhairav-text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--color-bhairav-primary)] focus:border-[var(--color-bhairav-primary)] transition-all sm:text-sm"
                   placeholder="••••••••"
                 />
@@ -94,20 +106,25 @@ export default function LoginPage() {
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
               ) : (
                 <>
-                  Authenticate <ArrowRight size={16} />
+                  Sign In <ArrowRight size={16} />
                 </>
               )}
             </button>
+            
+            <div className="mt-4 text-center">
+              <p className="text-sm text-[var(--color-bhairav-text-muted)]">
+                No clearance?{' '}
+                <Link to="/register" className="text-[var(--color-bhairav-primary)] hover:underline">
+                  Request Access
+                </Link>
+              </p>
+            </div>
           </form>
         </div>
         
         <div className="mt-8 text-center text-xs text-[var(--color-bhairav-text-muted)]">
           <p>Restricted Access. Authorized Personnel Only.</p>
         </div>
-      </div>
-      
-      <div className="absolute bottom-0 w-full">
-        <Footer />
       </div>
     </div>
   );

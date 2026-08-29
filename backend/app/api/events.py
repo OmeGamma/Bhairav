@@ -18,6 +18,9 @@ async def get_events(
     severity: Optional[str] = None,
     event_type: Optional[str] = None,
     status: Optional[str] = None,
+    location: Optional[str] = None,
+    start_date: Optional[datetime] = None,
+    end_date: Optional[datetime] = None,
     db: AsyncIOMotorDatabase = Depends(get_db),
     current_user: UserInDB = Depends(require_permissions(["events.read"]))
 ):
@@ -28,6 +31,15 @@ async def get_events(
         query["event_type"] = event_type
     if status:
         query["status"] = status
+    if location:
+        query["location"] = location
+    if start_date or end_date:
+        ts_query = {}
+        if start_date:
+            ts_query["$gte"] = start_date
+        if end_date:
+            ts_query["$lte"] = end_date
+        query["timestamp"] = ts_query
 
     cursor = db.events.find(query).skip(skip).limit(limit)
     items = await cursor.to_list(length=limit)
@@ -56,6 +68,8 @@ async def create_event(
     current_user: UserInDB = Depends(require_permissions(["events.create"]))
 ):
     item_dict = item_in.model_dump()
+    if not item_dict.get("timestamp"):
+        item_dict["timestamp"] = datetime.utcnow()
     item_dict["created_at"] = datetime.utcnow()
     item_dict["updated_at"] = datetime.utcnow()
     result = await db.events.insert_one(item_dict)

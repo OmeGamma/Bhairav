@@ -1,19 +1,29 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import { ChatInterface } from '../components/Assistant/ChatInterface';
 import { AIContext } from '../types/assistant';
 
 export const AskBhairav: React.FC = () => {
-  // Mock context - in a real app, this might come from routing or global state
+  const navigate = useNavigate();
   const mockContext: AIContext = {
     entityType: 'person',
     entityId: 'BH-P-104'
   };
 
   return (
-    <div className="h-[calc(100vh-64px)] bg-[#0b0c10] flex flex-col p-4 md:p-6">
-      <div className="mb-4">
-        <h1 className="text-2xl font-bold text-white">Ask Bhairav</h1>
-        <p className="text-gray-400 text-sm mt-1">Unified AI Assistant for Defence & Security Intelligence</p>
+    <div className=" flex flex-col">
+      <div className="mb-6 flex items-center gap-4 border-b border-[var(--color-bhairav-border)] pb-4">
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center justify-center w-10 h-10 rounded-md bg-[var(--color-bhairav-bg)] border border-[var(--color-bhairav-border)] text-[var(--color-bhairav-text-muted)] hover:text-[var(--color-bhairav-text)] hover:border-[var(--color-bhairav-primary)]/50 transition-colors"
+        >
+          <ArrowLeft size={18} />
+        </button>
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-[var(--color-bhairav-text)] uppercase">Ask Bhairav</h1>
+          <p className="text-[10px] uppercase font-mono tracking-widest text-[var(--color-bhairav-text-muted)] mt-1">Unified AI Assistant for Defence & Security Intelligence</p>
+        </div>
       </div>
 
       <div className="flex-1 overflow-hidden">

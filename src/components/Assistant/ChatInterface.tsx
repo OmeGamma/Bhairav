@@ -87,22 +87,22 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialContext }) 
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#0b0c10] border border-gray-800 rounded-xl overflow-hidden relative">
+    <div className="flex flex-col h-full bg-[var(--color-bhairav-surface)] border border-[var(--color-bhairav-border)] rounded-xl overflow-hidden relative shadow-sm">
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
         {messages.map((msg) => (
           <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[85%] md:max-w-[75%] rounded-2xl p-4 ${
+            <div className={`max-w-[85%] md:max-w-[75%] rounded-2xl p-4 shadow-sm ${
               msg.role === 'user' 
-                ? 'bg-blue-600 text-white rounded-br-sm' 
+                ? 'bg-[var(--color-bhairav-primary)] text-white rounded-br-sm' 
                 : msg.role === 'system'
-                  ? 'bg-red-900/20 border border-red-900/50 text-red-200 rounded-bl-sm'
-                  : 'bg-[#1a1d24] border border-gray-800 text-gray-200 rounded-bl-sm'
+                  ? 'bg-[var(--color-bhairav-critical)]/10 border border-[var(--color-bhairav-critical)]/50 text-[var(--color-bhairav-critical)] rounded-bl-sm'
+                  : 'bg-[var(--color-bhairav-bg)] border border-[var(--color-bhairav-border)] text-[var(--color-bhairav-text)] rounded-bl-sm'
             }`}>
               
               {/* Context/Role Indicator */}
               {msg.role === 'assistant' && (
-                <div className="flex items-center gap-2 mb-2 text-xs font-semibold text-blue-400 uppercase tracking-wider">
+                <div className="flex items-center gap-2 mb-2 text-[10px] font-bold text-[var(--color-bhairav-primary)] uppercase tracking-widest border-b border-[var(--color-bhairav-border)] pb-2">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                   </svg>
@@ -115,10 +115,10 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialContext }) 
               
               {/* References */}
               {msg.references && msg.references.length > 0 && (
-                <div className="mt-4 pt-3 border-t border-gray-700 flex flex-wrap gap-2">
-                  <span className="text-xs text-gray-500 w-full mb-1">References:</span>
+                <div className="mt-4 pt-3 border-t border-[var(--color-bhairav-border)] flex flex-wrap gap-2">
+                  <span className="text-[10px] uppercase font-bold tracking-widest text-[var(--color-bhairav-text-muted)] w-full mb-1">References:</span>
                   {msg.references.map(ref => (
-                    <span key={ref.id} className="text-xs bg-gray-900 border border-gray-700 px-2 py-1 rounded text-gray-400 cursor-pointer hover:text-blue-400 transition-colors">
+                    <span key={ref.id} className="text-xs bg-[var(--color-bhairav-surface)] border border-[var(--color-bhairav-border)] px-2 py-1 rounded text-[var(--color-bhairav-text-muted)] cursor-pointer hover:text-[var(--color-bhairav-primary)] transition-colors">
                       {ref.label}
                     </span>
                   ))}
@@ -127,9 +127,9 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialContext }) 
               
               {/* Actions */}
               {msg.actions && msg.actions.length > 0 && (
-                <div className="mt-4 flex flex-wrap gap-2">
+                <div className="mt-4 flex flex-wrap gap-2 border-t border-[var(--color-bhairav-border)] pt-3">
                   {msg.actions.map((act, i) => (
-                    <button key={i} className="text-xs bg-blue-900/30 hover:bg-blue-900/50 text-blue-300 border border-blue-900/50 px-3 py-1.5 rounded transition-colors">
+                    <button key={i} className="text-[10px] uppercase font-bold tracking-widest bg-[var(--color-bhairav-primary)]/10 hover:bg-[var(--color-bhairav-primary)]/20 text-[var(--color-bhairav-primary)] border border-[var(--color-bhairav-primary)]/30 px-3 py-1.5 rounded transition-colors">
                       {act.label}
                     </button>
                   ))}
@@ -141,10 +141,10 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialContext }) 
         
         {isTyping && (
           <div className="flex justify-start">
-            <div className="bg-[#1a1d24] border border-gray-800 rounded-2xl rounded-bl-sm p-4 w-16 flex justify-center items-center gap-1">
-              <div className="w-1.5 h-1.5 bg-gray-500 rounded-full animate-bounce"></div>
-              <div className="w-1.5 h-1.5 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.15s' }}></div>
-              <div className="w-1.5 h-1.5 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.3s' }}></div>
+            <div className="bg-[var(--color-bhairav-bg)] border border-[var(--color-bhairav-border)] rounded-2xl rounded-bl-sm p-4 w-16 flex justify-center items-center gap-1 shadow-sm">
+              <div className="w-1.5 h-1.5 bg-[var(--color-bhairav-text-muted)] rounded-full animate-bounce"></div>
+              <div className="w-1.5 h-1.5 bg-[var(--color-bhairav-text-muted)] rounded-full animate-bounce" style={{ animationDelay: '0.15s' }}></div>
+              <div className="w-1.5 h-1.5 bg-[var(--color-bhairav-text-muted)] rounded-full animate-bounce" style={{ animationDelay: '0.3s' }}></div>
             </div>
           </div>
         )}
@@ -153,32 +153,32 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialContext }) 
 
       {/* Status Overlay */}
       {voiceState !== 'IDLE' && (
-        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-gray-900/90 border border-gray-700 backdrop-blur px-4 py-2 rounded-full text-xs font-medium text-white shadow-lg flex items-center gap-2 z-20">
-          <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
+        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-[var(--color-bhairav-bg)]/90 border border-[var(--color-bhairav-border)] backdrop-blur px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest text-[var(--color-bhairav-text)] shadow-lg flex items-center gap-2 z-20">
+          <div className="w-2 h-2 rounded-full bg-[var(--color-bhairav-primary)] animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>
           {voiceState === 'LISTENING' ? 'Listening...' : voiceState === 'PROCESSING' ? 'Processing...' : 'Responding...'}
         </div>
       )}
 
       {/* Input Area */}
-      <div className="p-4 bg-[#16181f] border-t border-gray-800">
+      <div className="p-4 bg-[var(--color-bhairav-surface-hover)] border-t border-[var(--color-bhairav-border)]">
         <div className="flex items-end gap-2 max-w-4xl mx-auto">
-          <button className="p-3 text-gray-500 hover:text-white transition-colors">
+          <button className="p-3 text-[var(--color-bhairav-text-muted)] hover:text-[var(--color-bhairav-text)] transition-colors">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path>
             </svg>
           </button>
           
-          <div className="flex-1 bg-[#12141a] border border-gray-700 focus-within:border-blue-500 rounded-xl overflow-hidden transition-colors flex items-center">
+          <div className="flex-1 bg-[var(--color-bhairav-bg)] border border-[var(--color-bhairav-border)] focus-within:border-[var(--color-bhairav-primary)] focus-within:shadow-[0_0_10px_rgba(59,130,246,0.1)] rounded-xl overflow-hidden transition-all flex items-center">
             <input 
               type="text" 
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
               placeholder="Ask Bhairav..."
-              className="w-full bg-transparent px-4 py-3 text-sm text-white focus:outline-none placeholder-gray-500"
+              className="w-full bg-transparent px-4 py-3 text-sm text-[var(--color-bhairav-text)] focus:outline-none placeholder:text-[var(--color-bhairav-text-muted)]/50"
             />
             {input.trim() ? (
-              <button onClick={handleSend} className="p-3 text-blue-500 hover:text-blue-400">
+              <button onClick={handleSend} className="p-3 text-[var(--color-bhairav-primary)] hover:text-[var(--color-bhairav-primary-hover)]">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
                 </svg>
@@ -190,7 +190,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialContext }) 
         </div>
         
         <div className="text-center mt-3">
-          <p className="text-[10px] text-gray-600">AI-generated analysis. Verify supporting records before making decisions.</p>
+          <p className="text-[10px] text-[var(--color-bhairav-text-muted)] uppercase tracking-widest font-mono">AI-generated analysis. Verify supporting records before making decisions.</p>
         </div>
       </div>
     </div>

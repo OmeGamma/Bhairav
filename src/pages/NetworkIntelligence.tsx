@@ -34,13 +34,15 @@ export const NetworkIntelligence: React.FC = () => {
   };
 
   return (
-    <div className="h-[calc(100vh-64px)] flex flex-col bg-[#0b0c10]">
-      <div className="px-6 py-4 border-b border-gray-800 bg-[#0b0c10] flex-shrink-0 z-10">
-        <h1 className="text-2xl font-bold text-white">Network Intelligence</h1>
-        <p className="text-gray-400 text-sm mt-1">Understand relationships between authorized entities</p>
+    <div className=" flex flex-col space-y-6">
+      <div className="flex justify-between items-end border-b border-[var(--color-bhairav-border)] pb-4 flex-shrink-0 z-10">
+        <div>
+          <h2 className="text-2xl font-bold text-[var(--color-bhairav-text)] uppercase tracking-tight">Network Intelligence</h2>
+          <p className="text-[var(--color-bhairav-text-muted)] mt-1">Understand relationships between authorized entities</p>
+        </div>
       </div>
 
-      <div className="flex-1 overflow-hidden p-6">
+      <div className="flex-1 overflow-hidden">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full">
           
           {/* Left: Filters */}
@@ -50,7 +52,7 @@ export const NetworkIntelligence: React.FC = () => {
 
           {/* Center: Graph & Timeline */}
           <div className="lg:col-span-7 flex flex-col gap-6 h-full min-h-[500px]">
-            <div className="flex-1 relative">
+            <div className="flex-1 relative bg-[var(--color-bhairav-surface)] border border-[var(--color-bhairav-border)] rounded-xl overflow-hidden shadow-sm">
               <NetworkGraphViewer 
                 data={graphData} 
                 onNodeClick={handleNodeClick} 
@@ -58,7 +60,7 @@ export const NetworkIntelligence: React.FC = () => {
               />
             </div>
             
-            <div className="h-64 flex-shrink-0 hidden lg:block">
+            <div className="h-64 flex-shrink-0 hidden lg:block bg-[var(--color-bhairav-surface)] border border-[var(--color-bhairav-border)] rounded-xl overflow-hidden shadow-sm">
               <NetworkTimeline entity={selectedEntity} />
             </div>
           </div>

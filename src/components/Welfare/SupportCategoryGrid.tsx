@@ -79,14 +79,14 @@ export const SupportCategoryGrid: React.FC<SupportCategoryGridProps> = ({ onSele
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       {categories.map((category, idx) => (
-        <div key={idx} className="bg-[#12141a] border border-gray-800 rounded-xl overflow-hidden flex flex-col h-full">
-          <div className="p-5 border-b border-gray-800 bg-[#16181f] flex gap-4">
-            <div className="w-10 h-10 rounded bg-gray-800 flex items-center justify-center text-gray-400 flex-shrink-0">
+        <div key={idx} className="bg-[var(--color-bhairav-surface)] border border-[var(--color-bhairav-border)] rounded-xl overflow-hidden flex flex-col h-full shadow-sm">
+          <div className="p-5 border-b border-[var(--color-bhairav-border)] bg-[var(--color-bhairav-surface-hover)] flex gap-4">
+            <div className="w-10 h-10 rounded-md bg-[var(--color-bhairav-bg)] border border-[var(--color-bhairav-border)] flex items-center justify-center text-[var(--color-bhairav-text-muted)] flex-shrink-0">
               {category.icon}
             </div>
             <div>
-              <h3 className="font-medium text-gray-200">{category.title}</h3>
-              <p className="text-xs text-gray-500 mt-1">{category.description}</p>
+              <h3 className="font-semibold text-[var(--color-bhairav-text)] uppercase tracking-wider">{category.title}</h3>
+              <p className="text-[10px] text-[var(--color-bhairav-text-muted)] mt-1 uppercase tracking-widest font-mono">{category.description}</p>
             </div>
           </div>
           <div className="p-4 flex-1">
@@ -95,15 +95,15 @@ export const SupportCategoryGrid: React.FC<SupportCategoryGridProps> = ({ onSele
                 <button
                   key={i}
                   onClick={() => category.onSelect(option.label)}
-                  className={`text-left px-4 py-3 rounded-lg border text-sm transition-colors flex justify-between items-center group
+                  className={`text-left px-4 py-3 rounded-lg border text-xs font-bold uppercase tracking-widest transition-colors flex justify-between items-center group
                     ${option.isUrgent 
-                      ? 'bg-red-900/10 border-red-900/30 hover:border-red-500/50 text-red-200' 
-                      : 'bg-[#1a1d24] border-gray-800 hover:border-gray-600 text-gray-300'
+                      ? 'bg-[var(--color-bhairav-critical)]/10 border-[var(--color-bhairav-critical)]/30 hover:border-[var(--color-bhairav-critical)]/60 text-[var(--color-bhairav-critical)]' 
+                      : 'bg-[var(--color-bhairav-bg)] border-[var(--color-bhairav-border)] hover:border-[var(--color-bhairav-primary)]/50 text-[var(--color-bhairav-text)]'
                     }
                   `}
                 >
                   <span>{option.label}</span>
-                  <svg className={`w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity transform group-hover:translate-x-1 ${option.isUrgent ? 'text-red-400' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className={`w-4 h-4 opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1 ${option.isUrgent ? 'text-[var(--color-bhairav-critical)]' : 'text-[var(--color-bhairav-primary)]'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path>
                   </svg>
                 </button>

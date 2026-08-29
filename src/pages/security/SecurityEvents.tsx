@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Shield, Filter, Search, MapPin, Camera, Clock, ArrowLeft, ChevronRight, FileText } from 'lucide-react';
+import { Shield, Search, MapPin, Camera, Clock, ArrowLeft, ChevronRight, FileText, X } from 'lucide-react';
 import { Card } from '../../components/common/Card';
 import { Badge } from '../../components/common/Badge';
 import { LoadingState } from '../../components/common/LoadingState';
@@ -13,32 +13,52 @@ export default function SecurityEvents() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
+  const [severityFilter, setSeverityFilter] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
   
   const [events, setEvents] = useState<SecurityEvent[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<SecurityEvent | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const fetchEvents = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await eventService.getSecurityEvents({
+        severity: severityFilter || undefined,
+        event_type: typeFilter || undefined,
+        status: statusFilter || undefined,
+      });
+      setEvents(data);
+    } catch {
+      setError('Failed to fetch security events.');
+    } finally {
+      setLoading(false);
+    }
+  }, [severityFilter, typeFilter, statusFilter]);
+
   useEffect(() => {
-    const fetchEvents = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        if (id) {
+    fetchEvents();
+  }, [fetchEvents]);
+
+  useEffect(() => {
+    if (id) {
+      const fetchEvent = async () => {
+        setLoading(true);
+        setError(null);
+        try {
           const event = await eventService.getEventById(id);
           setSelectedEvent(event || null);
-        } else {
-          const data = await eventService.getSecurityEvents();
-          setEvents(data);
+        } catch {
+          setError('Failed to fetch event details.');
+        } finally {
+          setLoading(false);
         }
-      } catch (err) {
-        setError('Failed to fetch security events.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchEvents();
+      };
+      fetchEvent();
+    }
   }, [id]);
 
   if (loading) {
@@ -69,11 +89,31 @@ export default function SecurityEvents() {
             <p className="text-xl text-[var(--color-bhairav-text-muted)]">{selectedEvent.type}</p>
           </div>
           <div className="flex gap-3">
-             <button className="bg-[var(--color-bhairav-surface)] hover:bg-[var(--color-bhairav-surface-hover)] border border-[var(--color-bhairav-border)] px-4 py-2 rounded-md text-sm transition-colors">
-               Export Report
+             <button 
+               onClick={async () => {
+                 try {
+                   await eventService.updateEvent(selectedEvent.id, { status: 'investigating' });
+                   setSelectedEvent({ ...selectedEvent, status: 'investigating' });
+                 } catch (e) {
+                   console.error('Failed to update event', e);
+                 }
+               }}
+               className="bg-[var(--color-bhairav-surface)] hover:bg-[var(--color-bhairav-surface-hover)] border border-[var(--color-bhairav-border)] px-4 py-2 rounded-md text-sm transition-colors"
+             >
+               Acknowledge
              </button>
-             <button className="bg-[var(--color-bhairav-primary)] hover:bg-[var(--color-bhairav-primary-hover)] text-white px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-[0_0_15px_rgba(59,130,246,0.2)]">
-               Take Action
+             <button 
+               onClick={async () => {
+                 try {
+                   await eventService.updateEvent(selectedEvent.id, { status: 'resolved' });
+                   setSelectedEvent({ ...selectedEvent, status: 'resolved' });
+                 } catch (e) {
+                   console.error('Failed to update event', e);
+                 }
+               }}
+               className="bg-[var(--color-bhairav-primary)] hover:bg-[var(--color-bhairav-primary-hover)] text-white px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-[0_0_15px_rgba(59,130,246,0.2)]"
+             >
+               Mark Resolved
              </button>
           </div>
         </div>
@@ -178,7 +218,7 @@ export default function SecurityEvents() {
 
   // LIST VIEW
   return (
-    <div className="space-y-6 flex flex-col h-[calc(100vh-8rem)]">
+    <div className="space-y-6 flex flex-col ">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Security Events</h2>
@@ -195,22 +235,56 @@ export default function SecurityEvents() {
             placeholder="Search events by ID, type, or description..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full bg-[var(--color-bhairav-bg)] border border-[var(--color-bhairav-border)] rounded-md pl-9 pr-3 py-2 text-sm focus:outline-none focus:border-[var(--color-bhairav-primary)] transition-colors"
+            className="w-full bg-[var(--color-bhairav-bg)] border border-[var(--color-bhairav-border)] rounded-md pl-9 pr-9 py-2 text-sm focus:outline-none focus:border-[var(--color-bhairav-primary)] transition-colors"
           />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch('')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--color-bhairav-text-muted)] hover:text-[var(--color-bhairav-text)] transition-colors"
+            >
+              <X size={14} />
+            </button>
+          )}
         </div>
-        <select className="bg-[var(--color-bhairav-bg)] border border-[var(--color-bhairav-border)] rounded-md px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-bhairav-primary)]">
+        <select 
+          value={severityFilter}
+          onChange={e => setSeverityFilter(e.target.value)}
+          className="bg-[var(--color-bhairav-bg)] border border-[var(--color-bhairav-border)] rounded-md px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-bhairav-primary)]"
+        >
           <option value="">All Severities</option>
           <option value="critical">Critical</option>
-          <option value="warning">Warning</option>
-          <option value="info">Info</option>
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
         </select>
-        <select className="bg-[var(--color-bhairav-bg)] border border-[var(--color-bhairav-border)] rounded-md px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-bhairav-primary)]">
-          <option value="">All Time</option>
-          <option value="24h">Last 24 Hours</option>
-          <option value="7d">Last 7 Days</option>
+        <select 
+          value={typeFilter}
+          onChange={e => setTypeFilter(e.target.value)}
+          className="bg-[var(--color-bhairav-bg)] border border-[var(--color-bhairav-border)] rounded-md px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-bhairav-primary)]"
+        >
+          <option value="">All Types</option>
+          <option value="PERSON_DETECTED">Person Detected</option>
+          <option value="VEHICLE_DETECTED">Vehicle Detected</option>
+          <option value="RESTRICTED_ZONE">Restricted Zone</option>
+          <option value="SECURITY_ALERT">Security Alert</option>
+          <option value="INCIDENT">Incident</option>
         </select>
-        <button className="flex items-center gap-2 px-4 py-2 bg-[var(--color-bhairav-bg)] border border-[var(--color-bhairav-border)] rounded-md text-sm hover:bg-[var(--color-bhairav-surface-hover)] transition-colors">
-          <Filter size={14} /> More Filters
+        <select 
+          value={statusFilter}
+          onChange={e => setStatusFilter(e.target.value)}
+          className="bg-[var(--color-bhairav-bg)] border border-[var(--color-bhairav-border)] rounded-md px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-bhairav-primary)]"
+        >
+          <option value="">All Statuses</option>
+          <option value="active">New</option>
+          <option value="investigating">Acknowledged</option>
+          <option value="resolved">Resolved</option>
+        </select>
+        <button 
+          onClick={fetchEvents}
+          className="flex items-center gap-2 px-4 py-2 bg-[var(--color-bhairav-bg)] border border-[var(--color-bhairav-border)] rounded-md text-sm hover:bg-[var(--color-bhairav-surface-hover)] transition-colors"
+        >
+          <Search size={14} /> Refresh
         </button>
       </div>
 
@@ -224,7 +298,7 @@ export default function SecurityEvents() {
               <div 
                 key={evt.id}
                 onClick={() => navigate(`/security/events/${evt.id}`)}
-                className="bg-[var(--color-bhairav-surface)] border border-[var(--color-bhairav-border)] p-5 rounded-xl hover:border-[var(--color-bhairav-primary)]/50 cursor-pointer transition-all group flex flex-col md:flex-row md:items-center gap-6"
+                className={`bg-[var(--color-bhairav-surface)] border-y border-r border-[var(--color-bhairav-border)] p-5 rounded-xl hover:border-[var(--color-bhairav-primary)]/50 cursor-pointer transition-all group flex flex-col md:flex-row md:items-center gap-6 severity-notch-${evt.severity}`}
               >
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">

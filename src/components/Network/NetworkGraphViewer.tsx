@@ -36,21 +36,21 @@ export const NetworkGraphViewer: React.FC<NetworkGraphViewerProps> = ({ data, on
 
   const getNodeColor = (type: string) => {
     switch (type) {
-      case 'PERSON': return '#3b82f6'; // blue
-      case 'VEHICLE': return '#10b981'; // green
-      case 'LOCATION': return '#8b5cf6'; // purple
-      case 'INCIDENT': return '#ef4444'; // red
-      case 'CASE': return '#f59e0b'; // amber
-      case 'ORGANIZATION': return '#ec4899'; // pink
-      default: return '#6b7280'; // gray
+      case 'PERSON': return 'var(--color-bhairav-primary)'; 
+      case 'VEHICLE': return 'var(--color-bhairav-verified)'; 
+      case 'LOCATION': return '#8b5cf6'; // keep for differentiation if needed
+      case 'INCIDENT': return 'var(--color-bhairav-critical)'; 
+      case 'CASE': return 'var(--color-bhairav-warning)'; 
+      case 'ORGANIZATION': return '#ec4899'; 
+      default: return 'var(--color-bhairav-neutral)';
     }
   };
 
   return (
-    <div className="bg-[#12141a] border border-gray-800 rounded-lg h-full overflow-hidden relative" ref={containerRef}>
+    <div className="w-full h-full relative" ref={containerRef}>
       {!data ? (
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="inline-block w-8 h-8 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin"></div>
+          <div className="inline-block w-8 h-8 border-4 border-[var(--color-bhairav-primary)]/30 border-t-[var(--color-bhairav-primary)] rounded-full animate-spin"></div>
         </div>
       ) : (
         <>
@@ -58,12 +58,12 @@ export const NetworkGraphViewer: React.FC<NetworkGraphViewerProps> = ({ data, on
           <svg width={dimensions.width} height={dimensions.height} className="absolute inset-0">
             <defs>
               <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="25" refY="3.5" orient="auto">
-                <polygon points="0 0, 10 3.5, 0 7" fill="#4b5563" />
+                <polygon points="0 0, 10 3.5, 0 7" fill="var(--color-bhairav-border)" />
               </marker>
             </defs>
             
             {/* Draw Links (simulated layout for demo) */}
-            <g stroke="#374151" strokeWidth="1.5">
+            <g stroke="var(--color-bhairav-border)" strokeWidth="1.5">
               <line x1="50%" y1="50%" x2="40%" y2="30%" />
               <line x1="50%" y1="50%" x2="60%" y2="30%" />
               <line x1="50%" y1="50%" x2="30%" y2="50%" />
@@ -90,7 +90,7 @@ export const NetworkGraphViewer: React.FC<NetworkGraphViewerProps> = ({ data, on
               return (
                 <g 
                   key={node.id} 
-                  className="cursor-pointer"
+                  className="cursor-pointer group"
                   onClick={() => onNodeClick(node)}
                 >
                   <circle 
@@ -98,22 +98,22 @@ export const NetworkGraphViewer: React.FC<NetworkGraphViewerProps> = ({ data, on
                     cy={cy} 
                     r={isSelected ? 16 : 12} 
                     fill={getNodeColor(node.type)} 
-                    stroke={isSelected ? '#ffffff' : '#1f2937'}
+                    stroke={isSelected ? '#ffffff' : 'var(--color-bhairav-surface)'}
                     strokeWidth={isSelected ? 3 : 2}
-                    className="transition-all duration-200"
+                    className="transition-all duration-200 opacity-90 group-hover:opacity-100"
                   />
                   <text 
                     x={cx} 
                     y={`calc(${cy} + 24px)`} 
-                    fill="#9ca3af" 
-                    fontSize="12px" 
+                    fill="var(--color-bhairav-text-muted)" 
+                    fontSize="11px" 
                     textAnchor="middle"
-                    className="pointer-events-none"
+                    className="pointer-events-none font-mono tracking-wider group-hover:fill-white transition-colors"
                   >
                     {node.label}
                   </text>
                   {node.status === 'REVIEW REQUIRED' || node.status === 'HIGH RISK' ? (
-                    <circle cx={`calc(${cx} + 8px)`} cy={`calc(${cy} - 8px)`} r="4" fill="#ef4444" />
+                    <circle cx={`calc(${cx} + 8px)`} cy={`calc(${cy} - 8px)`} r="4" fill="var(--color-bhairav-critical)" />
                   ) : null}
                 </g>
               );
@@ -122,13 +122,13 @@ export const NetworkGraphViewer: React.FC<NetworkGraphViewerProps> = ({ data, on
           
           {/* Overlay controls */}
           <div className="absolute bottom-4 right-4 flex flex-col gap-2">
-            <button className="w-8 h-8 bg-gray-800 border border-gray-700 text-white rounded flex items-center justify-center hover:bg-gray-700 transition-colors">
+            <button className="w-8 h-8 bg-[var(--color-bhairav-surface-hover)] border border-[var(--color-bhairav-border)] text-[var(--color-bhairav-text)] rounded flex items-center justify-center hover:text-white transition-colors">
               +
             </button>
-            <button className="w-8 h-8 bg-gray-800 border border-gray-700 text-white rounded flex items-center justify-center hover:bg-gray-700 transition-colors">
+            <button className="w-8 h-8 bg-[var(--color-bhairav-surface-hover)] border border-[var(--color-bhairav-border)] text-[var(--color-bhairav-text)] rounded flex items-center justify-center hover:text-white transition-colors">
               -
             </button>
-            <button className="w-8 h-8 bg-gray-800 border border-gray-700 text-white rounded flex items-center justify-center hover:bg-gray-700 transition-colors" title="Fit to screen">
+            <button className="w-8 h-8 bg-[var(--color-bhairav-surface-hover)] border border-[var(--color-bhairav-border)] text-[var(--color-bhairav-text)] rounded flex items-center justify-center hover:text-white transition-colors" title="Fit to screen">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path>
               </svg>

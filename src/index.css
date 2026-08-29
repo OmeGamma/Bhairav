@@ -2,28 +2,58 @@
 
 @theme {
   --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, SFMono-Regular, monospace;
   
-  --color-bhairav-bg: #0a0a0c;
-  --color-bhairav-surface: #121316;
-  --color-bhairav-surface-hover: #1a1b1f;
+  /* Graphite/Slate base instead of pure black */
+  --color-bhairav-ink: #0f1115;
+  --color-bhairav-bg: #111418;
+  --color-bhairav-slate: #1E232B;
+  --color-bhairav-surface: #1E232B;
+  --color-bhairav-surface-hover: #2A323D;
+  --color-bhairav-graphite: #334155;
+  --color-bhairav-ink-blue: #1f3a5f;
   
-  --color-bhairav-primary: #3b82f6; /* Blue/Primary - Bhairav interaction */
-  --color-bhairav-primary-hover: #2563eb;
+  /* Meaningful Accents */
+  --color-bhairav-steel: #4A7C9D; /* Steel Blue for primary actions/tech data */
+  --color-bhairav-primary: #4A7C9D;
+  --color-bhairav-primary-hover: #3A6D8C;
   
-  --color-bhairav-critical: #ef4444; /* Red - Critical */
-  --color-bhairav-warning: #f59e0b; /* Amber - Warning */
-  --color-bhairav-verified: #10b981; /* Green - Verified */
-  --color-bhairav-neutral: #6b7280; /* Neutral - Normal information */
+  --color-bhairav-ochre: #D99632; /* Restrained Ochre/Amber - for attention/review */
+  --color-bhairav-warning: #D99632;
+  
+  --color-bhairav-ember: #C63A3A; /* Muted Crimson - reserved only for critical */
+  --color-bhairav-critical: #C63A3A;
+  
+  --color-bhairav-verified: #3C8765; /* Muted Green - for verified status */
+  --color-bhairav-neutral: #64748B; /* Neutral */
 
-  --color-bhairav-text: #f3f4f6;
-  --color-bhairav-text-muted: #9ca3af;
+  --color-bhairav-text: #F1F5F9; /* Off-white for legibility */
+  --color-bhairav-text-muted: #94A3B8;
   
-  --color-bhairav-border: #27272a;
+  --color-bhairav-border: #334155; /* Soft border for elevation */
 }
 
 @layer base {
   body {
     @apply bg-[var(--color-bhairav-bg)] text-[var(--color-bhairav-text)] font-sans antialiased;
+  }
+}
+
+@layer utilities {
+  .severity-notch-critical {
+    @apply border-l-[3px] border-l-[var(--color-bhairav-critical)];
+  }
+  .severity-notch-warning {
+    @apply border-l-[3px] border-l-[var(--color-bhairav-warning)];
+  }
+  .severity-notch-verified {
+    @apply border-l-[3px] border-l-[var(--color-bhairav-verified)];
+  }
+  .severity-notch-primary {
+    @apply border-l-[3px] border-l-[var(--color-bhairav-primary)];
+  }
+  .font-data {
+    @apply font-mono text-[0.85em] tracking-wider;
   }
 }
 
@@ -43,6 +73,111 @@
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-bhairav-neutral); 
+    background: var(--color-bhairav-neutral); 
+  }
+
+/* Landing Page Animations */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-40px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(40px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-12px); }
+}
+
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes progressPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.8s ease-out forwards;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.6s ease-out forwards;
+}
+
+.animate-slide-in-left {
+  animation: slideInLeft 0.7s ease-out forwards;
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.7s ease-out forwards;
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-float-delayed {
+  animation: float 6s ease-in-out 2s infinite;
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradientShift 8s ease infinite;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.5s ease-out forwards;
+}
+
+.scroll-reveal {
+  opacity: 0;
+  transform: translateY(40px);
+  transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+}
+
+.scroll-reveal.revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in-up,
+  .animate-fade-in,
+  .animate-slide-in-left,
+  .animate-slide-in-right,
+  .animate-float,
+  .animate-float-delayed,
+  .animate-gradient,
+  .animate-scale-in {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+  .scroll-reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
 }
 
