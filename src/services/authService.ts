@@ -89,7 +89,7 @@ export const authService = {
       headers: {
         'Authorization': `Bearer ${token}`
       }
-    }, 3000);
+    }, 10000);
 
     if (!response.ok) {
       throw new Error('Session expired or invalid');

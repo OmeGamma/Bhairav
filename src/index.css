@@ -5,16 +5,25 @@
   --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, SFMono-Regular, monospace;
   
   /* Graphite/Slate base instead of pure black */
+  --color-bhairav-ink: #0f1115;
   --color-bhairav-bg: #111418;
+  --color-bhairav-slate: #1E232B;
   --color-bhairav-surface: #1E232B;
   --color-bhairav-surface-hover: #2A323D;
+  --color-bhairav-graphite: #334155;
+  --color-bhairav-ink-blue: #1f3a5f;
   
   /* Meaningful Accents */
-  --color-bhairav-primary: #4A7C9D; /* Steel Blue for primary actions/tech data */
+  --color-bhairav-steel: #4A7C9D; /* Steel Blue for primary actions/tech data */
+  --color-bhairav-primary: #4A7C9D;
   --color-bhairav-primary-hover: #3A6D8C;
   
-  --color-bhairav-critical: #C63A3A; /* Muted Crimson - reserved only for critical */
-  --color-bhairav-warning: #D99632; /* Restrained Ochre/Amber - for attention/review */
+  --color-bhairav-ochre: #D99632; /* Restrained Ochre/Amber - for attention/review */
+  --color-bhairav-warning: #D99632;
+  
+  --color-bhairav-ember: #C63A3A; /* Muted Crimson - reserved only for critical */
+  --color-bhairav-critical: #C63A3A;
+  
   --color-bhairav-verified: #3C8765; /* Muted Green - for verified status */
   --color-bhairav-neutral: #64748B; /* Neutral */
 

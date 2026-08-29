@@ -17,14 +17,14 @@ export const PersonnelDashboard: React.FC = () => {
 
   if (!indicators) {
     return (
-      <div className="p-6 h-[calc(100vh-8rem)] flex items-center justify-center">
+      <div className="p-6  flex items-center justify-center">
         <div className="inline-block w-8 h-8 border-4 border-[var(--color-bhairav-primary)]/30 border-t-[var(--color-bhairav-primary)] rounded-full animate-spin"></div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 flex flex-col min-h-[calc(100vh-8rem)]">
+    <div className="space-y-6 flex flex-col min-">
       <div className="flex justify-between items-end border-b border-[var(--color-bhairav-border)] pb-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-[var(--color-bhairav-text)] uppercase">Personnel Welfare Dashboard</h2>

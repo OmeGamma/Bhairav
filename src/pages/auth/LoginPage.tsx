@@ -29,7 +29,6 @@ export default function LoginPage() {
     
     try {
       await login({ email, password });
-      navigate(redirectTo);
     } catch (err: any) {
       setError(err.message || 'Authentication failed. Please check your credentials.');
     } finally {

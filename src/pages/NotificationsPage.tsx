@@ -66,7 +66,7 @@ export default function NotificationsPage() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)]">
+    <div className="flex flex-col ">
       <div className="flex items-center justify-between mb-6 border-b border-[var(--color-bhairav-border)] pb-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-[var(--color-bhairav-text)] uppercase">Notification Center</h2>

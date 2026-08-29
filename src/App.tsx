@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AppLayout } from './components/layout/AppLayout';
+import { AuthenticatedLayout } from './components/layout/AuthenticatedLayout';
 import { PublicLayout } from './components/layout/PublicLayout';
 import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
@@ -66,9 +66,9 @@ function App() {
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/signup" element={<RegisterPage />} />
           
-          {/* Protected layout */}
+          {/* Protected layout - top nav + scrolling pages */}
           <Route element={<ProtectedRoute />}>
-            <Route element={<AppLayout />}>
+            <Route element={<AuthenticatedLayout />}>
               <Route path="/command-center" element={<CommandCenter />} />
               <Route path="/command-centre" element={<CommandCenter />} />
               <Route path="/intelligence/search" element={<SearchPage />} />

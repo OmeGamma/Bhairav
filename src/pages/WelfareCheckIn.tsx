@@ -3,7 +3,7 @@ import { CheckInWorkflow } from '../components/Welfare/CheckInWorkflow';
 
 export const WelfareCheckIn: React.FC = () => {
   return (
-    <div className="min-h-[calc(100vh-8rem)] flex flex-col items-center justify-center p-6">
+    <div className="min- flex flex-col items-center justify-center p-6">
       <CheckInWorkflow />
       
       <div className="mt-12 text-center max-w-md">

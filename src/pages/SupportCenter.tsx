@@ -53,7 +53,7 @@ export const SupportCenter: React.FC = () => {
   ] : [];
 
   return (
-    <div className="space-y-6 flex flex-col min-h-[calc(100vh-8rem)]">
+    <div className="space-y-6 flex flex-col min-">
       <div className="flex justify-between items-end border-b border-[var(--color-bhairav-border)] pb-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-[var(--color-bhairav-text)] uppercase">Personnel Support Center</h2>

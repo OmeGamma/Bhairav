@@ -444,6 +444,19 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Horizontal Features Showcase */}
+      <section className="py-16 relative">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8 mb-8">
+          <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-center">
+            Platform <span className="text-[var(--color-bhairav-steel)]">Capabilities</span>
+          </h2>
+          <p className="text-[var(--color-bhairav-text-muted)] text-center mt-2 max-w-xl mx-auto">
+            A unified intelligence platform covering every layer of security operations.
+          </p>
+        </div>
+        <HorizontalFeatures />
+      </section>
+
       {/* Feature Cards Grid */}
       <section id="features" className="py-24 relative">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[var(--color-bhairav-surface)]/30 to-transparent" />
@@ -652,6 +665,94 @@ export default function LandingPage() {
           </ScrollReveal>
         </div>
       </section>
+    </div>
+  );
+}
+
+function HorizontalFeatures() {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
+
+  const features = [
+    { title: 'Video Intelligence', desc: 'Real-time AI video analytics and threat detection', icon: Eye },
+    { title: 'Identity Verification', desc: 'Document verification and biometric matching', icon: Target },
+    { title: 'Network Intelligence', desc: 'Entity relationship mapping and analysis', icon: Network },
+    { title: 'Geospatial Intelligence', desc: 'Interactive maps and zone monitoring', icon: MapIcon },
+    { title: 'Personnel Welfare', desc: 'Operational readiness and support tracking', icon: Heart },
+    { title: 'AI Assistant', desc: 'Natural language query and analysis', icon: Mic },
+  ];
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!scrollRef.current) return;
+    setIsDragging(true);
+    setStartX(e.pageX - scrollRef.current.offsetLeft);
+    setScrollLeft(scrollRef.current.scrollLeft);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging || !scrollRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - scrollRef.current.offsetLeft;
+    const walk = (x - startX) * 2;
+    scrollRef.current.scrollLeft = scrollLeft - walk;
+  };
+
+  const handleMouseUp = () => setIsDragging(false);
+
+  const scroll = (direction: 'left' | 'right') => {
+    if (!scrollRef.current) return;
+    const scrollAmount = 320;
+    scrollRef.current.scrollBy({
+      left: direction === 'left' ? -scrollAmount : scrollAmount,
+      behavior: 'smooth',
+    });
+  };
+
+  return (
+    <div className="relative group">
+      <div
+        ref={scrollRef}
+        className="flex gap-4 overflow-x-auto scroll-smooth pb-4 px-6 lg:px-8 cursor-grab active:cursor-grabbing"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+      >
+        {features.map((feature, idx) => {
+          const Icon = feature.icon;
+          return (
+            <div
+              key={idx}
+              className="flex-shrink-0 w-72 bg-[#0D1118]/80 backdrop-blur-xl border border-[var(--color-bhairav-graphite)] rounded-2xl p-6 transition-all duration-300 hover:border-[var(--color-bhairav-steel)]/50 hover:shadow-[0_0_30px_rgba(59,130,246,0.08)]"
+            >
+              <div className="w-12 h-12 rounded-xl bg-[var(--color-bhairav-ink-blue)] border border-[var(--color-bhairav-graphite)] flex items-center justify-center mb-4">
+                <Icon size={24} className="text-[var(--color-bhairav-steel)]" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
+              <p className="text-sm text-[var(--color-bhairav-text-muted)] leading-relaxed">{feature.desc}</p>
+            </div>
+          );
+        })}
+      </div>
+      
+      {/* Scroll affordance */}
+      <button
+        onClick={() => scroll('left')}
+        className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-[var(--color-bhairav-slate)]/90 border border-[var(--color-bhairav-graphite)] rounded-full flex items-center justify-center text-[var(--color-bhairav-text-muted)] hover:text-white hover:border-[var(--color-bhairav-steel)]/50 transition-all opacity-0 group-hover:opacity-100 z-10"
+        aria-label="Scroll features left"
+      >
+        ←
+      </button>
+      <button
+        onClick={() => scroll('right')}
+        className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-[var(--color-bhairav-slate)]/90 border border-[var(--color-bhairav-graphite)] rounded-full flex items-center justify-center text-[var(--color-bhairav-text-muted)] hover:text-white hover:border-[var(--color-bhairav-steel)]/50 transition-all opacity-0 group-hover:opacity-100 z-10"
+        aria-label="Scroll features right"
+      >
+        →
+      </button>
     </div>
   );
 }

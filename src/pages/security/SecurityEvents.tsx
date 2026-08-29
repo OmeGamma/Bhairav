@@ -218,7 +218,7 @@ export default function SecurityEvents() {
 
   // LIST VIEW
   return (
-    <div className="space-y-6 flex flex-col h-[calc(100vh-8rem)]">
+    <div className="space-y-6 flex flex-col ">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Security Events</h2>

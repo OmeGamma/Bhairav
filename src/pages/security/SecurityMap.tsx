@@ -69,7 +69,7 @@ export default function SecurityMap() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)]">
+    <div className="flex flex-col ">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Geospatial Intelligence</h2>

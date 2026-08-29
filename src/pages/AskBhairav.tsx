@@ -12,7 +12,7 @@ export const AskBhairav: React.FC = () => {
   };
 
   return (
-    <div className="h-[calc(100vh-8rem)] flex flex-col">
+    <div className=" flex flex-col">
       <div className="mb-6 flex items-center gap-4 border-b border-[var(--color-bhairav-border)] pb-4">
         <button
           onClick={() => navigate(-1)}
