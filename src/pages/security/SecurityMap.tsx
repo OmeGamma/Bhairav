@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Circle } from 'react-leaflet';
-import { Shield, Camera as CameraIcon, Filter, LayoutPanelLeft, AlertTriangle, MapPin } from 'lucide-react';
+import { Shield, Camera as CameraIcon, Filter, LayoutPanelLeft, AlertTriangle, MapPin, X } from 'lucide-react';
 import { Badge } from '../../components/common/Badge';
 import { LoadingState } from '../../components/common/LoadingState';
 import { ErrorState } from '../../components/common/ErrorState';
+import { BackButton } from '../../components/common/BackButton';
 import { eventService } from '../../services/eventService';
 import { cameraService } from '../../services/cameraService';
 import type { SecurityEvent, Camera } from '../../types';
@@ -69,8 +70,9 @@ export default function SecurityMap() {
   }
 
   return (
-    <div className="flex flex-col ">
-      <div className="flex items-center justify-between mb-4">
+    <div className="flex flex-col h-full space-y-4">
+      <BackButton to="/home" />
+      <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Geospatial Intelligence</h2>
           <p className="text-[var(--color-bhairav-text-muted)] mt-1">Live mapping of security assets and events</p>
@@ -166,8 +168,8 @@ export default function SecurityMap() {
           <div className="w-80 bg-[var(--color-bhairav-surface)] border border-[var(--color-bhairav-border)] rounded-xl overflow-hidden flex flex-col shadow-lg animate-in fade-in slide-in-from-right-4">
             <div className="p-4 border-b border-[var(--color-bhairav-border)] flex items-center justify-between bg-[var(--color-bhairav-surface)]/50">
               <h3 className="font-semibold">Event Details</h3>
-              <button onClick={() => setSelectedEvent(null)} className="text-[var(--color-bhairav-text-muted)] hover:text-white text-sm">
-                Close
+              <button onClick={() => setSelectedEvent(null)} className="flex items-center gap-1 text-[var(--color-bhairav-text-muted)] hover:text-white text-sm transition-colors">
+                <X size={14} /> Close
               </button>
             </div>
             <div className="p-5 flex-1 overflow-y-auto space-y-5">

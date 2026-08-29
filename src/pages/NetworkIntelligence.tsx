@@ -5,6 +5,7 @@ import { EntityDetailsPanel } from '../components/Network/EntityDetailsPanel';
 import { NetworkTimeline } from '../components/Network/NetworkTimeline';
 import { NetworkGraphData, NetworkEntity, NetworkClusterInfo } from '../types/network';
 import { getNetworkGraph, getEntityDetails, getClusterInfo } from '../services/networkService';
+import { BackButton } from '../components/common/BackButton';
 
 export const NetworkIntelligence: React.FC = () => {
   const [graphData, setGraphData] = useState<NetworkGraphData | null>(null);
@@ -34,7 +35,8 @@ export const NetworkIntelligence: React.FC = () => {
   };
 
   return (
-    <div className=" flex flex-col space-y-6">
+    <div className=" flex flex-col space-y-6 animate-fade-in-up">
+      <BackButton to="/home" />
       <div className="flex justify-between items-end border-b border-[var(--color-bhairav-border)] pb-4 flex-shrink-0 z-10">
         <div>
           <h2 className="text-2xl font-bold text-[var(--color-bhairav-text)] uppercase tracking-tight">Network Intelligence</h2>

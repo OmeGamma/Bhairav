@@ -1,8 +1,10 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthenticatedLayout } from './components/layout/AuthenticatedLayout';
 import { PublicLayout } from './components/layout/PublicLayout';
+import { PublicPagesLayout } from './components/layout/PublicPagesLayout';
 import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
+import { ScrollToTop } from './components/common/ScrollToTop';
 
 // Pages
 // public
@@ -23,6 +25,7 @@ import OnboardingPage from './pages/auth/OnboardingPage';
 import NotificationsPage from './pages/NotificationsPage';
 import ProfilePage from './pages/ProfilePage';
 // shell components
+import HomePage from './pages/HomePage';
 import CommandCenter from './pages/command-center/CommandCenter';
 import SecurityMap from './pages/security/SecurityMap';
 import SecurityMonitoring from './pages/security/SecurityMonitoring';
@@ -44,22 +47,27 @@ function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
+        <ScrollToTop />
         <Routes>
-          {/* Public layout: footer, no navbar */}
           <Route element={<PublicLayout />}>
             <Route path="/" element={<LandingPage />} />
             <Route path="/landing" element={<LandingPage />} />
             <Route path="/onboarding" element={<OnboardingPage />} />
-            <Route path="/about" element={<AboutPage />} />
-            <Route path="/contact" element={<ContactPage />} />
-          <Route path="/request-access" element={<RequestAccessPage />} />
-          <Route path="/security" element={<SecurityPage />} />
-          <Route path="/data-protection" element={<DataProtectionPage />} />
-          <Route path="/privacy" element={<PrivacyPolicyPage />} />
+            <Route path="/request-access" element={<RequestAccessPage />} />
+            <Route path="/security" element={<SecurityPage />} />
+            <Route path="/data-protection" element={<DataProtectionPage />} />
             <Route path="/terms" element={<TermsOfServicePage />} />
             <Route path="/cookies" element={<CookiePolicyPage />} />
             <Route path="/accessibility" element={<AccessibilityPage />} />
           </Route>
+
+          {/* Public Pages with Nav */}
+          <Route element={<PublicPagesLayout />}>
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/contact" element={<ContactPage />} />
+            <Route path="/privacy" element={<PrivacyPolicyPage />} />
+          </Route>
+
 
           {/* Auth pages: standalone, no footer */}
           <Route path="/login" element={<LoginPage />} />
@@ -69,6 +77,7 @@ function App() {
           {/* Protected layout - top nav + scrolling pages */}
           <Route element={<ProtectedRoute />}>
             <Route element={<AuthenticatedLayout />}>
+              <Route path="/home" element={<Navigate to="/command-center" replace />} />
               <Route path="/command-center" element={<CommandCenter />} />
               <Route path="/command-centre" element={<CommandCenter />} />
               <Route path="/intelligence/search" element={<SearchPage />} />
@@ -81,19 +90,23 @@ function App() {
               <Route path="/profile" element={<ProfilePage />} />
               
               {/* Member 2 Routes */}
+              <Route path="/document-verification" element={<Navigate to="/verification" replace />} />
               <Route path="/verification" element={<Verification />} />
               <Route path="/verification/history" element={<VerificationHistory />} />
               
               <Route path="/network" element={<NetworkIntelligence />} />
               <Route path="/network/:entityId" element={<NetworkIntelligence />} />
               
+              <Route path="/personnel-welfare" element={<Navigate to="/personnel" replace />} />
               <Route path="/personnel" element={<PersonnelDashboard />} />
               <Route path="/personnel/check-in" element={<WelfareCheckIn />} />
               <Route path="/personnel/support" element={<SupportCenter />} />
               
+              <Route path="/ai-assistant" element={<Navigate to="/ask-bhairav" replace />} />
               <Route path="/ask-bhairav" element={<AskBhairav />} />
               
               <Route path="/reports" element={<ReportsDashboard />} />
+              <Route path="/maps-analytics" element={<Navigate to="/security/map" replace />} />
               
               <Route path="/settings" element={<Navigate to="/profile" replace />} />
             </Route>

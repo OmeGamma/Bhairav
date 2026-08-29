@@ -12,6 +12,8 @@ import { ErrorState } from '../../components/common/ErrorState';
 import { EmptyState } from '../../components/common/EmptyState';
 import { Link } from 'react-router-dom';
 import { cn } from '../../utils/cn';
+import { useAuth } from '../../hooks/useAuth';
+import { BackButton } from '../../components/common/BackButton';
 
 const chartData = [
   { time: '18:00', events: 12, alerts: 2 },
@@ -24,6 +26,7 @@ const chartData = [
 ];
 
 export default function CommandCenter() {
+  const { user } = useAuth();
   const [greeting, setGreeting] = useState('Good evening');
   const [timeStr, setTimeStr] = useState('');
   
@@ -82,11 +85,12 @@ export default function CommandCenter() {
   const overdueTasks = tasks.filter(t => t.status === 'overdue').length;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 animate-fade-in-up">
+      <BackButton to="/home" />
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">{greeting}, Officer</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{greeting}, {user?.name || 'Officer'}</h1>
           <p className="text-[var(--color-bhairav-text-muted)] mt-1">National Security Intelligence Overview</p>
         </div>
         <div className="flex items-center gap-4 bg-[var(--color-bhairav-slate)] px-4 py-2 rounded-lg border border-[var(--color-bhairav-graphite)]">
@@ -135,7 +139,7 @@ export default function CommandCenter() {
       <section>
         <h2 className="text-xl font-bold mb-4">Security Map</h2>
         <Card className="severity-notch-primary">
-          <div className="h-[380px] w-full flex items-center justify-center bg-[var(--color-bhairav-bg)] rounded-lg border border-[var(--color-bhairav-graphite)]">
+          <div className="min-h-[400px] lg:h-[600px] w-full flex items-center justify-center bg-[var(--color-bhairav-bg)] rounded-lg border border-[var(--color-bhairav-graphite)]">
             <div className="text-center">
               <MapPin className="mx-auto text-[var(--color-bhairav-text-muted)] mb-2" size={48} />
               <p className="text-[var(--color-bhairav-text-muted)]">Interactive geospatial intelligence map</p>

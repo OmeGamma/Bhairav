@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Search as SearchIcon, Filter, User, MapPin, Video, FileText, ArrowRight, X } from 'lucide-react';
 import { Badge } from '../components/common/Badge';
 import { cn } from '../utils/cn';
+import { BackButton } from '../components/common/BackButton';
 
 export default function SearchPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -17,8 +18,9 @@ export default function SearchPage() {
   ];
 
   return (
-    <div className="flex flex-col ">
-      <div className="flex flex-col items-center justify-center text-center mt-12 mb-10">
+    <div className="flex flex-col animate-fade-in-up">
+      <BackButton to="/home" />
+      <div className="flex flex-col items-center justify-center text-center mt-6 mb-10">
          <div className="w-16 h-16 rounded-full bg-[var(--color-bhairav-primary)]/10 flex items-center justify-center mb-6 border border-[var(--color-bhairav-primary)]/20 shadow-[0_0_30px_rgba(59,130,246,0.15)]">
             <SearchIcon className="text-[var(--color-bhairav-primary)]" size={28} />
          </div>

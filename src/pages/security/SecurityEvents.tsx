@@ -6,6 +6,7 @@ import { Badge } from '../../components/common/Badge';
 import { LoadingState } from '../../components/common/LoadingState';
 import { ErrorState } from '../../components/common/ErrorState';
 import { EmptyState } from '../../components/common/EmptyState';
+import { BackButton } from '../../components/common/BackButton';
 import { eventService } from '../../services/eventService';
 import type { SecurityEvent } from '../../types';
 
@@ -72,12 +73,7 @@ export default function SecurityEvents() {
   if (id && selectedEvent) {
     return (
       <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-        <button 
-          onClick={() => navigate('/intelligence/events')}
-          className="flex items-center gap-2 text-sm text-[var(--color-bhairav-text-muted)] hover:text-[var(--color-bhairav-text)] transition-colors"
-        >
-          <ArrowLeft size={16} /> Back to Events List
-        </button>
+        <BackButton to="/intelligence/events" label="Back to Events List" />
 
         <div className="flex items-center justify-between">
           <div>
@@ -219,6 +215,7 @@ export default function SecurityEvents() {
   // LIST VIEW
   return (
     <div className="space-y-6 flex flex-col ">
+      <BackButton to="/home" />
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Security Events</h2>
