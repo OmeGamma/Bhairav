@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthenticatedLayout } from './components/layout/AuthenticatedLayout';
 import { PublicLayout } from './components/layout/PublicLayout';
+import { PublicPagesLayout } from './components/layout/PublicPagesLayout';
 import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 
@@ -23,6 +24,7 @@ import OnboardingPage from './pages/auth/OnboardingPage';
 import NotificationsPage from './pages/NotificationsPage';
 import ProfilePage from './pages/ProfilePage';
 // shell components
+import HomePage from './pages/HomePage';
 import CommandCenter from './pages/command-center/CommandCenter';
 import SecurityMap from './pages/security/SecurityMap';
 import SecurityMonitoring from './pages/security/SecurityMonitoring';
@@ -45,21 +47,25 @@ function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          {/* Public layout: footer, no navbar */}
           <Route element={<PublicLayout />}>
             <Route path="/" element={<LandingPage />} />
             <Route path="/landing" element={<LandingPage />} />
             <Route path="/onboarding" element={<OnboardingPage />} />
-            <Route path="/about" element={<AboutPage />} />
-            <Route path="/contact" element={<ContactPage />} />
-          <Route path="/request-access" element={<RequestAccessPage />} />
-          <Route path="/security" element={<SecurityPage />} />
-          <Route path="/data-protection" element={<DataProtectionPage />} />
-          <Route path="/privacy" element={<PrivacyPolicyPage />} />
+            <Route path="/request-access" element={<RequestAccessPage />} />
+            <Route path="/security" element={<SecurityPage />} />
+            <Route path="/data-protection" element={<DataProtectionPage />} />
             <Route path="/terms" element={<TermsOfServicePage />} />
             <Route path="/cookies" element={<CookiePolicyPage />} />
             <Route path="/accessibility" element={<AccessibilityPage />} />
           </Route>
+
+          {/* Public Pages with Nav */}
+          <Route element={<PublicPagesLayout />}>
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/contact" element={<ContactPage />} />
+            <Route path="/privacy" element={<PrivacyPolicyPage />} />
+          </Route>
+
 
           {/* Auth pages: standalone, no footer */}
           <Route path="/login" element={<LoginPage />} />
@@ -69,6 +75,7 @@ function App() {
           {/* Protected layout - top nav + scrolling pages */}
           <Route element={<ProtectedRoute />}>
             <Route element={<AuthenticatedLayout />}>
+              <Route path="/home" element={<HomePage />} />
               <Route path="/command-center" element={<CommandCenter />} />
               <Route path="/command-centre" element={<CommandCenter />} />
               <Route path="/intelligence/search" element={<SearchPage />} />

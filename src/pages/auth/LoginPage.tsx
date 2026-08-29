@@ -14,7 +14,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const redirectTo = (location.state as any)?.redirect || new URLSearchParams(location.search).get('redirect') || '/command-center';
+  const redirectTo = (location.state as any)?.redirect || new URLSearchParams(location.search).get('redirect') || '/home';
 
   useEffect(() => {
     if (isAuthenticated) {

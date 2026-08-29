@@ -1,7 +1,7 @@
 
 export default function AboutPage() {
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-4xl mx-auto py-12 md:py-16 px-6 lg:px-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-white mb-2">About Bhairav</h1>
         <p className="text-gray-400">AI-powered defence and security intelligence platform</p>
