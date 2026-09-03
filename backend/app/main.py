@@ -101,11 +101,11 @@ async def health_check():
     }
 
 from app.api import (
-    auth, users, cameras, locations, security_zones, 
+    auth, users, cameras, locations, security_zones,
     events, incidents, cases, persons, vehicles,
     documents, verification, network,
     personnel, welfare, support,
-    notifications, audit, search, reports
+    notifications, audit, search, reports, stats
 )
 
 app.include_router(auth.router, prefix="/api/v1")
@@ -128,6 +128,7 @@ app.include_router(notifications.router, prefix="/api/v1")
 app.include_router(audit.router, prefix="/api/v1")
 app.include_router(search.router, prefix="/api/v1")
 app.include_router(reports.router, prefix="/api/v1")
+app.include_router(stats.router, prefix="/api/v1")
 
 from app.api.ai_routes import vision, document, identity, network as ai_network, welfare as ai_welfare, assistant, voice
 

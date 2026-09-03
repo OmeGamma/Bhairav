@@ -5,7 +5,6 @@ import { ExplainAnalysisModal } from '../components/Verification/ExplainAnalysis
 import { submitForVerification } from '../services/verificationService';
 import { VerificationResult } from '../types/verification';
 import { Badge } from '../components/common/Badge';
-import { BackButton } from '../components/common/BackButton';
 
 export const Verification: React.FC = () => {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -37,8 +36,7 @@ export const Verification: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 flex flex-col min-">
-      <BackButton to="/home" />
+    <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 animate-fade-in-up">
       <div className="flex justify-between items-end border-b border-[var(--color-bhairav-border)] pb-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight uppercase">Identity Verification</h2>

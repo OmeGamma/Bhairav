@@ -1,12 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Shield, Search, MapPin, Camera, Clock, ArrowLeft, ChevronRight, FileText, X } from 'lucide-react';
+import { Shield, Search, MapPin, Camera, Clock, ChevronLeft, ChevronRight, FileText, X } from 'lucide-react';
 import { Card } from '../../components/common/Card';
 import { Badge } from '../../components/common/Badge';
 import { LoadingState } from '../../components/common/LoadingState';
 import { ErrorState } from '../../components/common/ErrorState';
 import { EmptyState } from '../../components/common/EmptyState';
-import { BackButton } from '../../components/common/BackButton';
 import { eventService } from '../../services/eventService';
 import type { SecurityEvent } from '../../types';
 
@@ -72,20 +71,25 @@ export default function SecurityEvents() {
 
   if (id && selectedEvent) {
     return (
-      <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-        <BackButton to="/intelligence/events" label="Back to Events List" />
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+        <button
+          onClick={() => navigate('/intelligence/events')}
+          className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-[var(--color-bhairav-text-muted)] hover:text-[var(--color-bhairav-primary)] transition-colors mb-2"
+        >
+          <ChevronLeft size={14} /> Back to Events List
+        </button>
 
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 border-b border-[var(--color-bhairav-border)] pb-4">
           <div>
-            <div className="flex items-center gap-3 mb-2">
-              <h2 className="text-3xl font-bold tracking-tight">Event {selectedEvent.id}</h2>
+            <div className="flex items-center gap-3 mb-2 flex-wrap">
+              <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Event {selectedEvent.id}</h1>
               <Badge status={selectedEvent.severity}>{selectedEvent.severity}</Badge>
               <Badge status={selectedEvent.status === 'active' ? 'warning' : 'neutral'}>{selectedEvent.status}</Badge>
             </div>
-            <p className="text-xl text-[var(--color-bhairav-text-muted)]">{selectedEvent.type}</p>
+            <p className="text-base text-[var(--color-bhairav-text-muted)]">{selectedEvent.type}</p>
           </div>
-          <div className="flex gap-3">
-             <button 
+          <div className="flex gap-2 flex-wrap">
+             <button
                onClick={async () => {
                  try {
                    await eventService.updateEvent(selectedEvent.id, { status: 'investigating' });
@@ -94,11 +98,11 @@ export default function SecurityEvents() {
                    console.error('Failed to update event', e);
                  }
                }}
-               className="bg-[var(--color-bhairav-surface)] hover:bg-[var(--color-bhairav-surface-hover)] border border-[var(--color-bhairav-border)] px-4 py-2 rounded-md text-sm transition-colors"
+               className="glass-sm hover:border-[var(--color-bhairav-primary)] px-4 py-2 rounded-md text-sm transition-colors"
              >
                Acknowledge
              </button>
-             <button 
+             <button
                onClick={async () => {
                  try {
                    await eventService.updateEvent(selectedEvent.id, { status: 'resolved' });
@@ -107,7 +111,7 @@ export default function SecurityEvents() {
                    console.error('Failed to update event', e);
                  }
                }}
-               className="bg-[var(--color-bhairav-primary)] hover:bg-[var(--color-bhairav-primary-hover)] text-white px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-[0_0_15px_rgba(59,130,246,0.2)]"
+               className="bg-[var(--color-bhairav-primary)] hover:bg-[var(--color-bhairav-primary-hover)] text-white px-4 py-2 rounded-md text-sm font-semibold transition-colors shadow-sm"
              >
                Mark Resolved
              </button>
@@ -155,7 +159,7 @@ export default function SecurityEvents() {
                </div>
             </Card>
           </div>
-          
+
           <div className="xl:col-span-1 space-y-6">
             <Card title="Timeline">
               <div className="space-y-6">
@@ -189,15 +193,15 @@ export default function SecurityEvents() {
             </Card>
 
             <Card title="Related Intelligence">
-               <ul className="space-y-3">
-                 <li className="flex items-center justify-between p-3 bg-[var(--color-bhairav-bg)] border border-[var(--color-bhairav-border)] rounded-md hover:border-[var(--color-bhairav-primary)]/50 cursor-pointer transition-colors">
+               <ul className="space-y-2">
+                 <li className="flex items-center justify-between p-3 glass-sm rounded-md hover:border-[var(--color-bhairav-primary)] cursor-pointer transition-colors">
                    <div className="flex items-center gap-3">
                      <FileText className="text-[var(--color-bhairav-primary)]" size={16} />
                      <span className="text-sm">Historical Case #HC-822</span>
                    </div>
                    <ChevronRight size={16} className="text-[var(--color-bhairav-text-muted)]" />
                  </li>
-                 <li className="flex items-center justify-between p-3 bg-[var(--color-bhairav-bg)] border border-[var(--color-bhairav-border)] rounded-md hover:border-[var(--color-bhairav-primary)]/50 cursor-pointer transition-colors">
+                 <li className="flex items-center justify-between p-3 glass-sm rounded-md hover:border-[var(--color-bhairav-warning)] cursor-pointer transition-colors">
                    <div className="flex items-center gap-3">
                      <FileText className="text-[var(--color-bhairav-warning)]" size={16} />
                      <span className="text-sm">Similar Event (Sector X)</span>
@@ -214,17 +218,17 @@ export default function SecurityEvents() {
 
   // LIST VIEW
   return (
-    <div className="space-y-6 flex flex-col ">
-      <BackButton to="/home" />
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[var(--color-bhairav-border)] pb-4">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Security Events</h2>
-          <p className="text-[var(--color-bhairav-text-muted)] mt-1">Intelligence log of all detected anomalies and incidents</p>
+          <p className="text-[10px] uppercase tracking-[0.3em] font-bold text-[var(--color-bhairav-primary)] mb-1">Operations</p>
+          <h1 className="text-2xl lg:text-3xl font-bold tracking-tight">Security Events</h1>
+          <p className="text-[var(--color-bhairav-text-muted)] mt-1 text-sm">Intelligence log of all detected anomalies and incidents</p>
         </div>
       </div>
 
       {/* Filters Bar */}
-      <div className="bg-[var(--color-bhairav-surface)] p-4 rounded-xl border border-[var(--color-bhairav-border)] flex flex-wrap gap-4 items-center">
+      <div className="glass-sm p-4 flex flex-wrap gap-4 items-center">
         <div className="relative flex-1 min-w-[250px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-bhairav-text-muted)]" size={16} />
           <input 
@@ -295,7 +299,7 @@ export default function SecurityEvents() {
               <div 
                 key={evt.id}
                 onClick={() => navigate(`/security/events/${evt.id}`)}
-                className={`bg-[var(--color-bhairav-surface)] border-y border-r border-[var(--color-bhairav-border)] p-5 rounded-xl hover:border-[var(--color-bhairav-primary)]/50 cursor-pointer transition-all group flex flex-col md:flex-row md:items-center gap-6 severity-notch-${evt.severity}`}
+                className="glass-card p-5 cursor-pointer transition-all group flex flex-col md:flex-row md:items-center gap-6 severity-notch-${evt.severity}"
               >
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">

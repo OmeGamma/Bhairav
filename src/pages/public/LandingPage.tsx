@@ -1,758 +1,616 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { motion, AnimatePresence } from 'motion/react';
 import {
-  Shield,
-  Lock,
-  ArrowRight,
-  Eye,
-  Target,
-  Database,
-  Map as MapIcon,
-  Users,
-  Network,
-  Heart,
-  Mic,
-  ChevronRight,
-  Menu,
-  X,
+  Shield, Lock, ArrowRight, Eye, Network, Camera, Map as MapIcon,
+  FileSearch, HeartPulse, Sparkles, ChevronRight, Globe, Database, Cpu, Zap,
+  ShieldCheck, ScanLine, AlertTriangle, Car, Users
 } from 'lucide-react';
 import { cn } from '../../utils/cn';
+import { useAuth } from '../../hooks/useAuth';
 
-const FEATURES = [
-  {
-    id: '01',
-    title: 'Security Intelligence',
-    subtitle: 'AI-Powered Threat Detection',
-    description:
-      'Real-time video analytics, perimeter monitoring, and anomaly detection across all security feeds.',
-    icon: Eye,
-    color: '#ef4444',
-    visual: (
-      <div className="space-y-3">
-        <div className="flex items-center gap-3">
-          <div className="w-2 h-2 rounded-full bg-[var(--color-bhairav-critical)] animate-pulse" />
-          <span className="text-xs text-[var(--color-bhairav-text-muted)] font-mono">LIVE FEED — CAM-17</span>
+interface FeatureSlide {
+  id: string;
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+  description: string;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  accent: 'blue' | 'olive' | 'amber' | 'rose' | 'violet' | 'cyan';
+  visual: React.ReactNode;
+}
+
+const ACCENT: Record<string, { text: string; bg: string; border: string; ring: string; soft: string; chip: string }> = {
+  blue:   { text: 'text-[var(--color-bhairav-primary)]',   bg: 'bg-[var(--color-bhairav-primary)]/10',   border: 'border-[var(--color-bhairav-primary)]/30',  ring: 'ring-[var(--color-bhairav-primary)]/20',  soft: 'bg-[var(--color-bhairav-primary-soft)]',  chip: 'bg-[var(--color-bhairav-primary-soft)] text-[var(--color-bhairav-primary)]' },
+  olive:  { text: 'text-[var(--color-bhairav-olive)]',      bg: 'bg-[var(--color-bhairav-olive)]/10',      border: 'border-[var(--color-bhairav-olive)]/30',     ring: 'ring-[var(--color-bhairav-olive)]/20',     soft: 'bg-[var(--color-bhairav-olive-soft)]',     chip: 'bg-[var(--color-bhairav-olive-soft)] text-[var(--color-bhairav-olive)]' },
+  amber:  { text: 'text-[var(--color-bhairav-warning)]',    bg: 'bg-[var(--color-bhairav-warning)]/10',    border: 'border-[var(--color-bhairav-warning)]/30',  ring: 'ring-[var(--color-bhairav-warning)]/20',   soft: 'bg-[var(--color-bhairav-warning)]/10',     chip: 'bg-[var(--color-bhairav-warning)]/10 text-[var(--color-bhairav-warning)]' },
+  rose:   { text: 'text-[var(--color-bhairav-critical)]',   bg: 'bg-[var(--color-bhairav-critical)]/10',   border: 'border-[var(--color-bhairav-critical)]/30', ring: 'ring-[var(--color-bhairav-critical)]/20',  soft: 'bg-[var(--color-bhairav-critical)]/10',    chip: 'bg-[var(--color-bhairav-critical)]/10 text-[var(--color-bhairav-critical)]' },
+  violet: { text: 'text-[#7C5BC9]',                          bg: 'bg-[#7C5BC9]/10',                          border: 'border-[#7C5BC9]/30',                        ring: 'ring-[#7C5BC9]/20',                        soft: 'bg-[#7C5BC9]/10',                          chip: 'bg-[#7C5BC9]/10 text-[#7C5BC9]' },
+  cyan:   { text: 'text-[#3A8FA3]',                          bg: 'bg-[#3A8FA3]/10',                          border: 'border-[#3A8FA3]/30',                        ring: 'ring-[#3A8FA3]/20',                        soft: 'bg-[#3A8FA3]/10',                          chip: 'bg-[#3A8FA3]/10 text-[#3A8FA3]' },
+};
+
+// =========================================================
+// SLIDE VISUALS — one per feature, all themed
+// =========================================================
+const VideoIntelligenceVisual = (
+  <div className="space-y-3">
+    <div className="flex items-center gap-2">
+      <span className="w-2 h-2 rounded-full bg-[var(--color-bhairav-critical)] animate-pulse" />
+      <span className="text-[10px] text-[var(--color-bhairav-text-muted)] font-mono uppercase tracking-widest">Live · CAM-17</span>
+    </div>
+    <div className="aspect-video rounded-lg bg-[var(--color-bhairav-bg)] border border-[var(--color-bhairav-border)] flex items-center justify-center relative overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-br from-[var(--color-bhairav-critical)]/5 to-transparent" />
+      <Camera size={36} className="text-[var(--color-bhairav-critical)]/60" />
+      <span className="absolute top-2 left-2 text-[9px] font-mono text-[var(--color-bhairav-verified)] bg-[var(--color-bhairav-verified)]/10 px-1.5 py-0.5 rounded">● LIVE</span>
+      <span className="absolute bottom-2 right-2 text-[9px] font-mono text-[var(--color-bhairav-text-muted)]">BOP-01</span>
+    </div>
+    <div className="flex gap-2 flex-wrap">
+      {[
+        { l: 'Person 98%', c: 'critical' },
+        { l: 'Vehicle 87%', c: 'warning' },
+        { l: 'Track 17', c: 'primary' },
+      ].map((t) => (
+        <span key={t.l} className={cn('px-2 py-1 rounded text-[10px] font-mono border', ACCENT[t.c === 'critical' ? 'rose' : t.c === 'warning' ? 'amber' : 'blue'].chip, 'border-current/20')}>
+          {t.l}
+        </span>
+      ))}
+    </div>
+  </div>
+);
+
+const NetworkVisual = (
+  <div className="aspect-square">
+    <svg viewBox="0 0 200 200" className="w-full h-full">
+      {[
+        [100, 30], [40, 70], [160, 70], [60, 140], [140, 140], [100, 100],
+      ].map((p, i, arr) => (
+        arr.slice(i + 1).map((q, j) => (
+          <line key={`${i}-${j}`} x1={p[0]} y1={p[1]} x2={q[0]} y2={q[1]} stroke="var(--color-bhairav-primary)" strokeOpacity={0.18 + (i + j) * 0.05} strokeWidth="1.2" />
+        ))
+      ))}
+      {[
+        [100, 30, '#7C5BC9', 'P'], [40, 70, '#3E6E9E', 'V'], [160, 70, '#5B6650', 'L'],
+        [60, 140, '#C0392B', 'C'], [140, 140, '#3A8FA3', 'E'], [100, 100, '#7C5BC9', 'P'],
+      ].map(([x, y, c, t], i) => (
+        <g key={i}>
+          <circle cx={x} cy={y} r="11" fill={c} fillOpacity="0.15" />
+          <circle cx={x} cy={y} r="7" fill={c} />
+          <text x={x} y={y + 3} textAnchor="middle" fontSize="8" fill="white" fontWeight="700">{t}</text>
+        </g>
+      ))}
+    </svg>
+  </div>
+);
+
+const MapVisual = (
+  <div className="aspect-[4/3] relative overflow-hidden rounded-lg border border-[var(--color-bhairav-border)]">
+    <div className="absolute inset-0 opacity-40" style={{
+      backgroundImage: 'linear-gradient(var(--color-bhairav-border) 1px, transparent 1px), linear-gradient(90deg, var(--color-bhairav-border) 1px, transparent 1px)',
+      backgroundSize: '24px 24px',
+    }} />
+    <div className="absolute top-1/4 left-1/3 w-3 h-3 rounded-full bg-[var(--color-bhairav-critical)] shadow-[0_0_0_6px_var(--color-bhairav-critical)]/20" />
+    <div className="absolute top-1/2 left-1/2 w-3 h-3 rounded-full bg-[var(--color-bhairav-warning)] shadow-[0_0_0_6px_var(--color-bhairav-warning)]/20" />
+    <div className="absolute top-2/3 left-3/4 w-3 h-3 rounded-full bg-[var(--color-bhairav-primary)] shadow-[0_0_0_6px_var(--color-bhairav-primary)]/20" />
+    <div className="absolute top-1/3 left-1/2 w-28 h-16 border-2 border-dashed border-[var(--color-bhairav-critical)]/40 rounded-lg" />
+    <div className="absolute top-2 right-2 glass-sm px-2 py-1 text-[9px] font-mono">BHAIRAV MAP</div>
+  </div>
+);
+
+const DocumentVisual = (
+  <div className="space-y-3">
+    <div className="aspect-video rounded-lg border-2 border-dashed border-[var(--color-bhairav-border)] flex items-center justify-center bg-[var(--color-bhairav-bg)]">
+      <FileSearch size={32} className="text-[var(--color-bhairav-text-muted)]" />
+    </div>
+    <div className="space-y-1.5">
+      {[
+        { l: 'Readability', v: 100, c: 'verified' },
+        { l: 'Consistency', v: 94, c: 'verified' },
+        { l: 'Photo match', v: 86, c: 'warning' },
+        { l: 'Integrity', v: 73, c: 'critical' },
+      ].map((m) => (
+        <div key={m.l}>
+          <div className="flex justify-between text-[10px] mb-0.5">
+            <span className="text-[var(--color-bhairav-text-muted)] uppercase tracking-widest font-mono">{m.l}</span>
+            <span className={cn('font-mono', `text-[var(--color-bhairav-${m.c})]`)}>{m.v}%</span>
+          </div>
+          <div className="h-1.5 rounded-full bg-[var(--color-bhairav-surface-hover)] overflow-hidden">
+            <div className={cn('h-full', `bg-[var(--color-bhairav-${m.c})]`)} style={{ width: `${m.v}%` }} />
+          </div>
         </div>
-        <div className="h-24 bg-[var(--color-bhairav-bg)] rounded-lg border border-[var(--color-bhairav-border)] flex items-center justify-center relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-[var(--color-bhairav-critical)]/5 to-transparent" />
-          <Eye size={32} className="text-[var(--color-bhairav-critical)]/60" />
-        </div>
-        <div className="flex gap-2">
-          <span className="px-2 py-1 rounded text-[10px] font-mono bg-[var(--color-bhairav-critical)]/10 text-[var(--color-bhairav-critical)] border border-[var(--color-bhairav-critical)]/20">
-            PERSON 98%
-          </span>
-          <span className="px-2 py-1 rounded text-[10px] font-mono bg-[var(--color-bhairav-warning)]/10 text-[var(--color-bhairav-warning)] border border-[var(--color-bhairav-warning)]/20">
-            VEHICLE 87%
-          </span>
-        </div>
+      ))}
+    </div>
+  </div>
+);
+
+const WelfareVisual = (
+  <div className="space-y-3">
+    {[
+      { l: 'Workload', v: 'INCREASING', c: 'amber' },
+      { l: 'Recovery', v: 'DECREASING', c: 'rose' },
+      { l: 'Fatigue', v: 'MEDIUM', c: 'amber' },
+    ].map((m) => (
+      <div key={m.l} className="flex items-center justify-between p-3 rounded-lg bg-[var(--color-bhairav-surface-hover)]">
+        <span className="text-sm text-[var(--color-bhairav-text)]">{m.l}</span>
+        <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded border', `text-[var(--color-bhairav-${m.c})] border-[var(--color-bhairav-${m.c})]/30`)}>{m.v}</span>
       </div>
-    ),
+    ))}
+  </div>
+);
+
+const AIAssistantVisual = (
+  <div className="space-y-3">
+    <div className="flex gap-2">
+      <div className="w-8 h-8 rounded-full bg-[var(--color-bhairav-primary)] flex items-center justify-center text-white shrink-0">
+        <Sparkles size={14} />
+      </div>
+      <div className="flex-1 p-3 rounded-lg bg-[var(--color-bhairav-surface-hover)] text-sm text-[var(--color-bhairav-text)]">
+        Show me the latest events near Sector X in the last 24 hours.
+      </div>
+    </div>
+    <div className="flex gap-2">
+      <div className="w-8 h-8 rounded-full bg-[var(--color-bhairav-olive)]/20 flex items-center justify-center text-[var(--color-bhairav-olive)] shrink-0">
+        <Shield size={14} />
+      </div>
+      <div className="flex-1 p-3 rounded-lg bg-[var(--color-bhairav-primary-soft)] text-sm text-[var(--color-bhairav-text)]">
+        <p>3 events match in Sector X (last 24h):</p>
+        <ul className="mt-1 space-y-0.5 text-[11px] text-[var(--color-bhairav-text-muted)]">
+          <li>• BH-104 — Restricted-zone entry (CRITICAL)</li>
+          <li>• BH-103 — Vehicle checkpoint anomaly (WARNING)</li>
+          <li>• BH-101 — Personnel ID mismatch (INFO)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+);
+
+const SLIDES: FeatureSlide[] = [
+  {
+    id: 'video',
+    eyebrow: 'Engine 1 · Video Intelligence (IBVAP)',
+    title: 'See the perimeter',
+    subtitle: 'Live CCTV, ANPR, and fence analytics',
+    description: 'Human and vehicle detection, multi-object tracking, virtual-fence intrusion, suspicious-activity and night-movement detection — all logged as structured events that you can query, not frames you have to scrub through.',
+    icon: Camera,
+    accent: 'cyan',
+    visual: VideoIntelligenceVisual,
   },
   {
-    id: '02',
-    title: 'Identity Verification',
-    subtitle: 'Multi-Modal Credential Analysis',
-    description:
-      'Advanced document verification, facial recognition, and biometric matching at critical checkpoints.',
-    icon: Target,
-    color: '#3b82f6',
-    visual: (
-      <div className="space-y-3">
-        <div className="flex items-center gap-3">
-          <div className="w-2 h-2 rounded-full bg-[var(--color-bhairav-primary)] animate-pulse" />
-          <span className="text-xs text-[var(--color-bhairav-text-muted)] font-mono">VERIFICATION IN PROGRESS</span>
-        </div>
-        <div className="h-24 bg-[var(--color-bhairav-bg)] rounded-lg border border-[var(--color-bhairav-border)] flex items-center justify-center gap-4">
-          <div className="w-12 h-12 rounded-lg bg-[var(--color-bhairav-primary)]/10 border border-[var(--color-bhairav-primary)]/30 flex items-center justify-center">
-            <Users size={20} className="text-[var(--color-bhairav-primary)]" />
-          </div>
-          <div className="w-12 h-12 rounded-lg bg-[var(--color-bhairav-verified)]/10 border border-[var(--color-bhairav-verified)]/30 flex items-center justify-center">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-bhairav-verified)]">
-              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-              <polyline points="22 4 12 14.01 9 11.01" />
-            </svg>
-          </div>
-        </div>
-        <div className="h-2 bg-[var(--color-bhairav-bg)] rounded-full overflow-hidden border border-[var(--color-bhairav-border)]">
-          <div className="h-full bg-[var(--color-bhairav-primary)] rounded-full w-4/5" />
-        </div>
-      </div>
-    ),
-  },
-  {
-    id: '03',
-    title: 'Network Intelligence',
-    subtitle: 'Entity Relationship Mapping',
-    description:
-      'Relational mapping of security events, persons, vehicles, locations, and threat vectors.',
+    id: 'network',
+    eyebrow: 'Engine 2 · Criminal Network Analysis',
+    title: 'Find the connectors',
+    subtitle: 'NLP-extracted entities, centrality-ranked',
+    description: 'From incident reports, FIRs, and analyst notes, BHAIRAV extracts people, phones, vehicles, orgs, and locations, then builds a graph. Centrality scores tell you who the influencers are. Anomaly scores tell you which edges deserve a second look.',
     icon: Network,
-    color: '#10b981',
-    visual: (
-      <div className="space-y-3">
-        <div className="flex items-center gap-3">
-          <div className="w-2 h-2 rounded-full bg-[var(--color-bhairav-verified)] animate-pulse" />
-          <span className="text-xs text-[var(--color-bhairav-text-muted)] font-mono">GRAPH ACTIVE — 24 NODES</span>
-        </div>
-        <div className="h-24 bg-[var(--color-bhairav-bg)] rounded-lg border border-[var(--color-bhairav-border)] flex items-center justify-center relative">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 rounded-full bg-[var(--color-bhairav-primary)]/10 border border-[var(--color-bhairav-primary)]/30" />
-          <div className="absolute top-6 left-10 w-3 h-3 rounded-full bg-[var(--color-bhairav-critical)] border border-[var(--color-bhairav-border)]" />
-          <div className="absolute top-10 right-12 w-3 h-3 rounded-full bg-[var(--color-bhairav-warning)] border border-[var(--color-bhairav-border)]" />
-          <div className="absolute bottom-8 left-16 w-3 h-3 rounded-full bg-[var(--color-bhairav-verified)] border border-[var(--color-bhairav-border)]" />
-          <div className="absolute bottom-6 right-10 w-3 h-3 rounded-full bg-[var(--color-bhairav-primary)] border border-[var(--color-bhairav-border)]" />
-        </div>
-      </div>
-    ),
+    accent: 'violet',
+    visual: NetworkVisual,
   },
   {
-    id: '04',
-    title: 'Maps & Analytics',
-    subtitle: 'Geospatial Situational Awareness',
-    description:
-      'Live tracking, heatmaps, and geospatial analysis for comprehensive operational oversight.',
+    id: 'map',
+    eyebrow: 'Geospatial',
+    title: 'Pin it on the map',
+    subtitle: 'Cameras, events, and zones, together',
+    description: 'A single interactive map of every camera, every event, and every restricted zone. Click any pin to open the source feed or jump to the event detail. Overlay a fence and see exactly what crossed it.',
     icon: MapIcon,
-    color: '#f59e0b',
-    visual: (
-      <div className="space-y-3">
-        <div className="flex items-center gap-3">
-          <div className="w-2 h-2 rounded-full bg-[var(--color-bhairav-warning)] animate-pulse" />
-          <span className="text-xs text-[var(--color-bhairav-text-muted)] font-mono">SECTOR X — 3 ACTIVE ZONES</span>
-        </div>
-        <div className="h-24 bg-[var(--color-bhairav-bg)] rounded-lg border border-[var(--color-bhairav-border)] relative overflow-hidden">
-          <div className="absolute inset-0 opacity-30">
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 rounded-full border border-[var(--color-bhairav-warning)]/40" />
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 rounded-full border border-[var(--color-bhairav-critical)]/40" />
-          </div>
-          <MapIcon size={32} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[var(--color-bhairav-warning)]/60" />
-        </div>
-      </div>
-    ),
+    accent: 'olive',
+    visual: MapVisual,
   },
   {
-    id: '05',
-    title: 'AI Assistant',
-    subtitle: 'Natural Language Intelligence',
-    description:
-      'Voice-enabled assistant for natural language querying, report generation, and command operations.',
-    icon: Mic,
-    color: '#3b82f6',
-    visual: (
-      <div className="space-y-3">
-        <div className="flex items-center gap-3">
-          <div className="w-2 h-2 rounded-full bg-[var(--color-bhairav-primary)] animate-pulse" />
-          <span className="text-xs text-[var(--color-bhairav-text-muted)] font-mono">BHAIRAV AI — READY</span>
-        </div>
-        <div className="h-24 bg-[var(--color-bhairav-bg)] rounded-lg border border-[var(--color-bhairav-border)] flex items-center justify-center">
-          <div className="flex items-center gap-3 px-4 py-2 bg-[var(--color-bhairav-surface)] rounded-full border border-[var(--color-bhairav-border)]">
-            <Mic size={16} className="text-[var(--color-bhairav-primary)]" />
-            <span className="text-xs text-[var(--color-bhairav-text-muted)]">Ask anything...</span>
-          </div>
-        </div>
-      </div>
-    ),
+    id: 'doc',
+    eyebrow: 'Document Verification',
+    title: 'Catch the forgery',
+    subtitle: 'Document + photo consistency',
+    description: 'Upload a photo and a document. BHAIRAV runs readability, photo-match, and integrity checks, surfaces a verdict with reasons, and lets you drill into the flagged fields.',
+    icon: FileSearch,
+    accent: 'amber',
+    visual: DocumentVisual,
   },
   {
-    id: '06',
-    title: 'Personnel Welfare',
-    subtitle: 'Operational Readiness Tracking',
-    description:
-      'Automated welfare follow-ups, fatigue monitoring, and support request management for personnel.',
-    icon: Heart,
-    color: '#10b981',
-    visual: (
-      <div className="space-y-3">
-        <div className="flex items-center gap-3">
-          <div className="w-2 h-2 rounded-full bg-[var(--color-bhairav-verified)] animate-pulse" />
-          <span className="text-xs text-[var(--color-bhairav-text-muted)] font-mono">ALL UNITS — NOMINAL</span>
-        </div>
-        <div className="h-24 bg-[var(--color-bhairav-bg)] rounded-lg border border-[var(--color-bhairav-border)] flex items-center justify-center gap-4">
-          <div className="text-center">
-            <div className="text-lg font-bold text-[var(--color-bhairav-verified)]">94%</div>
-            <div className="text-[10px] text-[var(--color-bhairav-text-muted)]">READINESS</div>
-          </div>
-          <div className="w-px h-8 bg-[var(--color-bhairav-border)]" />
-          <div className="text-center">
-            <div className="text-lg font-bold text-[var(--color-bhairav-primary)]">12</div>
-            <div className="text-[10px] text-[var(--color-bhairav-text-muted)]">CHECK-INS</div>
-          </div>
-        </div>
-      </div>
-    ),
+    id: 'welfare',
+    eyebrow: 'Personnel',
+    title: 'Care for the team',
+    subtitle: 'Readiness, fatigue, and welfare',
+    description: 'Aggregated, anonymized check-in signals and active support requests. Spot a unit that needs help before fatigue becomes an incident.',
+    icon: HeartPulse,
+    accent: 'olive',
+    visual: WelfareVisual,
+  },
+  {
+    id: 'ai',
+    eyebrow: 'BHAIRAV AI',
+    title: 'Ask in plain English',
+    subtitle: 'LLM grounded in your data',
+    description: 'Type a question. BHAIRAV injects the relevant cameras, persons, vehicles, events, and cases as context, then answers. Optional SearXNG-backed web search for questions about the outside world.',
+    icon: Sparkles,
+    accent: 'blue',
+    visual: AIAssistantVisual,
   },
 ];
 
-function useScrollReveal() {
-  const ref = useRef<HTMLDivElement>(null);
+// =========================================================
+// MAIN
+// =========================================================
+export default function LandingPage() {
+  const { isAuthenticated } = useAuth();
+  const [active, setActive] = useState(0);
+  const trackRef = useRef<HTMLDivElement>(null);
 
+  // Track which slide is in view as the user scrolls
   useEffect(() => {
-    const node = ref.current;
-    if (!node) return;
-
-    const observer = new IntersectionObserver(
+    const track = trackRef.current;
+    if (!track) return;
+    const slides = track.querySelectorAll('[data-slide]');
+    const obs = new IntersectionObserver(
       (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('revealed');
+        entries.forEach((e) => {
+          if (e.isIntersecting && e.intersectionRatio > 0.5) {
+            const idx = Number((e.target as HTMLElement).dataset.slide);
+            if (!Number.isNaN(idx)) setActive(idx);
           }
         });
       },
-      { threshold: 0.1, rootMargin: '0px 0px -50px 0px' }
+      { root: track, threshold: [0.5, 0.7] },
     );
-
-    observer.observe(node);
-    return () => observer.disconnect();
+    slides.forEach((el) => obs.observe(el));
+    return () => obs.disconnect();
   }, []);
 
-  return ref;
-}
-
-function ScrollReveal({ children, className, delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
-  const ref = useScrollReveal();
-
-  return (
-    <div
-      ref={ref}
-      className={cn('scroll-reveal', className)}
-      style={{ transitionDelay: `${delay}s` }}
-    >
-      {children}
-    </div>
-  );
-}
-
-export default function LandingPage() {
-  const [scrolled, setScrolled] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [activeFeature, setActiveFeature] = useState(0);
-
-  useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 50);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setActiveFeature((prev) => (prev + 1) % FEATURES.length);
-    }, 2800);
-    return () => clearInterval(timer);
-  }, []);
-
-  const scrollToSection = (id: string) => {
-    const el = document.getElementById(id);
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth' });
-      setMobileMenuOpen(false);
-    }
+  const scrollToSlide = (i: number) => {
+    const el = trackRef.current?.querySelectorAll('[data-slide]')[i] as HTMLElement | undefined;
+    el?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
   };
 
-  // For the showcase, we show one feature at a time.
-
   return (
-    <div className="min-h-screen bg-[#080B10] text-[var(--color-bhairav-text)] overflow-x-hidden">
-      {/* Navbar */}
-      <nav
-        className={cn(
-          'fixed top-0 left-0 right-0 z-50 transition-all duration-500',
-          scrolled
-            ? 'bg-[#080B10]/70 backdrop-blur-xl border-b border-[var(--color-bhairav-border)] shadow-[0_4px_30px_rgba(0,0,0,0.3)]'
-            : 'bg-transparent'
-        )}
-      >
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="flex items-center justify-between h-20">
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <Shield className="text-[var(--color-bhairav-primary)]" size={28} />
-                {scrolled && <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-[var(--color-bhairav-verified)] rounded-full animate-pulse" />}
+    <div className="w-full">
+      {/* HERO */}
+      <section className="relative overflow-hidden">
+        <div className="absolute inset-0 -z-10 pointer-events-none" style={{
+          backgroundImage: 'radial-gradient(circle at 18% 12%, var(--color-bhairav-primary-soft), transparent 45%), radial-gradient(circle at 82% 80%, var(--color-bhairav-olive-soft), transparent 50%)',
+        }} />
+        <div className="max-w-[1600px] mx-auto px-4 lg:px-8 pt-16 pb-20 lg:pt-24 lg:pb-28">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+            <div className="lg:col-span-7">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full glass-sm mb-6">
+                <Shield size={14} className="text-[var(--color-bhairav-primary)]" />
+                <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-[var(--color-bhairav-text)]">
+                  Bhairav · Defence & Security Intelligence
+                </span>
               </div>
-              <span className="text-xl font-bold tracking-widest">BHAIRAV</span>
-            </div>
-
-            {/* Desktop Nav */}
-            <div className="hidden md:flex items-center gap-8">
-              <button onClick={() => scrollToSection('features')} className="text-sm text-[var(--color-bhairav-text-muted)] hover:text-white transition-colors">
-                Features
-              </button>
-              <button onClick={() => scrollToSection('how-it-works')} className="text-sm text-[var(--color-bhairav-text-muted)] hover:text-white transition-colors">
-                How It Works
-              </button>
-              <button onClick={() => scrollToSection('benefits')} className="text-sm text-[var(--color-bhairav-text-muted)] hover:text-white transition-colors">
-                Benefits
-              </button>
-            </div>
-
-            <div className="hidden md:flex items-center gap-4">
-              <Link to="/login" className="text-sm font-medium text-[var(--color-bhairav-text-muted)] hover:text-white transition-colors">
-                Login
-              </Link>
-              <Link to="/register" className="bg-[var(--color-bhairav-primary)] hover:bg-[var(--color-bhairav-primary-hover)] text-white text-sm font-medium px-5 py-2.5 rounded-lg transition-all shadow-[0_0_20px_rgba(59,130,246,0.3)] hover:shadow-[0_0_30px_rgba(59,130,246,0.5)]">
-                Sign Up
-              </Link>
-            </div>
-
-            {/* Mobile menu button */}
-            <button
-              className="md:hidden p-2 text-[var(--color-bhairav-text-muted)] hover:text-white transition-colors"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            >
-              {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
-          </div>
-        </div>
-
-        {/* Mobile Menu */}
-        {mobileMenuOpen && (
-          <div className="md:hidden bg-[#080B10]/95 backdrop-blur-xl border-b border-[var(--color-bhairav-border)]">
-            <div className="px-6 py-4 space-y-3">
-              <button onClick={() => scrollToSection('features')} className="block w-full text-left text-sm text-[var(--color-bhairav-text-muted)] hover:text-white transition-colors py-2">
-                Features
-              </button>
-              <button onClick={() => scrollToSection('how-it-works')} className="block w-full text-left text-sm text-[var(--color-bhairav-text-muted)] hover:text-white transition-colors py-2">
-                How It Works
-              </button>
-              <button onClick={() => scrollToSection('benefits')} className="block w-full text-left text-sm text-[var(--color-bhairav-text-muted)] hover:text-white transition-colors py-2">
-                Benefits
-              </button>
-              <div className="pt-3 border-t border-[var(--color-bhairav-border)] flex flex-col gap-3">
-                <Link to="/login" className="block text-center text-sm font-medium text-[var(--color-bhairav-text-muted)] hover:text-white transition-colors py-2">
-                  Login
-                </Link>
-                <Link to="/register" className="block text-center bg-[var(--color-bhairav-primary)] hover:bg-[var(--color-bhairav-primary-hover)] text-white text-sm font-medium px-5 py-2.5 rounded-lg transition-all">
-                  Sign Up
-                </Link>
-              </div>
-            </div>
-          </div>
-        )}
-      </nav>
-
-      {/* Hero Section */}
-      <section className="relative pt-32 pb-20 md:pt-44 md:pb-32 overflow-hidden">
-        {/* Animated background */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#080B10] via-[#0B1018] to-[#080B10] opacity-60" />
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:32px_32px]" />
-        
-        {/* Floating gradient orbs */}
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[var(--color-bhairav-primary)]/10 rounded-full blur-[120px] animate-float" />
-        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-[var(--color-bhairav-verified)]/8 rounded-full blur-[100px] animate-float-delayed" />
-        
-        <div className="relative z-10 max-w-6xl mx-auto px-6 text-center">
-          <div className="animate-fade-in-up">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-[var(--color-bhairav-primary)]/30 bg-[var(--color-bhairav-primary)]/10 text-[var(--color-bhairav-primary)] text-xs font-semibold tracking-widest uppercase mb-8">
-              <span className="w-2 h-2 rounded-full bg-[var(--color-bhairav-primary)] animate-pulse" />
-              Active Intelligence Platform
-            </div>
-          </div>
-
-          <h1 className="animate-fade-in-up text-5xl md:text-7xl lg:text-8xl font-black tracking-tighter mb-8 leading-[0.95]" style={{ animationDelay: '0.1s' }}>
-            <span className="block bg-clip-text text-transparent bg-gradient-to-r from-white via-gray-200 to-gray-500">
-              Defence Intelligence
-            </span>
-            <span className="block bg-clip-text text-transparent bg-gradient-to-r from-[var(--color-bhairav-primary)] to-[var(--color-bhairav-verified)] animate-gradient">
-              Reimagined
-            </span>
-          </h1>
-
-          <p className="animate-fade-in-up text-lg md:text-xl text-[var(--color-bhairav-text-muted)] font-light max-w-2xl mx-auto mb-12 leading-relaxed" style={{ animationDelay: '0.2s' }}>
-            AI-powered security platform for next-generation threat detection, geospatial analysis, identity verification, and mission readiness.
-          </p>
-
-          <div className="animate-fade-in-up flex flex-col sm:flex-row items-center justify-center gap-4" style={{ animationDelay: '0.3s' }}>
-            <Link
-              to="/login"
-              className="w-full sm:w-auto bg-[var(--color-bhairav-primary)] hover:bg-[var(--color-bhairav-primary-hover)] text-white px-8 py-4 rounded-xl font-medium text-lg flex items-center justify-center gap-2 transition-all shadow-[0_0_30px_rgba(59,130,246,0.4)] hover:shadow-[0_0_50px_rgba(59,130,246,0.6)] hover:-translate-y-0.5"
-            >
-              <Lock size={18} /> Secure Login
-            </Link>
-            <Link
-              to="/register"
-              className="w-full sm:w-auto bg-[#10151D] hover:bg-[#10151D]/80 border border-[var(--color-bhairav-border)] text-white px-8 py-4 rounded-xl font-medium text-lg flex items-center justify-center gap-2 transition-all hover:border-[var(--color-bhairav-primary)]/50 hover:-translate-y-0.5"
-            >
-              Request Access <ArrowRight size={18} />
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* NEW ANIMATED FEATURE SHOWCASE */}
-      <section className="py-16 md:py-24 relative overflow-hidden">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <ScrollReveal>
-              <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
-                Intelligence Fusion <span className="text-[var(--color-bhairav-primary)]">Architecture</span>
-              </h2>
-              <p className="text-[var(--color-bhairav-text-muted)] max-w-2xl mx-auto text-lg">
-                A unified security intelligence platform designed for advanced threat detection and mission readiness.
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.05] text-[var(--color-bhairav-text)]">
+                Two engines.<br />
+                <span className="text-[var(--color-bhairav-primary)]">One mission.</span>
+              </h1>
+              <p className="mt-6 text-lg text-[var(--color-bhairav-text-muted)] max-w-2xl leading-relaxed">
+                Bhairav fuses live video intelligence across the perimeter with
+                graph-based criminal-network analysis on the people and events inside it.
+                Built for defence, security, and intelligence operators who need answers,
+                not dashboards.
               </p>
-            </ScrollReveal>
-          </div>
-
-          {/* Single-row horizontal showcase */}
-          <div className="relative overflow-hidden">
-            <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-[#080B10] to-transparent z-10 pointer-events-none" />
-            <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-[#080B10] to-transparent z-10 pointer-events-none" />
-            
-            <div className="relative mx-auto max-w-5xl">
-              <AnimatePresence mode="popLayout" custom={activeFeature}>
-                {FEATURES.map((feature, idx) => {
-                  const Icon = feature.icon;
-                  if (idx !== activeFeature) return null;
-
-                  return (
-                    <motion.div
-                      key={feature.id}
-                      initial={{ x: 600, opacity: 0 }}
-                      animate={{ x: 0, opacity: 1 }}
-                      exit={{ x: -600, opacity: 0 }}
-                      transition={{
-                        type: 'spring',
-                        damping: 20,
-                        stiffness: 300,
-                        opacity: { duration: 0.25 },
-                      }}
-                      className="relative bg-[#0D1118] border border-[var(--color-bhairav-primary)]/50 rounded-2xl p-6 md:p-8 shadow-[0_0_40px_rgba(59,130,246,0.08)]"
+              <div className="mt-8 flex flex-wrap gap-3">
+                {isAuthenticated ? (
+                  <Link
+                    to="/home"
+                    className="inline-flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold text-white bg-[var(--color-bhairav-primary)] hover:bg-[var(--color-bhairav-primary-hover)] shadow-sm transition-colors"
+                  >
+                    Open the platform <ArrowRight size={16} />
+                  </Link>
+                ) : (
+                  <>
+                    <Link
+                      to="/login"
+                      className="inline-flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold text-white bg-[var(--color-bhairav-primary)] hover:bg-[var(--color-bhairav-primary-hover)] shadow-sm transition-colors"
                     >
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="w-10 h-10 rounded-xl flex items-center justify-center border" style={{ backgroundColor: `${feature.color}15`, borderColor: `${feature.color}30` }}>
-                          <Icon size={24} style={{ color: feature.color }} />
-                        </div>
-                        <div>
-                          <div className="text-[10px] font-mono text-[var(--color-bhairav-text-muted)] tracking-widest">FEATURE {feature.id}</div>
-                          <div className="text-xl font-bold">{feature.title}</div>
-                        </div>
-                        <div className="ml-auto flex items-center gap-2">
-                          <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-bhairav-primary)] animate-pulse" />
-                          <span className="text-[10px] font-mono text-[var(--color-bhairav-primary)] tracking-widest">ACTIVE</span>
-                        </div>
-                      </div>
+                      Sign in <ArrowRight size={16} />
+                    </Link>
+                    <Link
+                      to="/register"
+                      className="inline-flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold text-[var(--color-bhairav-text)] border border-[var(--color-bhairav-border-strong)] hover:border-[var(--color-bhairav-primary)] hover:text-[var(--color-bhairav-primary)] transition-colors"
+                    >
+                      Request access
+                    </Link>
+                  </>
+                )}
+                <Link
+                  to="/ask-bhairav"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold text-[var(--color-bhairav-text)] hover:text-[var(--color-bhairav-primary)] transition-colors"
+                >
+                  <Sparkles size={16} /> Talk to BHAIRAV
+                </Link>
+              </div>
+              <div className="mt-10 grid grid-cols-3 gap-6 max-w-lg">
+                {[
+                  { v: '24/7', l: 'Ingest' },
+                  { v: '2', l: 'Engines' },
+                  { v: '1', l: 'Mission' },
+                ].map((s) => (
+                  <div key={s.l}>
+                    <p className="text-2xl font-extrabold font-mono text-[var(--color-bhairav-text)]">{s.v}</p>
+                    <p className="text-[10px] uppercase tracking-widest text-[var(--color-bhairav-text-muted)] font-mono mt-1">{s.l}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
 
-                      <p className="text-sm text-[var(--color-bhairav-text-muted)] leading-relaxed mb-6 max-w-3xl">
-                        {feature.description}
-                      </p>
-
-                      <div className="bg-[#080B10]/80 border border-[var(--color-bhairav-border)] rounded-xl p-5">
-                        {feature.visual}
-                      </div>
-                    </motion.div>
-                  );
-                })}
-              </AnimatePresence>
+            <div className="lg:col-span-5">
+              <div className="relative">
+                <div className="absolute -inset-6 -z-10 rounded-3xl bg-[var(--color-bhairav-primary-soft)] opacity-50 blur-2xl" />
+                <div className="glass-card p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <p className="text-[10px] uppercase tracking-widest font-bold text-[var(--color-bhairav-text-muted)] font-mono">Live preview</p>
+                    <span className="text-[10px] font-mono text-[var(--color-bhairav-verified)] inline-flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-bhairav-verified)] animate-pulse" /> ALL SYSTEMS
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded-lg border border-[var(--color-bhairav-border)] aspect-video flex items-center justify-center bg-[var(--color-bhairav-bg)] relative">
+                      <Camera size={20} className="text-[var(--color-bhairav-text-muted)]" />
+                      <span className="absolute top-1.5 left-1.5 text-[9px] font-mono text-[var(--color-bhairav-verified)] bg-[var(--color-bhairav-verified)]/10 px-1.5 py-0.5 rounded">● LIVE</span>
+                    </div>
+                    <div className="rounded-lg border border-[var(--color-bhairav-border)] aspect-video flex items-center justify-center bg-[var(--color-bhairav-bg)] relative">
+                      <Eye size={20} className="text-[var(--color-bhairav-text-muted)]" />
+                      <span className="absolute top-1.5 left-1.5 text-[9px] font-mono text-[var(--color-bhairav-verified)] bg-[var(--color-bhairav-verified)]/10 px-1.5 py-0.5 rounded">● LIVE</span>
+                    </div>
+                    <div className="col-span-2 p-3 rounded-lg border border-[var(--color-bhairav-border)] bg-[var(--color-bhairav-bg)]">
+                      <p className="text-[10px] uppercase tracking-widest text-[var(--color-bhairav-text-muted)] font-mono mb-2">Network</p>
+                      <svg viewBox="0 0 200 60" className="w-full h-12">
+                        {[[20,30,90,30],[90,30,160,30],[50,15,50,45],[150,15,150,45]].map(([x1,y1,x2,y2], i) => (
+                          <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="var(--color-bhairav-primary)" strokeOpacity="0.3" strokeWidth="1" />
+                        ))}
+                        {[[20,30],[90,30],[160,30],[50,15],[150,15],[50,45],[150,45]].map(([x,y], i) => (
+                          <circle key={i} cx={x} cy={y} r="5" fill="var(--color-bhairav-primary)" />
+                        ))}
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Horizontal Features Showcase */}
-      <section className="py-16 relative">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 mb-8">
-          <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-center">
-            Platform <span className="text-[var(--color-bhairav-steel)]">Capabilities</span>
-          </h2>
-          <p className="text-[var(--color-bhairav-text-muted)] text-center mt-2 max-w-xl mx-auto">
-            A unified intelligence platform covering every layer of security operations.
-          </p>
-        </div>
-        <HorizontalFeatures />
-      </section>
-
-      {/* Feature Cards Grid */}
-      <section id="features" className="py-24 relative">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[var(--color-bhairav-surface)]/30 to-transparent" />
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 relative z-10">
-          <div className="text-center mb-16">
-            <ScrollReveal>
-              <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
-                Complete Security <span className="text-[var(--color-bhairav-primary)]">Ecosystem</span>
+      {/* SLIDING FEATURE STRIP — horizontal-snap on desktop, vertical stack on mobile */}
+      <section className="border-t border-[var(--color-bhairav-border)] bg-[var(--color-bhairav-bg-elevated)]">
+        <div className="max-w-[1600px] mx-auto px-4 lg:px-8 pt-16 pb-8">
+          <div className="flex items-end justify-between flex-wrap gap-4 mb-8">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.3em] font-bold text-[var(--color-bhairav-primary)] mb-2">What's inside</p>
+              <h2 className="text-3xl lg:text-4xl font-bold tracking-tight text-[var(--color-bhairav-text)]">
+                Every capability, one scroll away
               </h2>
-              <p className="text-[var(--color-bhairav-text-muted)] max-w-2xl mx-auto">
-                Every tool you need to detect, analyze, and respond to security threats in one unified platform.
-              </p>
-            </ScrollReveal>
+            </div>
+            <p className="text-sm text-[var(--color-bhairav-text-muted)] max-w-md">
+              Swipe or scroll. Each card is a real, working module — not a mock.
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {FEATURES.map((feature, idx) => {
-              const Icon = feature.icon;
+          {/* Dots / pager */}
+          <div className="flex items-center gap-1.5 mb-6 overflow-x-auto scrollbar-themed pb-2">
+            {SLIDES.map((s, i) => {
+              const a = ACCENT[s.accent];
               return (
-                <ScrollReveal key={feature.id} delay={idx * 0.1}>
-                  <div className="h-full bg-[#0D1118]/80 backdrop-blur-xl border border-[#1a1f2e] rounded-2xl p-6 md:p-8 transition-all duration-300 hover:border-[var(--color-bhairav-primary)]/50 hover:shadow-[0_0_30px_rgba(59,130,246,0.1)] hover:-translate-y-1">
-                    <div className="flex items-start justify-between mb-6">
-                      <div
-                        className="w-12 h-12 rounded-xl flex items-center justify-center border transition-transform duration-300 group-hover:scale-110"
-                        style={{
-                          backgroundColor: `${feature.color}15`,
-                          borderColor: `${feature.color}30`,
-                        }}
-                      >
-                        <Icon size={24} style={{ color: feature.color }} />
-                      </div>
-                      <span className="text-xs font-mono text-[var(--color-bhairav-text-muted)]">0{feature.id}</span>
+                <button
+                  key={s.id}
+                  onClick={() => scrollToSlide(i)}
+                  className={cn(
+                    'shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] font-medium transition-colors border',
+                    active === i
+                      ? `${a.soft} ${a.text} border-current/30`
+                      : 'text-[var(--color-bhairav-text-muted)] border-[var(--color-bhairav-border)] hover:text-[var(--color-bhairav-text)]',
+                  )}
+                >
+                  <s.icon size={12} />
+                  {s.title}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* The track: snap horizontally on lg+, stack on small */}
+        <div
+          ref={trackRef}
+          className="overflow-x-auto lg:overflow-x-auto snap-x snap-mandatory flex gap-6 px-4 lg:px-8 pb-12 scrollbar-themed"
+          style={{ scrollPadding: '0 2rem' }}
+        >
+          {SLIDES.map((s, i) => {
+            const a = ACCENT[s.accent];
+            return (
+              <article
+                key={s.id}
+                data-slide={i}
+                className={cn(
+                  'snap-center shrink-0 w-[88vw] sm:w-[70vw] lg:w-[820px] max-w-full',
+                  'glass-card p-6 lg:p-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center',
+                )}
+              >
+                <div className="lg:col-span-6">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className={cn('w-11 h-11 rounded-xl flex items-center justify-center', a.bg, a.text)}>
+                      <s.icon size={22} />
                     </div>
-                    <h3 className="text-xl font-semibold mb-3 group-hover:text-[var(--color-bhairav-primary)] transition-colors">
-                      {feature.title}
-                    </h3>
-                    <p className="text-sm text-[var(--color-bhairav-text-muted)] leading-relaxed">
-                      {feature.description}
+                    <p className={cn('text-[10px] uppercase tracking-[0.3em] font-bold', a.text)}>
+                      {s.eyebrow}
                     </p>
                   </div>
-                </ScrollReveal>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works */}
-      <section id="how-it-works" className="py-24 relative">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="text-center mb-20">
-            <ScrollReveal>
-              <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
-                How It <span className="text-[var(--color-bhairav-primary)]">Works</span>
-              </h2>
-              <p className="text-[var(--color-bhairav-text-muted)] max-w-2xl mx-auto text-lg">
-                From deployment to decision-making in four streamlined phases.
-              </p>
-            </ScrollReveal>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {[
-              {
-                step: '01',
-                title: 'Deploy',
-                desc: 'Install cameras, sensors, and verification nodes across operational zones.',
-                icon: MapIcon,
-              },
-              {
-                step: '02',
-                title: 'Detect',
-                desc: 'AI models analyze feeds in real-time, flagging anomalies and threats instantly.',
-                icon: Eye,
-              },
-              {
-                step: '03',
-                title: 'Analyze',
-                desc: 'Network intelligence maps relationships. Verification confirms identities.',
-                icon: Network,
-              },
-              {
-                step: '04',
-                title: 'Act',
-                desc: 'Operators receive actionable intelligence. Welfare and support systems stay aligned.',
-                icon: Shield,
-              },
-            ].map((item, idx) => {
-              const Icon = item.icon;
-              return (
-                <ScrollReveal key={item.step} delay={idx * 0.15}>
-                  <div className="text-center">
-                    <div className="w-16 h-16 mx-auto rounded-2xl bg-[var(--color-bhairav-primary)]/10 border border-[var(--color-bhairav-primary)]/30 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                      <Icon size={28} className="text-[var(--color-bhairav-primary)]" />
-                    </div>
-                    <div className="text-xs font-mono text-[var(--color-bhairav-primary)] tracking-widest mb-2">STEP {item.step}</div>
-                    <h3 className="text-xl font-semibold mb-3">{item.title}</h3>
-                    <p className="text-sm text-[var(--color-bhairav-text-muted)] leading-relaxed">{item.desc}</p>
+                  <h3 className="text-2xl lg:text-3xl font-bold tracking-tight text-[var(--color-bhairav-text)]">
+                    {s.title}
+                  </h3>
+                  <p className={cn('text-sm font-medium mt-1', a.text)}>{s.subtitle}</p>
+                  <p className="mt-4 text-sm text-[var(--color-bhairav-text-muted)] leading-relaxed">
+                    {s.description}
+                  </p>
+                  <div className="mt-6 flex flex-wrap gap-2">
+                    {(s.id === 'video' ? ['Human+vehicle detection', 'ANPR', 'Fence analytics', 'Night mode'] :
+                      s.id === 'network' ? ['NLP extraction', 'Centrality ranking', 'Anomaly scoring', 'Graph traversal'] :
+                      s.id === 'map' ? ['Live pins', 'Zone overlays', 'Click-to-open'] :
+                      s.id === 'doc' ? ['Readability', 'Photo match', 'Integrity', 'LLM explain'] :
+                      s.id === 'welfare' ? ['Trend signals', 'Support queue', 'Anonymized'] :
+                      ['Injected context', 'Web search', 'Streaming']).map((t) => (
+                      <span key={t} className={cn('px-2.5 py-1 rounded-full text-[10px] font-mono border', a.chip, 'border-current/20')}>
+                        {t}
+                      </span>
+                    ))}
                   </div>
-                  {idx < 3 && (
-                    <div className="hidden lg:block absolute top-8 -right-4 w-8 text-[var(--color-bhairav-border)]">
-                      <ChevronRight size={20} />
-                    </div>
-                  )}
-                </ScrollReveal>
-              );
-            })}
-          </div>
+                </div>
+                <div className="lg:col-span-6">
+                  <div className="glass-card p-5">
+                    {s.visual}
+                  </div>
+                </div>
+              </article>
+            );
+          })}
         </div>
       </section>
 
-      {/* Core Benefits */}
-      <section id="benefits" className="py-24 relative">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[var(--color-bhairav-surface)]/30 to-transparent" />
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 relative z-10">
-          <div className="text-center mb-16">
-            <ScrollReveal>
-              <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">
-                Why <span className="text-[var(--color-bhairav-primary)]">Bhairav</span>
-              </h2>
-              <p className="text-[var(--color-bhairav-text-muted)] max-w-2xl mx-auto text-lg">
-                Built for the operators who need it most.
-              </p>
-            </ScrollReveal>
+      {/* TWO-ENGINE EXPLAINER */}
+      <section className="border-t border-[var(--color-bhairav-border)] py-20">
+        <div className="max-w-[1600px] mx-auto px-4 lg:px-8">
+          <div className="text-center mb-12">
+            <p className="text-[10px] uppercase tracking-[0.3em] font-bold text-[var(--color-bhairav-primary)] mb-2">The two engines</p>
+            <h2 className="text-3xl lg:text-4xl font-bold tracking-tight text-[var(--color-bhairav-text)]">
+              Independent. Complementary.
+            </h2>
+            <p className="mt-3 text-[var(--color-bhairav-text-muted)] max-w-2xl mx-auto">
+              Each engine works on its own. Together, they let you trace a person from a
+              camera ping to a network cluster and back.
+            </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {[
               {
-                title: 'Real-Time Situational Awareness',
-                desc: 'Live feeds, geospatial tracking, and instant alerts keep operators informed across every operational layer.',
-                icon: Eye,
+                title: 'Video Intelligence (IBVAP)',
+                desc: 'Sees what is happening at the perimeter right now — and turns it into events.',
+                bullets: ['Human + vehicle detection with track IDs', 'ANPR (license plate recognition)', 'Virtual-fence intrusion', 'Suspicious-activity & night-movement'],
+                icon: Camera,
+                accent: 'cyan',
+                to: '/security/monitoring',
               },
               {
-                title: 'Multi-Source Intelligence Fusion',
-                desc: 'Correlate events, identities, networks, and maps into a single coherent operational picture.',
-                icon: Database,
+                title: 'Criminal Network Analysis',
+                desc: 'Sees the relationships between people, vehicles, places, and events.',
+                bullets: ['NLP entity extraction', 'Graph construction + traversal', 'Centrality-based key-influencer ranking', 'Anomaly detection on inferred relationships'],
+                icon: Network,
+                accent: 'violet',
+                to: '/network',
               },
-              {
-                title: 'Automated Threat Detection',
-                desc: 'AI-powered video analytics and anomaly detection reduce manual monitoring burden significantly.',
-                icon: Shield,
-              },
-              {
-                title: 'Secure & Compliant',
-                desc: 'Enterprise-grade authentication, encrypted communications, and audit-ready logging built in.',
-                icon: Lock,
-              },
-            ].map((benefit, idx) => {
-              const Icon = benefit.icon;
+            ].map((card) => {
+              const a = ACCENT[card.accent];
               return (
-                <ScrollReveal key={benefit.title} delay={idx * 0.1}>
-                  <div className="h-full bg-[#0D1118]/80 backdrop-blur-xl border border-[#1a1f2e] rounded-2xl p-8 transition-all duration-300 hover:border-[var(--color-bhairav-primary)]/50 hover:shadow-[0_0_30px_rgba(59,130,246,0.08)]">
-                    <div className="flex items-start gap-5">
-                      <div className="w-12 h-12 rounded-xl bg-[var(--color-bhairav-primary)]/10 border border-[var(--color-bhairav-primary)]/30 flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110">
-                        <Icon size={24} className="text-[var(--color-bhairav-primary)]" />
-                      </div>
-                      <div>
-                        <h3 className="text-xl font-semibold mb-2 group-hover:text-[var(--color-bhairav-primary)] transition-colors">
-                          {benefit.title}
-                        </h3>
-                        <p className="text-sm text-[var(--color-bhairav-text-muted)] leading-relaxed">
-                          {benefit.desc}
-                        </p>
-                      </div>
-                    </div>
+                <div key={card.title} className="glass-card p-7">
+                  <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center mb-4', a.bg, a.text)}>
+                    <card.icon size={24} />
                   </div>
-                </ScrollReveal>
+                  <h3 className="text-xl font-bold text-[var(--color-bhairav-text)]">{card.title}</h3>
+                  <p className="mt-2 text-sm text-[var(--color-bhairav-text-muted)] leading-relaxed">{card.desc}</p>
+                  <ul className="mt-4 space-y-2">
+                    {card.bullets.map((b) => (
+                      <li key={b} className="flex items-start gap-2 text-sm text-[var(--color-bhairav-text)]">
+                        <span className={cn('w-1.5 h-1.5 rounded-full mt-2 shrink-0', a.text.replace('text-', 'bg-'))} />
+                        {b}
+                      </li>
+                    ))}
+                  </ul>
+                  <Link
+                    to={card.to}
+                    className={cn('mt-6 inline-flex items-center gap-1.5 text-sm font-semibold', a.text, 'hover:underline')}
+                  >
+                    Open module <ArrowRight size={14} />
+                  </Link>
+                </div>
               );
             })}
           </div>
         </div>
       </section>
 
-      {/* Final CTA */}
-      <section className="py-24 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[var(--color-bhairav-primary)]/5 to-transparent" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[var(--color-bhairav-primary)]/10 rounded-full blur-[120px]" />
-        
-        <div className="max-w-4xl mx-auto px-6 lg:px-8 text-center relative z-10">
-          <ScrollReveal>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[var(--color-bhairav-primary)]/30 bg-[var(--color-bhairav-primary)]/10 text-[var(--color-bhairav-primary)] text-xs font-semibold tracking-widest uppercase mb-8">
-              <Shield size={12} />
-              Get Started
-            </div>
-            <h2 className="text-4xl md:text-6xl font-bold tracking-tight mb-6">
-              Ready to Secure Your <span className="text-[var(--color-bhairav-primary)]">Operations</span>?
+      {/* SECURITY & COMPLIANCE */}
+      <section className="border-t border-[var(--color-bhairav-border)] bg-[var(--color-bhairav-bg-elevated)] py-20">
+        <div className="max-w-[1600px] mx-auto px-4 lg:px-8 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.3em] font-bold text-[var(--color-bhairav-olive)] mb-2">Security & compliance</p>
+            <h2 className="text-3xl lg:text-4xl font-bold tracking-tight text-[var(--color-bhairav-text)]">
+              Built for sensitive environments
             </h2>
-            <p className="text-lg text-[var(--color-bhairav-text-muted)] max-w-xl mx-auto mb-10">
-              Join the next generation of defence and security intelligence. Request access or sign in to the platform.
+            <p className="mt-4 text-[var(--color-bhairav-text-muted)] leading-relaxed">
+              BHAIRAV is designed for defence, security, and intelligence operators.
+              Every record carries source, confidence, and status. Every action is auditable.
+              Every entity is scoped to an investigation.
             </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link
-                to="/login"
-                className="w-full sm:w-auto bg-[var(--color-bhairav-primary)] hover:bg-[var(--color-bhairav-primary-hover)] text-white px-8 py-4 rounded-xl font-medium text-lg flex items-center justify-center gap-2 transition-all shadow-[0_0_30px_rgba(59,130,246,0.4)] hover:shadow-[0_0_50px_rgba(59,130,246,0.6)] hover:-translate-y-0.5"
-              >
-                <Lock size={18} /> Login
-              </Link>
-              <Link
-                to="/register"
-                className="w-full sm:w-auto bg-[#10151D] hover:bg-[#10151D]/80 border border-[var(--color-bhairav-border)] text-white px-8 py-4 rounded-xl font-medium text-lg flex items-center justify-center gap-2 transition-all hover:border-[var(--color-bhairav-primary)]/50 hover:-translate-y-0.5"
-              >
-                Create Account <ArrowRight size={18} />
-              </Link>
+            <div className="mt-6 grid grid-cols-2 gap-3">
+              {[
+                { icon: Lock, label: 'Encrypted in transit' },
+                { icon: ShieldCheck, label: 'Role-based access' },
+                { icon: Database, label: 'Audit logs' },
+                { icon: ScanLine, label: 'Provenance on every record' },
+              ].map((it) => (
+                <div key={it.label} className="glass-sm p-3 flex items-center gap-2.5">
+                  <it.icon size={16} className="text-[var(--color-bhairav-olive)]" />
+                  <span className="text-sm text-[var(--color-bhairav-text)]">{it.label}</span>
+                </div>
+              ))}
             </div>
-          </ScrollReveal>
+          </div>
+          <div className="glass-card p-6">
+            <p className="text-[10px] uppercase tracking-widest font-bold text-[var(--color-bhairav-text-muted)] font-mono mb-3">Provenance example</p>
+            <div className="space-y-3 text-sm">
+              {[
+                { l: 'Subject Alpha ↔ Subject Beta', s: 'ASSOCIATED_WITH', src: 'ANALYST', conf: '0.62', st: 'INFERRED' },
+                { l: 'Vehicle UP32AB1234 ↔ Subject Alpha', s: 'USES', src: 'CCTV', conf: '0.81', st: 'OBSERVED' },
+                { l: 'Case BH-1024 ↔ Subject Alpha', s: 'MENTIONED_IN', src: 'ANALYST', conf: '1.00', st: 'CONFIRMED' },
+              ].map((r, i) => (
+                <div key={i} className="p-3 rounded-lg bg-[var(--color-bhairav-surface-hover)]">
+                  <p className="text-[var(--color-bhairav-text)] font-medium">{r.l}</p>
+                  <div className="mt-1 flex flex-wrap gap-2 text-[10px] font-mono">
+                    <span className="text-[var(--color-bhairav-text-muted)]">{r.s}</span>
+                    <span className="px-1.5 py-0.5 rounded bg-[var(--color-bhairav-primary-soft)] text-[var(--color-bhairav-primary)]">{r.src}</span>
+                    <span className="text-[var(--color-bhairav-text-muted)]">conf {r.conf}</span>
+                    <span className="px-1.5 py-0.5 rounded bg-[var(--color-bhairav-olive-soft)] text-[var(--color-bhairav-olive)]">{r.st}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
-    </div>
-  );
-}
 
-function HorizontalFeatures() {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [startX, setStartX] = useState(0);
-  const [scrollLeft, setScrollLeft] = useState(0);
-
-  const features = [
-    { title: 'Video Intelligence', desc: 'Real-time AI video analytics and threat detection', icon: Eye },
-    { title: 'Identity Verification', desc: 'Document verification and biometric matching', icon: Target },
-    { title: 'Network Intelligence', desc: 'Entity relationship mapping and analysis', icon: Network },
-    { title: 'Geospatial Intelligence', desc: 'Interactive maps and zone monitoring', icon: MapIcon },
-    { title: 'Personnel Welfare', desc: 'Operational readiness and support tracking', icon: Heart },
-    { title: 'AI Assistant', desc: 'Natural language query and analysis', icon: Mic },
-  ];
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (!scrollRef.current) return;
-    setIsDragging(true);
-    setStartX(e.pageX - scrollRef.current.offsetLeft);
-    setScrollLeft(scrollRef.current.scrollLeft);
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging || !scrollRef.current) return;
-    e.preventDefault();
-    const x = e.pageX - scrollRef.current.offsetLeft;
-    const walk = (x - startX) * 2;
-    scrollRef.current.scrollLeft = scrollLeft - walk;
-  };
-
-  const handleMouseUp = () => setIsDragging(false);
-
-  const scroll = (direction: 'left' | 'right') => {
-    if (!scrollRef.current) return;
-    const scrollAmount = 320;
-    scrollRef.current.scrollBy({
-      left: direction === 'left' ? -scrollAmount : scrollAmount,
-      behavior: 'smooth',
-    });
-  };
-
-  return (
-    <div className="relative group">
-      <div
-        ref={scrollRef}
-        className="flex gap-4 overflow-x-auto scroll-smooth pb-4 px-6 lg:px-8 cursor-grab active:cursor-grabbing"
-        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-      >
-        {features.map((feature, idx) => {
-          const Icon = feature.icon;
-          return (
-            <div
-              key={idx}
-              className="flex-shrink-0 w-72 bg-[#0D1118]/80 backdrop-blur-xl border border-[var(--color-bhairav-graphite)] rounded-2xl p-6 transition-all duration-300 hover:border-[var(--color-bhairav-steel)]/50 hover:shadow-[0_0_30px_rgba(59,130,246,0.08)]"
-            >
-              <div className="w-12 h-12 rounded-xl bg-[var(--color-bhairav-ink-blue)] border border-[var(--color-bhairav-graphite)] flex items-center justify-center mb-4">
-                <Icon size={24} className="text-[var(--color-bhairav-steel)]" />
-              </div>
-              <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
-              <p className="text-sm text-[var(--color-bhairav-text-muted)] leading-relaxed">{feature.desc}</p>
-            </div>
-          );
-        })}
-      </div>
-      
-      {/* Scroll affordance */}
-      <button
-        onClick={() => scroll('left')}
-        className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-[var(--color-bhairav-slate)]/90 border border-[var(--color-bhairav-graphite)] rounded-full flex items-center justify-center text-[var(--color-bhairav-text-muted)] hover:text-white hover:border-[var(--color-bhairav-steel)]/50 transition-all opacity-0 group-hover:opacity-100 z-10"
-        aria-label="Scroll features left"
-      >
-        ←
-      </button>
-      <button
-        onClick={() => scroll('right')}
-        className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-[var(--color-bhairav-slate)]/90 border border-[var(--color-bhairav-graphite)] rounded-full flex items-center justify-center text-[var(--color-bhairav-text-muted)] hover:text-white hover:border-[var(--color-bhairav-steel)]/50 transition-all opacity-0 group-hover:opacity-100 z-10"
-        aria-label="Scroll features right"
-      >
-        →
-      </button>
+      {/* CTA */}
+      <section className="py-24">
+        <div className="max-w-3xl mx-auto px-4 text-center">
+          <Shield className="mx-auto text-[var(--color-bhairav-primary)] mb-5" size={48} />
+          <h2 className="text-3xl lg:text-4xl font-bold tracking-tight text-[var(--color-bhairav-text)]">
+            Step into the operations view
+          </h2>
+          <p className="mt-3 text-[var(--color-bhairav-text-muted)]">
+            Bhairav is for authorized personnel. Sign in or request access if you don't have an account yet.
+          </p>
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
+            {isAuthenticated ? (
+              <Link
+                to="/home"
+                className="px-6 py-3 rounded-lg text-sm font-semibold text-white bg-[var(--color-bhairav-primary)] hover:bg-[var(--color-bhairav-primary-hover)] transition-colors"
+              >
+                Open the platform
+              </Link>
+            ) : (
+              <>
+                <Link
+                  to="/login"
+                  className="px-6 py-3 rounded-lg text-sm font-semibold text-white bg-[var(--color-bhairav-primary)] hover:bg-[var(--color-bhairav-primary-hover)] transition-colors"
+                >
+                  Sign in
+                </Link>
+                <Link
+                  to="/register"
+                  className="px-6 py-3 rounded-lg text-sm font-semibold text-[var(--color-bhairav-text)] border border-[var(--color-bhairav-border-strong)] hover:border-[var(--color-bhairav-primary)] hover:text-[var(--color-bhairav-primary)] transition-colors"
+                >
+                  Request access
+                </Link>
+              </>
+            )}
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

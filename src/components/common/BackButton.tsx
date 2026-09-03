@@ -28,12 +28,11 @@ export function BackButton({ to, label = 'Back', className, onClick }: BackButto
     <button
       onClick={handleClick}
       className={cn(
-        "inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-[var(--color-bhairav-text-muted)] hover:text-[var(--color-bhairav-text)] bg-transparent hover:bg-[var(--color-bhairav-surface-hover)] border border-transparent hover:border-[var(--color-bhairav-graphite)] rounded-md transition-all mb-4 focus:outline-none focus:ring-1 focus:ring-[var(--color-bhairav-steel)]",
-        className
+        "inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-[var(--color-bhairav-text-muted)] hover:text-[var(--color-bhairav-primary)] transition-colors mb-4",
+        className,
       )}
     >
-      <ArrowLeft size={16} />
-      {label}
+      <ArrowLeft size={14} /> {label}
     </button>
   );
 }
