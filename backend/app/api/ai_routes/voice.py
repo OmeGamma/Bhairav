@@ -14,7 +14,7 @@ async def transcribe_voice(file: UploadFile = File(...)):
         "language": "en",
         "confidence": 0.96,
         "model_info": {
-            "model": settings.stt_model,
+            "model": settings.STT_MODEL,
             "processing_mode": "synthetic"
         }
     }
@@ -30,7 +30,7 @@ async def synthesize_voice(payload: Dict[str, Any]):
         "status": "success",
         "audio_url": "/static/mock_audio.wav",
         "model_info": {
-            "model": settings.tts_model,
+            "model": settings.TTS_MODEL,
             "processing_mode": "synthetic"
         }
     }

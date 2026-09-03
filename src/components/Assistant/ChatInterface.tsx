@@ -1,60 +1,149 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { AIMessage, AIContext, VoiceState } from '../../types/assistant';
 import { VoiceMicrophoneBtn } from './VoiceMicrophoneBtn';
-import { sendToBhairav } from '../../services/assistantService';
+import { streamFromBhairav } from '../../services/assistantService';
 
 interface ChatInterfaceProps {
   initialContext?: AIContext;
 }
 
 export const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialContext }) => {
-  const [messages, setMessages] = useState<AIMessage[]>([
-    {
-      id: 'welcome',
-      role: 'assistant',
-      content: 'I am Bhairav, your AI intelligence assistant. How can I assist you with defence or security intelligence today?',
-      timestamp: new Date().toISOString()
-    }
-  ]);
+  const defaultWelcome: AIMessage = {
+    id: 'welcome',
+    role: 'assistant',
+    content: 'I am Bhairav, your AI intelligence assistant. How can I assist you with defence or security intelligence today?',
+    timestamp: new Date().toISOString()
+  };
+
+  const [messages, setMessages] = useState<AIMessage[]>([defaultWelcome]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [voiceState, setVoiceState] = useState<VoiceState>('IDLE');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const formatMessageContent = (msg: AIMessage) => {
+    if (msg.role !== 'assistant' || !msg.sources || msg.sources.length === 0) {
+      return msg.content;
+    }
+    const parts = msg.content.split('\n\nSources:');
+    return parts[0] || msg.content;
+  };
+
+  const getSources = (msg: AIMessage) => {
+    if (msg.role !== 'assistant') return [];
+    if (msg.sources && msg.sources.length > 0) return msg.sources;
+    const match = msg.content.match(/\n\nSources:([\s\S]*)$/);
+    if (!match) return [];
+    const lines = match[1].split('\n').filter((line) => line.trim());
+    const sources: AIMessage['sources'] = [];
+    for (const line of lines) {
+      const entry = line.match(/^\[(\d+)\]\s+(.*?)\s+-\s+(.*?)\n(.*?)$/);
+      if (!entry) continue;
+      const url = entry[4].trim();
+      if (!url.startsWith('http')) continue;
+      let domain = '';
+      try {
+        domain = new URL(url).hostname.replace(/^www\./, '');
+      } catch {
+        domain = url;
+      }
+      sources.push({
+        title: entry[3].trim() || entry[2].trim() || url,
+        url,
+        domain,
+        snippet: '',
+      });
+    }
+    return sources;
   };
 
   useEffect(() => {
     scrollToBottom();
   }, [messages, isTyping]);
 
+  const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInput(e.target.value);
+    // Auto-resize
+    e.target.style.height = 'auto';
+    e.target.style.height = `${Math.min(e.target.scrollHeight, 150)}px`;
+  };
+
+  const handleClear = () => {
+    setMessages([defaultWelcome]);
+    setInput('');
+  };
+
   const handleSend = async () => {
     if (!input.trim() && voiceState === 'IDLE') return;
 
+    const currentInput = input;
     const userMsg: AIMessage = {
       id: `USR-${Date.now()}`,
       role: 'user',
-      content: input,
+      content: currentInput,
       timestamp: new Date().toISOString()
     };
 
-    setMessages(prev => [...prev, userMsg]);
+    const newMessages = [...messages, userMsg];
+    setMessages(newMessages);
     setInput('');
     setIsTyping(true);
 
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+    }
+
+    const assistantMsgId = `AST-${Date.now()}`;
+    const assistantMsg: AIMessage = {
+      id: assistantMsgId,
+      role: 'assistant',
+      content: '',
+      timestamp: new Date().toISOString()
+    };
+
+    setMessages(prev => [...prev, assistantMsg]);
+
     try {
-      const response = await sendToBhairav(userMsg.content, initialContext);
-      setMessages(prev => [...prev, response]);
+      const historyToStream = newMessages.map(m => ({ role: m.role, content: m.content }));
+      
+      let isFirstChunk = true;
+      const result = await streamFromBhairav(historyToStream, initialContext, (chunk) => {
+        if (isFirstChunk) {
+           setIsTyping(false);
+           isFirstChunk = false;
+        }
+        setMessages(prev => 
+          prev.map(m => m.id === assistantMsgId ? { ...m, content: m.content + chunk } : m)
+        );
+      });
+      
+      if (result.sources && result.sources.length > 0) {
+        setMessages(prev => 
+          prev.map(m => m.id === assistantMsgId ? { ...m, sources: result.sources } : m)
+        );
+      }
+      // If we didn't receive any chunks for some reason (e.g. error immediately returned string)
+      setIsTyping(false);
     } catch (error) {
+      setIsTyping(false);
       setMessages(prev => [...prev, {
         id: `ERR-${Date.now()}`,
         role: 'system',
-        content: 'Connection to Bhairav AI services temporarily unavailable.',
+        content: `Error: ${error instanceof Error ? error.message : 'Connection to AI services unavailable.'}`,
         timestamp: new Date().toISOString()
       }]);
-    } finally {
-      setIsTyping(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
     }
   };
 
@@ -88,6 +177,19 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialContext }) 
 
   return (
     <div className="flex flex-col h-full bg-[var(--color-bhairav-surface)] border border-[var(--color-bhairav-border)] rounded-xl overflow-hidden relative shadow-sm">
+      {/* Header Actions */}
+      <div className="absolute top-4 right-4 z-10 flex gap-2">
+        <button 
+          onClick={handleClear}
+          title="Clear Conversation"
+          className="p-2 bg-[var(--color-bhairav-surface-hover)] hover:bg-[var(--color-bhairav-border)] border border-[var(--color-bhairav-border)] rounded-lg text-[var(--color-bhairav-text-muted)] hover:text-[var(--color-bhairav-text)] transition-colors shadow-sm"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+        </button>
+      </div>
+
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
         {messages.map((msg) => (
@@ -111,7 +213,32 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialContext }) 
               )}
               
               {/* Content */}
-              <div className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</div>
+              <div className="text-sm leading-relaxed whitespace-pre-wrap">{formatMessageContent(msg)}</div>
+              
+              {/* Sources */}
+              {(() => {
+                const sources = getSources(msg);
+                if (sources.length === 0) return null;
+                return (
+                  <div className="mt-4 pt-3 border-t border-[var(--color-bhairav-border)]">
+                    <span className="text-[10px] uppercase font-bold tracking-widest text-[var(--color-bhairav-text-muted)] w-full mb-2 block">Sources</span>
+                    <div className="space-y-2">
+                      {sources.map((src, idx) => (
+                        <a 
+                          key={idx} 
+                          href={src.url} 
+                          target="_blank" 
+                          rel="noreferrer"
+                          className="block text-xs bg-[var(--color-bhairav-surface)] border border-[var(--color-bhairav-border)] rounded px-3 py-2 text-[var(--color-bhairav-text-muted)] hover:text-[var(--color-bhairav-primary)] transition-colors"
+                        >
+                          <span className="font-medium text-[var(--color-bhairav-text)]">{src.title || src.url}</span>
+                          {src.domain && <span className="ml-2 opacity-70">{src.domain}</span>}
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
               
               {/* References */}
               {msg.references && msg.references.length > 0 && (
@@ -161,24 +288,20 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialContext }) 
 
       {/* Input Area */}
       <div className="p-4 bg-[var(--color-bhairav-surface-hover)] border-t border-[var(--color-bhairav-border)]">
-        <div className="flex items-end gap-2 max-w-4xl mx-auto">
-          <button className="p-3 text-[var(--color-bhairav-text-muted)] hover:text-[var(--color-bhairav-text)] transition-colors">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path>
-            </svg>
-          </button>
+        <div className="flex items-end gap-2 max-w-4xl mx-auto relative">
           
-          <div className="flex-1 bg-[var(--color-bhairav-bg)] border border-[var(--color-bhairav-border)] focus-within:border-[var(--color-bhairav-primary)] focus-within:shadow-[0_0_10px_rgba(59,130,246,0.1)] rounded-xl overflow-hidden transition-all flex items-center">
-            <input 
-              type="text" 
+          <div className="flex-1 bg-[var(--color-bhairav-bg)] border border-[var(--color-bhairav-border)] focus-within:border-[var(--color-bhairav-primary)] focus-within:shadow-[0_0_10px_rgba(59,130,246,0.1)] rounded-xl overflow-hidden transition-all flex items-end">
+            <textarea 
+              ref={textareaRef}
               value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-              placeholder="Ask Bhairav..."
-              className="w-full bg-transparent px-4 py-3 text-sm text-[var(--color-bhairav-text)] focus:outline-none placeholder:text-[var(--color-bhairav-text-muted)]/50"
+              onChange={handleInput}
+              onKeyDown={handleKeyDown}
+              placeholder="Ask Bhairav... (Shift+Enter for new line)"
+              rows={1}
+              className="w-full bg-transparent px-4 py-3 text-sm text-[var(--color-bhairav-text)] focus:outline-none placeholder:text-[var(--color-bhairav-text-muted)]/50 resize-none max-h-[150px] overflow-y-auto"
             />
             {input.trim() ? (
-              <button onClick={handleSend} className="p-3 text-[var(--color-bhairav-primary)] hover:text-[var(--color-bhairav-primary-hover)]">
+              <button onClick={handleSend} className="p-3 text-[var(--color-bhairav-primary)] hover:text-[var(--color-bhairav-primary-hover)] mb-[2px]">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
                 </svg>

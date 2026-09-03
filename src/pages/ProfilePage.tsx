@@ -41,7 +41,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8 border-b border-[var(--color-bhairav-border)] pb-4">
         <h1 className="text-2xl font-bold text-[var(--color-bhairav-text)] uppercase tracking-tight">Officer Profile</h1>
         <p className="text-[10px] text-[var(--color-bhairav-text-muted)] font-mono uppercase tracking-widest mt-1">View your account information</p>

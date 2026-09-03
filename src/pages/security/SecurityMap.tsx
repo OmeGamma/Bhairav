@@ -4,7 +4,6 @@ import { Shield, Camera as CameraIcon, Filter, LayoutPanelLeft, AlertTriangle, M
 import { Badge } from '../../components/common/Badge';
 import { LoadingState } from '../../components/common/LoadingState';
 import { ErrorState } from '../../components/common/ErrorState';
-import { BackButton } from '../../components/common/BackButton';
 import { eventService } from '../../services/eventService';
 import { cameraService } from '../../services/cameraService';
 import type { SecurityEvent, Camera } from '../../types';
@@ -71,7 +70,6 @@ export default function SecurityMap() {
 
   return (
     <div className="flex flex-col h-full space-y-4">
-      <BackButton to="/home" />
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Geospatial Intelligence</h2>
@@ -87,19 +85,19 @@ export default function SecurityMap() {
         </div>
       </div>
 
-      <div className="flex-1 flex gap-4">
+      <div className="flex-1 flex gap-4 min-h-[500px]">
         {/* Map Container */}
-        <div className="flex-1 rounded-xl border border-[var(--color-bhairav-border)] overflow-hidden relative shadow-lg">
+        <div className="flex-1 rounded-xl border border-[var(--color-bhairav-border)] overflow-hidden relative shadow-lg min-h-[500px]">
           <MapContainer 
             center={[mapCenter.lat, mapCenter.lng]} 
             zoom={14} 
             style={{ height: '100%', width: '100%', background: '#121316' }}
             className="z-0"
           >
-            {/* Dark mode map tiles (using CartoDB Dark Matter) */}
+            {/* Dark mode map tiles (using MapTiler) */}
             <TileLayer
-              url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+              url={`https://api.maptiler.com/maps/basic-v2-dark/256/{z}/{x}/{y}.png?key=${import.meta.env.VITE_MAP_PUBLIC_KEY}`}
+              attribution='&copy; <a href="https://www.maptiler.com/copyright/">MapTiler</a> &copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
             />
             
             {/* Security Zones (Simulated) */}

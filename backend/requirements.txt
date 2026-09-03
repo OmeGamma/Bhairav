@@ -10,3 +10,7 @@ pytest
 httpx
 email-validator
 dnspython
+numpy
+opencv-python-headless
+networkx
+Pillow

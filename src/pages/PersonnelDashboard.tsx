@@ -3,7 +3,6 @@ import { IntelligenceCard } from '../components/Shared/IntelligenceCard';
 import { Badge } from '../components/common/Badge';
 import { getWelfareIndicators } from '../services/welfareService';
 import { WelfareIndicators } from '../types/welfare';
-import { BackButton } from '../components/common/BackButton';
 
 export const PersonnelDashboard: React.FC = () => {
   const [indicators, setIndicators] = useState<WelfareIndicators | null>(null);
@@ -25,8 +24,7 @@ export const PersonnelDashboard: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6 flex flex-col animate-fade-in-up">
-      <BackButton to="/home" />
+    <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 animate-fade-in-up">
       <div className="flex justify-between items-end border-b border-[var(--color-bhairav-border)] pb-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-[var(--color-bhairav-text)] uppercase">Personnel Welfare Dashboard</h2>

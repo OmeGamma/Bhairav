@@ -28,6 +28,9 @@ class Settings(BaseSettings):
     AI_SERVICE_API_KEY: str | None = None
     LLM_API_KEY: str | None = None
 
+    # Web search
+    SEARXNG_URL: str | None = None
+
     # Vector DB
     VECTOR_DB_URL: str | None = None
     VECTOR_DB_KEY: str | None = None

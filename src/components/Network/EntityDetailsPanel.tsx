@@ -1,131 +1,219 @@
-import React from 'react';
-import { NetworkEntity, NetworkClusterInfo } from '../../types/network';
-import { Badge } from '../common/Badge';
-import { IntelligenceCard } from '../Shared/IntelligenceCard';
+import { useEffect, useState } from 'react';
+import { X, Users, MapPin, Car, FileText, AlertCircle, Building, Phone, Hash, Clock } from 'lucide-react';
+import type { NetworkEntity, EntityType } from '../../types/network';
+import { networkService } from '../../services/networkService';
+import { cn } from '../../utils/cn';
 
 interface EntityDetailsPanelProps {
   entity: NetworkEntity | null;
-  clusterInfo?: NetworkClusterInfo | null;
   onClose?: () => void;
+  onSelectRelated?: (id: string) => void;
 }
 
-export const EntityDetailsPanel: React.FC<EntityDetailsPanelProps> = ({ entity, clusterInfo, onClose }) => {
+const TYPE_ICON: Record<EntityType, React.ComponentType<{ size?: number; className?: string }>> = {
+  PERSON: Users,
+  VEHICLE: Car,
+  LOCATION: MapPin,
+  INCIDENT: AlertCircle,
+  CASE: FileText,
+  ORGANIZATION: Building,
+  ALIAS: Users,
+  COMMUNICATION: Phone,
+  DOCUMENT: FileText,
+  EVENT: AlertCircle,
+};
+
+const STATUS_STYLE: Record<string, string> = {
+  CONFIRMED: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
+  OBSERVED: 'bg-sky-500/15 text-sky-300 border-sky-500/30',
+  INFERRED: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
+  REVIEW: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
+  UNVERIFIED: 'bg-slate-500/15 text-slate-300 border-slate-500/30',
+  CLEARED: 'bg-slate-500/15 text-slate-300 border-slate-500/30',
+  UNKNOWN: 'bg-slate-500/15 text-slate-300 border-slate-500/30',
+};
+
+export function EntityDetailsPanel({ entity, onClose, onSelectRelated }: EntityDetailsPanelProps) {
+  const [details, setDetails] = useState<NetworkEntity | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!entity) {
+      setDetails(null);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    networkService
+      .getEntityDetails(entity.id)
+      .then((d) => {
+        if (!cancelled) setDetails(d);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [entity?.id]);
+
   if (!entity) {
     return (
-      <div className="bg-[var(--color-bhairav-surface)] border border-[var(--color-bhairav-border)] rounded-xl p-6 h-full flex flex-col items-center justify-center text-center shadow-sm">
-        <svg className="w-12 h-12 text-[var(--color-bhairav-text-muted)] opacity-50 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-        </svg>
-        <p className="text-[var(--color-bhairav-text-muted)] text-sm font-mono tracking-wider uppercase">Select an entity in the graph<br/>to view intelligence details.</p>
+      <div className="bg-[var(--color-bhairav-slate)] border border-[var(--color-bhairav-graphite)] rounded-xl p-6 h-full flex flex-col items-center justify-center text-center">
+        <div className="w-14 h-14 rounded-full bg-[var(--color-bhairav-bg)] border border-[var(--color-bhairav-graphite)] flex items-center justify-center mb-4">
+          <Hash size={20} className="text-[var(--color-bhairav-text-muted)]" />
+        </div>
+        <p className="text-[var(--color-bhairav-text-muted)] text-xs font-mono tracking-widest uppercase">
+          Select a node
+        </p>
+        <p className="text-[var(--color-bhairav-text-muted)] text-[11px] mt-1 max-w-[200px]">
+          Click any entity in the graph to view its details, provenance, and connections.
+        </p>
       </div>
     );
   }
 
+  const Icon = TYPE_ICON[entity.type] || Users;
+  const status = (entity.status || details?.status || 'UNKNOWN').toUpperCase();
+  const statusClass = STATUS_STYLE[status] || STATUS_STYLE.UNKNOWN;
+
+  const relatedItems: { key: string; value: number }[] = details?.details
+    ? Object.entries(details.details)
+        .filter(([k]) => ['RelatedEvents', 'RelatedCases', 'RelatedVehicles', 'RelatedLocations'].includes(k))
+        .map(([k, v]) => ({ key: k, value: Number(v) || 0 }))
+    : [];
+
+  const metaEntries = details?.details
+    ? Object.entries(details.details).filter(
+        ([k]) => !['RelatedEvents', 'RelatedCases', 'RelatedVehicles', 'RelatedLocations'].includes(k),
+      )
+    : [];
+
   return (
-    <div className="bg-[var(--color-bhairav-surface)] border border-[var(--color-bhairav-border)] rounded-xl h-full flex flex-col overflow-hidden shadow-sm">
-      <div className="px-5 py-4 border-b border-[var(--color-bhairav-border)] bg-[var(--color-bhairav-surface-hover)] flex justify-between items-start">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-[10px] uppercase font-bold text-[var(--color-bhairav-text-muted)] tracking-wider">{entity.type}</span>
-            {entity.status && <Badge status={entity.status === 'REVIEW REQUIRED' ? 'warning' : entity.status === 'HIGH RISK' ? 'critical' : 'neutral'}>{entity.status}</Badge>}
+    <div className="bg-[var(--color-bhairav-slate)] border border-[var(--color-bhairav-graphite)] rounded-xl h-full flex flex-col overflow-hidden">
+      {/* Header */}
+      <div className="px-5 py-4 border-b border-[var(--color-bhairav-graphite)]">
+        <div className="flex justify-between items-start gap-3">
+          <div className="flex items-start gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-md bg-[var(--color-bhairav-bg)] border border-[var(--color-bhairav-graphite)] flex items-center justify-center flex-shrink-0">
+              <Icon size={18} className="text-[var(--color-bhairav-steel)]" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                <span className="text-[10px] uppercase font-bold text-[var(--color-bhairav-text-muted)] tracking-widest">
+                  {entity.type}
+                </span>
+                <span className={cn("text-[9px] uppercase font-bold px-1.5 py-0.5 rounded border", statusClass)}>
+                  {status}
+                </span>
+              </div>
+              <h2 className="text-base font-semibold text-white uppercase tracking-tight truncate">
+                {entity.label}
+              </h2>
+              <p className="text-[10px] text-[var(--color-bhairav-text-muted)] font-mono mt-1 truncate">
+                ID: {entity.id}
+              </p>
+            </div>
           </div>
-          <h2 className="text-lg font-semibold text-[var(--color-bhairav-text)] uppercase tracking-tight">{entity.label}</h2>
-          <p className="text-xs text-[var(--color-bhairav-text-muted)] font-data mt-1">ID: {entity.id}</p>
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="text-[var(--color-bhairav-text-muted)] hover:text-white transition-colors p-1"
+              title="Close"
+            >
+              <X size={18} />
+            </button>
+          )}
         </div>
-        {onClose && (
-          <button onClick={onClose} className="text-[var(--color-bhairav-text-muted)] hover:text-[var(--color-bhairav-text)] lg:hidden transition-colors">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
-            </svg>
-          </button>
-        )}
       </div>
 
-      <div className="flex-1 overflow-y-auto p-5 space-y-6">
-        
-        {/* Intelligence Indicators */}
-        <div>
-          <h3 className="text-xs font-medium text-[var(--color-bhairav-text-muted)] uppercase tracking-widest mb-3">Intelligence Indicators</h3>
-          <div className="grid grid-cols-1 gap-3">
-            <IntelligenceCard 
-              title="Repeated incident association" 
-              indicator="HIGH"
-              className="!p-3 bg-[var(--color-bhairav-bg)] border-[var(--color-bhairav-border)]"
-            />
-            <IntelligenceCard 
-              title="Location overlap" 
-              indicator="HIGH"
-              className="!p-3 bg-[var(--color-bhairav-bg)] border-[var(--color-bhairav-border)]"
-            />
-            <IntelligenceCard 
-              title="Historical case association" 
-              indicator="MEDIUM"
-              className="!p-3 bg-[var(--color-bhairav-bg)] border-[var(--color-bhairav-border)]"
-            />
+      <div className="flex-1 overflow-y-auto p-5 space-y-5">
+        {loading && (
+          <div className="text-[10px] text-[var(--color-bhairav-text-muted)] uppercase tracking-widest animate-pulse">
+            Loading details...
           </div>
-        </div>
+        )}
 
-        {/* Entity Stats */}
-        {entity.details && (
+        {/* Connections */}
+        {(details?.connectionsCount !== undefined || relatedItems.length > 0) && (
           <div>
-            <h3 className="text-xs font-medium text-[var(--color-bhairav-text-muted)] uppercase tracking-widest mb-3">Entity Summary</h3>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-[var(--color-bhairav-bg)] border border-[var(--color-bhairav-border)] rounded-md p-3">
-                <p className="text-xs text-[var(--color-bhairav-text-muted)] uppercase tracking-wider mb-1">Related Events</p>
-                <p className="text-lg font-semibold text-[var(--color-bhairav-text)] font-data">{entity.eventsCount || 0}</p>
-              </div>
-              <div className="bg-[var(--color-bhairav-bg)] border border-[var(--color-bhairav-border)] rounded-md p-3">
-                <p className="text-xs text-[var(--color-bhairav-text-muted)] uppercase tracking-wider mb-1">Connected Entities</p>
-                <p className="text-lg font-semibold text-[var(--color-bhairav-text)] font-data">{entity.connectionsCount || 0}</p>
-              </div>
-              {Object.entries(entity.details).map(([key, value]) => (
-                <div key={key} className="bg-[var(--color-bhairav-bg)] border border-[var(--color-bhairav-border)] rounded-md p-3">
-                  <p className="text-xs text-[var(--color-bhairav-text-muted)] uppercase tracking-wider mb-1">{key}</p>
-                  <p className="text-lg font-semibold text-[var(--color-bhairav-text)] font-data">{value}</p>
+            <h3 className="text-[10px] font-medium text-[var(--color-bhairav-text-muted)] uppercase tracking-widest mb-3">
+              Connections
+            </h3>
+            <div className="grid grid-cols-2 gap-2">
+              {details?.connectionsCount !== undefined && (
+                <div className="bg-[var(--color-bhairav-bg)] border border-[var(--color-bhairav-graphite)] rounded-md p-3">
+                  <p className="text-[10px] text-[var(--color-bhairav-text-muted)] uppercase tracking-widest mb-1">
+                    Connected
+                  </p>
+                  <p className="text-lg font-semibold text-white font-mono">
+                    {details.connectionsCount}
+                  </p>
+                </div>
+              )}
+              {relatedItems.map((r) => (
+                <div
+                  key={r.key}
+                  className="bg-[var(--color-bhairav-bg)] border border-[var(--color-bhairav-graphite)] rounded-md p-3"
+                >
+                  <p className="text-[10px] text-[var(--color-bhairav-text-muted)] uppercase tracking-widest mb-1">
+                    {r.key.replace('Related', '')}
+                  </p>
+                  <p className="text-lg font-semibold text-white font-mono">{r.value}</p>
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {/* Cluster Information */}
-        {clusterInfo && (
+        {/* Metadata */}
+        {metaEntries.length > 0 && (
           <div>
-            <h3 className="text-xs font-medium text-[var(--color-bhairav-text-muted)] uppercase tracking-widest mb-3">Cluster Analysis</h3>
-            <div className="bg-[var(--color-bhairav-primary)]/10 border border-[var(--color-bhairav-primary)]/30 rounded-lg p-4">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-medium text-[var(--color-bhairav-primary)] uppercase tracking-wider">Cluster {clusterInfo.id}</span>
-                <span className="text-xs font-data bg-[var(--color-bhairav-primary)]/20 text-[var(--color-bhairav-primary)] px-2 py-0.5 rounded">
-                  Density: {clusterInfo.relationshipDensity}
-                </span>
-              </div>
-              <div className="flex justify-between text-sm mt-3 border-t border-[var(--color-bhairav-primary)]/20 pt-3">
-                <div>
-                  <p className="text-xs text-[var(--color-bhairav-text-muted)] uppercase tracking-wider">Entities</p>
-                  <p className="text-[var(--color-bhairav-text)] font-data">{clusterInfo.size}</p>
+            <h3 className="text-[10px] font-medium text-[var(--color-bhairav-text-muted)] uppercase tracking-widest mb-3">
+              Details
+            </h3>
+            <div className="bg-[var(--color-bhairav-bg)] border border-[var(--color-bhairav-graphite)] rounded-md p-3 space-y-2">
+              {metaEntries.map(([k, v]) => (
+                <div key={k} className="flex justify-between text-xs gap-3">
+                  <span className="text-[var(--color-bhairav-text-muted)] uppercase tracking-wide text-[10px]">
+                    {k}
+                  </span>
+                  <span className="text-white font-mono truncate text-right">{String(v)}</span>
                 </div>
-                <div>
-                  <p className="text-xs text-[var(--color-bhairav-text-muted)] uppercase tracking-wider">Total Connections</p>
-                  <p className="text-[var(--color-bhairav-text)] font-data">{clusterInfo.connectedEntities}</p>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
         )}
 
-        {/* Actions */}
-        <div className="pt-2">
-          <h3 className="text-xs font-medium text-[var(--color-bhairav-text-muted)] uppercase tracking-widest mb-3">Actions</h3>
-          <div className="grid grid-cols-2 gap-2">
-            <button className="py-2 bg-[var(--color-bhairav-bg)] hover:bg-[var(--color-bhairav-surface-hover)] text-[var(--color-bhairav-text)] rounded-md text-sm transition-colors border border-[var(--color-bhairav-border)] uppercase tracking-widest font-medium">
-              View Profile
-            </button>
-            <button className="py-2 bg-[var(--color-bhairav-primary)]/10 hover:bg-[var(--color-bhairav-primary)]/20 text-[var(--color-bhairav-primary)] rounded-md text-sm transition-colors border border-[var(--color-bhairav-primary)]/50 uppercase tracking-widest font-medium">
-              Ask Bhairav
-            </button>
+        {/* Provenance */}
+        <div>
+          <h3 className="text-[10px] font-medium text-[var(--color-bhairav-text-muted)] uppercase tracking-widest mb-3">
+            Provenance
+          </h3>
+          <div className="bg-[var(--color-bhairav-bg)] border border-[var(--color-bhairav-graphite)] rounded-md p-3 space-y-2 text-xs">
+            <div className="flex items-center gap-2 text-[var(--color-bhairav-text-muted)]">
+              <Clock size={12} />
+              <span>Last updated: {new Date().toISOString().slice(0, 10)}</span>
+            </div>
+            <p className="text-[10px] text-[var(--color-bhairav-text-muted)] leading-relaxed">
+              All relationships and metadata reflect data ingested into BHAIRAV at the time of query.
+              Confidence and status fields are recorded at source ingestion.
+            </p>
           </div>
         </div>
       </div>
+
+      {/* Actions */}
+      {onSelectRelated && (
+        <div className="border-t border-[var(--color-bhairav-graphite)] p-4">
+          <button
+            onClick={() => onSelectRelated(entity.id)}
+            className="w-full py-2 bg-[var(--color-bhairav-steel)]/15 hover:bg-[var(--color-bhairav-steel)]/25 text-white rounded-md text-xs transition-colors border border-[var(--color-bhairav-steel)]/40 uppercase tracking-widest font-medium"
+          >
+            Expand 1-hop neighborhood
+          </button>
+        </div>
+      )}
     </div>
   );
-};
+}

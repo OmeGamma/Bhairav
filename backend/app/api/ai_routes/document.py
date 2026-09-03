@@ -1,29 +1,35 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from typing import Dict, Any
-from app.schemas.ai_schemas import DocumentAnalyzeResponse, FieldExtraction
-from app.core.config import settings
 import uuid
 
+from app.schemas.ai_schemas import DocumentAnalyzeResponse, FieldExtraction
+from app.services.document_engine import extract_fields
+
 router = APIRouter()
+
 
 @router.post("/document/analyze", response_model=DocumentAnalyzeResponse)
 async def analyze_document(payload: Dict[str, Any]):
     """
-    Mock AI Service for Document OCR and Understanding.
+    BHAIRAV Document Intelligence Engine (real regex + validators).
+
+    Performs deterministic field extraction (Aadhaar, PAN, passport, voter
+    ID, DL, phone, email, name, address, amount) and validates structured
+    IDs (Verhoeff for Aadhaar). Returns provenance (span + source excerpt)
+    for every extracted field. NOT an OCR engine - the caller is expected
+    to provide the document text.
     """
     document_id = payload.get("document_id", str(uuid.uuid4()))
-    
-    response = DocumentAnalyzeResponse(
+    text = payload.get("text") or payload.get("document_text") or ""
+
+    result = extract_fields(document_id, text)
+    fields_pyd = [FieldExtraction(**f) for f in result["fields"]]
+
+    return DocumentAnalyzeResponse(
         document_id=document_id,
-        extracted_text="MOCK DOCUMENT TEXT\nNAME: JOHN DOE\nID: 123456",
-        fields=[
-            FieldExtraction(name="Name", value="JOHN DOE", confidence=0.95),
-            FieldExtraction(name="ID Number", value="123456", confidence=0.88),
-        ],
-        model_info={
-            "model": settings.ocr_model,
-            "version": "1.0",
-            "processing_mode": "synthetic"
-        }
+        extracted_text=result["extracted_text"],
+        fields=fields_pyd,
+        document_type=result["document_type"],
+        summary=result["summary"],
+        model_info=result["model_info"],
     )
-    return response

@@ -1,57 +1,93 @@
-import React from 'react';
+import { useEffect, useState } from 'react';
 import { Timeline, TimelineEvent } from '../Shared/Timeline';
-import { NetworkEntity } from '../../types/network';
+import type { NetworkEntity } from '../../types/network';
+import { fetchWithTimeout, API_BASE_URL } from '../../services/apiClient';
 
 interface NetworkTimelineProps {
   entity: NetworkEntity | null;
 }
 
-export const NetworkTimeline: React.FC<NetworkTimelineProps> = ({ entity }) => {
-  // Mock timeline events based on entity
-  const events: TimelineEvent[] = entity ? [
-    {
-      id: 't1',
-      timestamp: '2026-08-18T14:30:00Z',
-      title: 'New relationship identified',
-      description: 'Connected to BH-P-105 via communication intercept.',
-      status: 'REVIEW'
-    },
-    {
-      id: 't2',
-      timestamp: '2026-08-15T09:15:00Z',
-      title: 'Vehicle association',
-      description: 'Spotted near White SUV (BH-V-201).'
-    },
-    {
-      id: 't3',
-      timestamp: '2026-08-12T18:45:00Z',
-      title: 'Location association',
-      description: 'Appeared at Sector 4 Checkpoint.'
-    },
-    {
-      id: 't4',
-      timestamp: '2026-08-10T22:00:00Z',
-      title: 'Incident recorded',
-      description: 'Linked to Incident 2026-08-10.',
-      severity: 'HIGH'
+interface BackendTimelineItem {
+  timestamp?: string;
+  title?: string;
+  description?: string;
+  source?: string;
+  type?: string;
+  status?: string;
+  confidence?: number;
+  event_id?: string;
+  case_id?: string;
+}
+
+export function NetworkTimeline({ entity }: NetworkTimelineProps) {
+  const [events, setEvents] = useState<TimelineEvent[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!entity) {
+      setEvents([]);
+      return;
     }
-  ] : [];
+    let cancelled = false;
+    setLoading(true);
+    const url = `${API_BASE_URL}/network/timeline/${encodeURIComponent(entity.id)}?limit=25`;
+    (async () => {
+      try {
+        const response = await fetchWithTimeout(
+          url,
+          { method: 'GET', headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } },
+          8000,
+        );
+        if (!response.ok) {
+          if (!cancelled) setEvents([]);
+          return;
+        }
+        const data: BackendTimelineItem[] = await response.json();
+        if (cancelled) return;
+        setEvents(
+          (data || []).map((it, i) => ({
+            id: `${entity.id}-${i}`,
+            timestamp: it.timestamp || new Date().toISOString(),
+            title: it.title || it.type || 'Observation recorded',
+            description:
+              it.description ||
+              [it.source, it.status, it.confidence !== undefined ? `confidence: ${it.confidence}` : '']
+                .filter(Boolean)
+                .join(' • '),
+            status: (it.status || 'OBSERVED') as any,
+          })),
+        );
+      } catch {
+        if (!cancelled) setEvents([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [entity?.id]);
 
   return (
-    <div className="bg-[var(--color-bhairav-surface)] h-full flex flex-col">
-      <h3 className="text-sm font-semibold text-[var(--color-bhairav-text)] mb-4 p-4 pb-2 border-b border-[var(--color-bhairav-border)] bg-[var(--color-bhairav-surface-hover)] uppercase tracking-wider">
-        Entity Timeline {entity ? `- ${entity.label}` : ''}
+    <div className="bg-[var(--color-bhairav-slate)] h-full flex flex-col rounded-xl border border-[var(--color-bhairav-graphite)] overflow-hidden">
+      <h3 className="text-xs font-semibold text-white mb-0 p-4 pb-3 border-b border-[var(--color-bhairav-graphite)] uppercase tracking-widest">
+        Timeline {entity ? `— ${entity.label}` : ''}
       </h3>
-      
-      <div className="flex-1 overflow-y-auto pr-2 p-4 pt-0">
+      <div className="flex-1 overflow-y-auto pr-2 p-4 pt-4">
         {entity ? (
-          <Timeline events={events} />
+          events.length > 0 ? (
+            <Timeline events={events} />
+          ) : (
+            <div className="h-full flex items-center justify-center text-xs text-[var(--color-bhairav-text-muted)] font-mono tracking-widest">
+              {loading ? 'Loading timeline…' : 'No timeline events recorded for this entity.'}
+            </div>
+          )
         ) : (
-          <div className="h-full flex items-center justify-center text-sm text-[var(--color-bhairav-text-muted)] font-mono tracking-wider">
+          <div className="h-full flex items-center justify-center text-xs text-[var(--color-bhairav-text-muted)] font-mono tracking-widest">
             Select an entity in the graph to view its timeline.
           </div>
         )}
       </div>
     </div>
   );
-};
+}

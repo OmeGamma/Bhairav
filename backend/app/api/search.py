@@ -18,36 +18,65 @@ async def global_search(
     start_time = time.time()
     
     # In a real app, this would use MongoDB Atlas Search or Elasticsearch
-    # Here we mock a basic text search across a few collections for demonstration
+    # Here we do a safe regex-based search across a few collections
     results = []
-    
-    # Example: search incidents
-    if not query_in.entity_types or "incidents" in query_in.entity_types:
-        cursor = db.incidents.find({"$text": {"$search": query_in.query}}).skip(query_in.skip).limit(query_in.limit)
-        async for doc in cursor:
-            results.append(SearchResult(
-                id=str(doc["_id"]),
-                type="incident",
-                title=doc.get("title", "Untitled Incident"),
-                snippet=doc.get("description", "")[:100]
-            ))
-            
-    # Mocking for demo if text index is not properly set up
-    if not results and query_in.query:
-         # Fallback regex search for demo purposes
-         cursor = db.incidents.find({"title": {"$regex": query_in.query, "$options": "i"}}).limit(5)
-         async for doc in cursor:
-            results.append(SearchResult(
-                id=str(doc["_id"]),
-                type="incident",
-                title=doc.get("title", "Untitled Incident"),
-                snippet=doc.get("description", "")[:100]
-            ))
+
+    search_regex = {"$regex": query_in.query, "$options": "i"}
+
+    # Try incidents collection if it exists
+    try:
+        collection_names = await db.list_collection_names()
+    except Exception:
+        collection_names = []
+
+    if "incidents" in collection_names and (
+        not query_in.entity_types or "incidents" in query_in.entity_types
+    ):
+        try:
+            cursor = db.incidents.find(
+                {"$or": [{"title": search_regex}, {"description": search_regex}]}
+            ).skip(query_in.skip).limit(query_in.limit)
+            async for doc in cursor:
+                results.append(SearchResult(
+                    id=str(doc["_id"]),
+                    type="incident",
+                    title=doc.get("title", "Untitled Incident"),
+                    snippet=(doc.get("description", "") or "")[:100],
+                ))
+        except Exception:
+            pass
+
+    # Search across all collections that have a 'name' or 'title' field
+    other_collections = [
+        ("persons", "person", "name"),
+        ("vehicles", "vehicle", "registration"),
+        ("locations", "location", "name"),
+        ("events", "event", "description"),
+        ("cases", "case", "title"),
+    ]
+    for coll, entity_type, field in other_collections:
+        if coll not in collection_names:
+            continue
+        if query_in.entity_types and entity_type not in query_in.entity_types:
+            continue
+        if len(results) >= query_in.limit:
+            break
+        try:
+            cursor = db[coll].find({field: search_regex}).limit(query_in.limit)
+            async for doc in cursor:
+                results.append(SearchResult(
+                    id=str(doc["_id"]),
+                    type=entity_type,
+                    title=str(doc.get(field, "Untitled"))[:80],
+                    snippet=str(doc.get("description", "") or doc.get("metadata", "") or "")[:100] if isinstance(doc.get("metadata"), str) else None,
+                ))
+        except Exception:
+            pass
 
     execution_time = int((time.time() - start_time) * 1000)
-    
+
     return SearchResponse(
-        results=results,
+        results=results[:query_in.limit],
         total_count=len(results),
         execution_time_ms=execution_time
     )
