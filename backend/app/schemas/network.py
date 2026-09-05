@@ -18,19 +18,24 @@ class NetworkEntityUpdate(BaseModel):
 
 class NetworkEntityResponse(NetworkEntityBase):
     id: str = Field(alias="_id")
-    created_at: datetime
-    updated_at: datetime
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
     class Config:
         populate_by_name = True
 
 # --- Relationships ---
 class RelationshipBase(BaseModel):
-    source_entity_id: str
-    target_entity_id: str
+    source_entity_id: Optional[str] = None
+    target_entity_id: Optional[str] = None
+    source_type: Optional[str] = None
+    source_id: Optional[str] = None
+    target_type: Optional[str] = None
+    target_id: Optional[str] = None
     relationship_type: str # ASSOCIATED_WITH, CONTACT, LOCATED_AT, LINKED_TO_INCIDENT...
     confidence: float = 1.0
     evidence_metadata: Optional[Dict[str, Any]] = None
+    timestamp: Optional[datetime] = None
 
 class RelationshipCreate(RelationshipBase):
     pass
@@ -42,8 +47,8 @@ class RelationshipUpdate(BaseModel):
 
 class RelationshipResponse(RelationshipBase):
     id: str = Field(alias="_id")
-    created_at: datetime
-    updated_at: datetime
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
     class Config:
         populate_by_name = True

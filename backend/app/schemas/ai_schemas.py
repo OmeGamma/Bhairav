@@ -33,11 +33,17 @@ class FieldExtraction(BaseModel):
     name: str
     value: str
     confidence: float
+    valid: Optional[bool] = None
+    kind: Optional[str] = None
+    span: Optional[Dict[str, int]] = None
+    source_excerpt: Optional[str] = None
 
 class DocumentAnalyzeResponse(BaseModel):
     document_id: str
     extracted_text: str
     fields: List[FieldExtraction]
+    document_type: Optional[str] = None
+    summary: Optional[Dict[str, Any]] = None
     model_info: Dict[str, Any]
 
 # --- Identity / Verification ---
@@ -68,6 +74,9 @@ class NetworkAnalyzeResponse(BaseModel):
     related_entities: List[str]
     timeline: List[Dict[str, Any]]
     explanation: str
+    centrality: Optional[Dict[str, Any]] = None
+    summary: Optional[Dict[str, Any]] = None
+    model_info: Optional[Dict[str, Any]] = None
 
 # --- Welfare Analytics ---
 
@@ -83,6 +92,14 @@ class ChatRequest(BaseModel):
     query: str
     context: Optional[Dict[str, Any]] = None
 
+class ChatMessage(BaseModel):
+    role: str
+    content: str
+
+class ChatStreamRequest(BaseModel):
+    messages: List[ChatMessage]
+    context: Optional[Dict[str, Any]] = None
+
 class ChatResponse(BaseModel):
     summary: str
     key_information: List[str]
@@ -90,3 +107,10 @@ class ChatResponse(BaseModel):
     analysis: str
     limitations: str
     actions: List[str]
+
+class ChatSource(BaseModel):
+    title: str
+    url: str
+    snippet: Optional[str] = None
+    domain: Optional[str] = None
+    published: Optional[str] = None

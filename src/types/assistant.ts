@@ -18,6 +18,13 @@ export interface AIMessage {
     type: string;
     label: string;
   }[];
+  sources?: {
+    title: string;
+    url: string;
+    domain?: string;
+    snippet?: string;
+    published?: string;
+  }[];
 }
 
 export type VoiceState = 'IDLE' | 'LISTENING' | 'PROCESSING' | 'RESPONDING' | 'ERROR';

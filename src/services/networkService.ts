@@ -1,62 +1,175 @@
-import { NetworkGraphData, NetworkEntity, NetworkClusterInfo } from '../types/network';
+import type {
+  NetworkGraphData,
+  NetworkEntity,
+  NetworkRelationship,
+  NetworkClusterInfo,
+  EntityType,
+  RelationshipType,
+} from '../types/network';
+import { API_BASE_URL, fetchWithTimeout } from './apiClient';
 
-// Mock service for network graph data
+export interface GraphFilters {
+  entityTypes?: EntityType[];
+  relationshipTypes?: RelationshipType[];
+  since?: string;
+  sinceDays?: number;
+  investigationId?: string;
+  centerEntityId?: string;
+  hops?: number;
+}
 
-const MOCK_NODES: NetworkEntity[] = [
-  { id: 'BH-P-104', label: 'Unknown Subject Alpha', type: 'PERSON', status: 'REVIEW REQUIRED', eventsCount: 4, connectionsCount: 12, details: { 'Locations': 3, 'Vehicles': 2, 'Cases': 1 } },
-  { id: 'BH-P-105', label: 'Contact Beta', type: 'PERSON', status: 'UNKNOWN' },
-  { id: 'BH-V-201', label: 'White SUV', type: 'VEHICLE' },
-  { id: 'BH-L-301', label: 'Sector 4 Checkpoint', type: 'LOCATION' },
-  { id: 'BH-L-302', label: 'Safehouse Alpha', type: 'LOCATION' },
-  { id: 'BH-I-401', label: 'Incident 2026-08-10', type: 'INCIDENT', status: 'HIGH RISK' },
-  { id: 'BH-C-501', label: 'Case File X-44', type: 'CASE' },
-  { id: 'BH-O-601', label: 'Front Organization', type: 'ORGANIZATION' }
-];
+interface BackendNode {
+  id: string;
+  type: string;
+  label: string;
+  metadata?: Record<string, any>;
+}
 
-const MOCK_LINKS = [
-  { id: 'l1', source: 'BH-P-104', target: 'BH-P-105', type: 'CONTACTED' as const },
-  { id: 'l2', source: 'BH-P-104', target: 'BH-V-201', type: 'VEHICLE_ASSOCIATION' as const },
-  { id: 'l3', source: 'BH-P-104', target: 'BH-L-301', type: 'APPEARED_AT' as const },
-  { id: 'l4', source: 'BH-P-104', target: 'BH-I-401', type: 'LINKED_TO_INCIDENT' as const },
-  { id: 'l5', source: 'BH-P-105', target: 'BH-L-302', type: 'LOCATION_ASSOCIATION' as const },
-  { id: 'l6', source: 'BH-I-401', target: 'BH-C-501', type: 'LINKED_TO_CASE' as const },
-  { id: 'l7', source: 'BH-P-104', target: 'BH-O-601', type: 'ASSOCIATED_WITH' as const },
-];
+interface BackendEdge {
+  source: string;
+  target: string;
+  relationship: string;
+  timestamp?: string;
+  metadata?: Record<string, any>;
+}
 
-export const getNetworkGraph = async (): Promise<NetworkGraphData> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        nodes: MOCK_NODES,
-        links: MOCK_LINKS
-      });
-    }, 1000);
+interface BackendGraph {
+  nodes: BackendNode[];
+  edges: BackendEdge[];
+  metadata?: Record<string, any>;
+}
+
+function buildQuery(params: Record<string, string | undefined>): string {
+  const search = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value) search.set(key, value);
   });
-};
+  const s = search.toString();
+  return s ? `?${s}` : '';
+}
 
-export const getEntityDetails = async (entityId: string): Promise<NetworkEntity | null> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const entity = MOCK_NODES.find(n => n.id === entityId) || null;
-      resolve(entity);
-    }, 500);
-  });
-};
+function toEntity(node: BackendNode): NetworkEntity {
+  return {
+    id: node.id,
+    label: node.label || node.id,
+    type: (node.type as EntityType) || 'PERSON',
+    status: node.metadata?.status,
+    connectionsCount: undefined,
+  };
+}
 
-export const getClusterInfo = async (entityId: string): Promise<NetworkClusterInfo | null> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      if (entityId === 'BH-P-104') {
-        resolve({
-          id: 'CLUSTER-A',
-          size: 8,
-          connectedEntities: 14,
-          relationshipDensity: 'HIGH',
-          importantEntities: ['BH-P-104', 'BH-I-401']
-        });
-      } else {
-        resolve(null);
+function toRelationship(edge: BackendEdge, index: number): NetworkRelationship {
+  return {
+    id: `${edge.source}-${edge.relationship}-${edge.target}-${index}`,
+    source: edge.source,
+    target: edge.target,
+    type: (edge.relationship as RelationshipType) || 'ASSOCIATED_WITH',
+    label: edge.relationship,
+  };
+}
+
+export const networkService = {
+  getGraph: async (filters: GraphFilters = {}): Promise<NetworkGraphData> => {
+    const since =
+      filters.since ||
+      (filters.sinceDays !== undefined
+        ? new Date(Date.now() - filters.sinceDays * 86400_000).toISOString()
+        : undefined);
+    const url = `${API_BASE_URL}/network/graph${buildQuery({
+      entity_types: filters.entityTypes?.join(','),
+      relationship_types: filters.relationshipTypes?.join(','),
+      since,
+      investigation_id: filters.investigationId,
+    })}`;
+
+    try {
+      const response = await fetchWithTimeout(url, {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      }, 8000);
+
+      if (!response.ok) {
+        return { nodes: [], links: [] };
       }
-    }, 800);
-  });
+      const data: BackendGraph = await response.json();
+      return {
+        nodes: (data.nodes || []).map(toEntity),
+        links: (data.edges || []).map(toRelationship),
+      };
+    } catch {
+      return { nodes: [], links: [] };
+    }
+  },
+
+  getGraphAroundEntity: async (entityId: string, hops = 1): Promise<NetworkGraphData> => {
+    const url = `${API_BASE_URL}/network/graph/${encodeURIComponent(entityId)}?hops=${hops}`;
+    try {
+      const response = await fetchWithTimeout(url, {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      }, 8000);
+      if (!response.ok) {
+        return { nodes: [], links: [] };
+      }
+      const data: BackendGraph = await response.json();
+      return {
+        nodes: (data.nodes || []).map(toEntity),
+        links: (data.edges || []).map(toRelationship),
+      };
+    } catch {
+      return { nodes: [], links: [] };
+    }
+  },
+
+  getEntityDetails: async (entityId: string): Promise<NetworkEntity | null> => {
+    const url = `${API_BASE_URL}/network/entity/${encodeURIComponent(entityId)}/details`;
+    try {
+      const response = await fetchWithTimeout(url, {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      }, 8000);
+      if (!response.ok) {
+        return null;
+      }
+      const data = await response.json();
+      return {
+        id: data.id,
+        label: data.label,
+        type: (data.type as EntityType) || 'PERSON',
+        status: data.status,
+        connectionsCount: data.connections_count,
+        details: {
+          ...(data.metadata || {}),
+          RelatedEvents: (data.related?.events || []).length,
+          RelatedCases: (data.related?.cases || []).length,
+          RelatedVehicles: (data.related?.vehicles || []).length,
+          RelatedLocations: (data.related?.locations || []).length,
+        },
+      };
+    } catch {
+      return null;
+    }
+  },
+
+  getClusterInfo: async (entityId: string): Promise<NetworkClusterInfo | null> => {
+    const url = `${API_BASE_URL}/network/graph/${encodeURIComponent(entityId)}?hops=2`;
+    try {
+      const response = await fetchWithTimeout(url, {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      }, 8000);
+      if (!response.ok) return null;
+      const data: BackendGraph = await response.json();
+      const totalConnections = (data.edges || []).length;
+      return {
+        id: `CLUSTER-${entityId}`,
+        size: (data.nodes || []).length,
+        connectedEntities: (data.nodes || []).length,
+        relationshipDensity: totalConnections > 8 ? 'HIGH' : totalConnections > 3 ? 'MEDIUM' : 'LOW',
+        importantEntities: (data.nodes || []).slice(0, 3).map((n) => n.id),
+      };
+    } catch {
+      return null;
+    }
+  },
 };

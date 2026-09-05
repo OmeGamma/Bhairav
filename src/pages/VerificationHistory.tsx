@@ -33,7 +33,7 @@ export const VerificationHistory: React.FC = () => {
   });
 
   return (
-    <div className="space-y-6 flex flex-col  pb-8">
+    <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 animate-fade-in-up">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-[var(--color-bhairav-border)] pb-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-[var(--color-bhairav-text)] uppercase">Verification History</h2>

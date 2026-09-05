@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
     # CORS
-    CORS_ORIGINS: List[str] = ["http://localhost:5173", "http://localhost:5174"]
+    CORS_ORIGINS: List[str] = ["http://localhost:5173", "http://localhost:5174", "http://localhost:5175"]
 
     # Storage
     STORAGE_ENDPOINT: str | None = None
@@ -27,6 +27,9 @@ class Settings(BaseSettings):
     AI_SERVICE_URL: str | None = None
     AI_SERVICE_API_KEY: str | None = None
     LLM_API_KEY: str | None = None
+
+    # Web search
+    SEARXNG_URL: str | None = None
 
     # Vector DB
     VECTOR_DB_URL: str | None = None

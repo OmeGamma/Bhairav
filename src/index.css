@@ -1,164 +1,246 @@
 @import "tailwindcss";
 
-@theme {
-  --font-sans: 'Inter', system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, SFMono-Regular, monospace;
-  
-  /* Graphite/Slate base instead of pure black */
-  --color-bhairav-ink: #0f1115;
-  --color-bhairav-bg: #111418;
-  --color-bhairav-slate: #1E232B;
-  --color-bhairav-surface: #1E232B;
-  --color-bhairav-surface-hover: #2A323D;
-  --color-bhairav-graphite: #334155;
-  --color-bhairav-ink-blue: #1f3a5f;
-  
-  /* Meaningful Accents */
-  --color-bhairav-steel: #4A7C9D; /* Steel Blue for primary actions/tech data */
-  --color-bhairav-primary: #4A7C9D;
-  --color-bhairav-primary-hover: #3A6D8C;
-  
-  --color-bhairav-ochre: #D99632; /* Restrained Ochre/Amber - for attention/review */
-  --color-bhairav-warning: #D99632;
-  
-  --color-bhairav-ember: #C63A3A; /* Muted Crimson - reserved only for critical */
-  --color-bhairav-critical: #C63A3A;
-  
-  --color-bhairav-verified: #3C8765; /* Muted Green - for verified status */
-  --color-bhairav-neutral: #64748B; /* Neutral */
+/* ------------------------------------------------------------------ */
+/* THEME TOKENS — light is default; dark is applied via .theme-dark   */
+/* ------------------------------------------------------------------ */
 
-  --color-bhairav-text: #F1F5F9; /* Off-white for legibility */
-  --color-bhairav-text-muted: #94A3B8;
-  
-  --color-bhairav-border: #334155; /* Soft border for elevation */
+@theme {
+  /* Typography */
+  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Code', Menlo, monospace;
+
+  /* ----- LIGHT THEME (default) ----- */
+  /* Surfaces */
+  --color-bhairav-bg: #EEF1F4;
+  --color-bhairav-bg-elevated: #F7F9FC;
+  --color-bhairav-surface: #FFFFFF;
+  --color-bhairav-surface-hover: #F2F4F7;
+  --color-bhairav-border: rgba(31, 41, 51, 0.10);
+  --color-bhairav-border-strong: rgba(31, 41, 51, 0.18);
+
+  /* Glass — translucent with backdrop blur */
+  --color-bhairav-glass: rgba(255, 255, 255, 0.55);
+  --color-bhairav-glass-border: rgba(255, 255, 255, 0.35);
+  --color-bhairav-glass-shadow: 0 8px 32px rgba(31, 41, 51, 0.08);
+
+  /* Text */
+  --color-bhairav-text: #1F2933;
+  --color-bhairav-text-muted: #5A6472;
+  --color-bhairav-text-subtle: #86909C;
+
+  /* Brand palette */
+  --color-bhairav-primary: #3E6E9E;       /* blue accent */
+  --color-bhairav-primary-hover: #345E89;
+  --color-bhairav-primary-soft: #DCE8F2;  /* chip / hover bg */
+  --color-bhairav-olive: #5B6650;         /* army/security grey */
+  --color-bhairav-olive-soft: #E5E8E0;
+
+  /* Semantic */
+  --color-bhairav-critical: #C0392B;
+  --color-bhairav-warning: #C68A2A;
+  --color-bhairav-verified: #2E7D5B;
+  --color-bhairav-neutral: #6b7280;
+
+  /* Aliases for legacy components */
+  --color-bhairav-graphite: #2A2F36;
+  --color-bhairav-steel: #4A6076;
+  --color-bhairav-slate: #E6EAF0;
+  --color-bhairav-ink: #13171C;
+  --color-bhairav-ink-blue: #2A3A4A;
+  --color-bhairav-ember: #B45A3A;
+  --color-bhairav-ochre: #B58A2A;
 }
+
+/* ----- DARK THEME (comfortable, NOT near-black) ----- */
+.theme-dark {
+  --color-bhairav-bg: #20242B;
+  --color-bhairav-bg-elevated: #262A33;
+  --color-bhairav-surface: #2A2F38;
+  --color-bhairav-surface-hover: #323844;
+  --color-bhairav-border: rgba(231, 234, 238, 0.10);
+  --color-bhairav-border-strong: rgba(231, 234, 238, 0.18);
+
+  --color-bhairav-glass: rgba(38, 43, 51, 0.6);
+  --color-bhairav-glass-border: rgba(231, 234, 238, 0.12);
+  --color-bhairav-glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+
+  --color-bhairav-text: #E7EAEE;
+  --color-bhairav-text-muted: #9AA4B2;
+  --color-bhairav-text-subtle: #6F7886;
+
+  --color-bhairav-primary: #6FA3D8;
+  --color-bhairav-primary-hover: #85B2DE;
+  --color-bhairav-primary-soft: #2A3A4A;
+  --color-bhairav-olive: #7C8768;
+  --color-bhairav-olive-soft: #2E3329;
+
+  --color-bhairav-critical: #E0746A;
+  --color-bhairav-warning: #D9A95B;
+  --color-bhairav-verified: #5DBA90;
+  --color-bhairav-neutral: #8893A1;
+
+  --color-bhairav-graphite: #1A1D23;
+  --color-bhairav-steel: #6FA3D8;
+  --color-bhairav-slate: #2A2F38;
+  --color-bhairav-ink: #13171C;
+  --color-bhairav-ink-blue: #2A3A4A;
+  --color-bhairav-ember: #D08570;
+  --color-bhairav-ochre: #D9B15B;
+}
+
+/* ------------------------------------------------------------------ */
+/* BASE                                                              */
+/* ------------------------------------------------------------------ */
 
 @layer base {
-  body {
+  html, body {
     @apply bg-[var(--color-bhairav-bg)] text-[var(--color-bhairav-text)] font-sans antialiased;
+    transition: background-color 350ms ease, color 350ms ease;
+  }
+
+  ::selection {
+    background-color: var(--color-bhairav-primary);
+    color: #fff;
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* UTILITIES                                                         */
+/* ------------------------------------------------------------------ */
 
 @layer utilities {
-  .severity-notch-critical {
-    @apply border-l-[3px] border-l-[var(--color-bhairav-critical)];
+
+  /* Severity notches */
+  .severity-notch-critical { @apply border-l-[3px] border-l-[var(--color-bhairav-critical)]; }
+  .severity-notch-warning  { @apply border-l-[3px] border-l-[var(--color-bhairav-warning)]; }
+  .severity-notch-verified { @apply border-l-[3px] border-l-[var(--color-bhairav-verified)]; }
+  .severity-notch-primary  { @apply border-l-[3px] border-l-[var(--color-bhairav-primary)]; }
+
+  .font-data { @apply font-mono text-[0.85em] tracking-wider; }
+
+  /* Glass — used by navbar, dropdowns, cards */
+  .glass {
+    background: var(--color-bhairav-glass);
+    backdrop-filter: blur(16px) saturate(140%);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
+    border: 1px solid var(--color-bhairav-glass-border);
+    border-radius: 16px;
+    box-shadow: var(--color-bhairav-glass-shadow);
   }
-  .severity-notch-warning {
-    @apply border-l-[3px] border-l-[var(--color-bhairav-warning)];
+
+  .glass-sm {
+    background: var(--color-bhairav-glass);
+    backdrop-filter: blur(12px) saturate(140%);
+    -webkit-backdrop-filter: blur(12px) saturate(140%);
+    border: 1px solid var(--color-bhairav-glass-border);
+    border-radius: 12px;
+    box-shadow: var(--color-bhairav-glass-shadow);
   }
-  .severity-notch-verified {
-    @apply border-l-[3px] border-l-[var(--color-bhairav-verified)];
+
+  .glass-card {
+    background: var(--color-bhairav-surface);
+    backdrop-filter: blur(10px) saturate(140%);
+    -webkit-backdrop-filter: blur(10px) saturate(140%);
+    border: 1px solid var(--color-bhairav-border);
+    border-radius: 16px;
+    box-shadow: var(--color-bhairav-glass-shadow);
+    transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
   }
-  .severity-notch-primary {
-    @apply border-l-[3px] border-l-[var(--color-bhairav-primary)];
+
+  .glass-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--color-bhairav-border-strong);
+    box-shadow: 0 12px 36px rgba(31, 41, 51, 0.12);
   }
-  .font-data {
-    @apply font-mono text-[0.85em] tracking-wider;
+
+  /* Themed scrollbar */
+  .scrollbar-themed::-webkit-scrollbar { width: 8px; height: 8px; }
+  .scrollbar-themed::-webkit-scrollbar-track { background: transparent; }
+  .scrollbar-themed::-webkit-scrollbar-thumb {
+    background: var(--color-bhairav-border-strong);
+    border-radius: 4px;
+  }
+  .scrollbar-themed::-webkit-scrollbar-thumb:hover {
+    background: var(--color-bhairav-text-muted);
   }
 }
 
-/* Custom Scrollbar for a premium feel */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
+/* ------------------------------------------------------------------ */
+/* SCROLLBAR — default                                               */
+/* ------------------------------------------------------------------ */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--color-bhairav-bg); }
+::-webkit-scrollbar-thumb { background: var(--color-bhairav-border-strong); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-bhairav-text-muted); }
 
-::-webkit-scrollbar-track {
-  background: var(--color-bhairav-bg); 
-}
- 
-::-webkit-scrollbar-thumb {
-  background: var(--color-bhairav-border); 
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: var(--color-bhairav-neutral); 
-  }
-
-/* Landing Page Animations */
+/* ------------------------------------------------------------------ */
+/* ANIMATIONS                                                        */
+/* ------------------------------------------------------------------ */
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(30px); }
-  to { opacity: 1; transform: translateY(0); }
+  to   { opacity: 1; transform: translateY(0); }
 }
-
 @keyframes fadeIn {
   from { opacity: 0; }
-  to { opacity: 1; }
+  to   { opacity: 1; }
 }
-
 @keyframes slideInLeft {
   from { opacity: 0; transform: translateX(-40px); }
-  to { opacity: 1; transform: translateX(0); }
+  to   { opacity: 1; transform: translateX(0); }
 }
-
 @keyframes slideInRight {
   from { opacity: 0; transform: translateX(40px); }
-  to { opacity: 1; transform: translateX(0); }
+  to   { opacity: 1; transform: translateX(0); }
 }
-
 @keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-12px); }
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-12px); }
 }
-
 @keyframes gradientShift {
   0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
+  50%      { background-position: 100% 50%; }
 }
-
-@keyframes progressPulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
-}
-
+@keyframes progressPulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
 @keyframes scaleIn {
   from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes shimmer {
+  0%   { background-position: -1000px 0; }
+  100% { background-position: 1000px 0; }
 }
 
-.animate-fade-in-up {
-  animation: fadeInUp 0.8s ease-out forwards;
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.6s ease-out forwards;
-}
-
-.animate-slide-in-left {
-  animation: slideInLeft 0.7s ease-out forwards;
-}
-
-.animate-slide-in-right {
-  animation: slideInRight 0.7s ease-out forwards;
-}
-
-.animate-float {
-  animation: float 6s ease-in-out infinite;
-}
-
-.animate-float-delayed {
-  animation: float 6s ease-in-out 2s infinite;
-}
-
+.animate-fade-in-up     { animation: fadeInUp 0.8s ease-out forwards; }
+.animate-fade-in        { animation: fadeIn 0.6s ease-out forwards; }
+.animate-slide-in-left  { animation: slideInLeft 0.7s ease-out forwards; }
+.animate-slide-in-right { animation: slideInRight 0.7s ease-out forwards; }
+.animate-float          { animation: float 6s ease-in-out infinite; }
+.animate-float-delayed  { animation: float 6s ease-in-out 2s infinite; }
 .animate-gradient {
   background-size: 200% 200%;
   animation: gradientShift 8s ease infinite;
 }
-
-.animate-scale-in {
-  animation: scaleIn 0.5s ease-out forwards;
-}
+.animate-scale-in    { animation: scaleIn 0.5s ease-out forwards; }
+.animate-slide-down  { animation: slideDown 0.25s ease-out forwards; }
 
 .scroll-reveal {
   opacity: 0;
   transform: translateY(40px);
   transition: opacity 0.8s ease-out, transform 0.8s ease-out;
 }
-
 .scroll-reveal.revealed {
   opacity: 1;
   transform: translateY(0);
+}
+
+/* Theme-transition class applied on <html> for 350ms smooth swap */
+.theme-transitioning,
+.theme-transitioning * {
+  transition: background-color 350ms ease, color 350ms ease, border-color 350ms ease, box-shadow 350ms ease !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -169,15 +251,12 @@
   .animate-float,
   .animate-float-delayed,
   .animate-gradient,
-  .animate-scale-in {
+  .animate-scale-in,
+  .animate-slide-down {
     animation: none;
     opacity: 1;
     transform: none;
   }
-  .scroll-reveal {
-    opacity: 1;
-    transform: none;
-    transition: none;
-  }
+  .scroll-reveal { opacity: 1; transform: none; transition: none; }
+  .theme-transitioning, .theme-transitioning * { transition: none !important; }
 }
-
