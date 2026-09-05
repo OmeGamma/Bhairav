@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Camera as CameraIcon, MapPin, Activity, AlertTriangle, PlaySquare, Shield, Info, ArrowLeft } from 'lucide-react';
+import { Camera as CameraIcon, MapPin, Activity, AlertTriangle, PlaySquare, Shield, Info, ArrowLeft, Plus } from 'lucide-react';
 import { Card } from '../../components/common/Card';
 import { Badge } from '../../components/common/Badge';
 import { LoadingState } from '../../components/common/LoadingState';
@@ -7,10 +7,48 @@ import { ErrorState } from '../../components/common/ErrorState';
 import { EmptyState } from '../../components/common/EmptyState';
 import { cameraService } from '../../services/cameraService';
 import { eventService } from '../../services/eventService';
-import type { Camera, SecurityEvent } from '../../types';
+import { webSocketService } from '../../services/webSocketService';
+import type { Camera, SecurityEvent, Detection } from '../../types';
 
 export default function SecurityMonitoring() {
   const [selectedCamera, setSelectedCamera] = useState<Camera | null>(null);
+  const [liveTelemetry, setLiveTelemetry] = useState<any>(null);
+  const [isAddCameraModalOpen, setIsAddCameraModalOpen] = useState(false);
+  const [newCamera, setNewCamera] = useState({ name: '', source_type: 'SIMULATED', stream_reference: '' });
+  
+  const handleAddCamera = async () => {
+    try {
+      const token = localStorage.getItem('token') || '';
+      // 1. Create camera
+      const res = await fetch('http://127.0.0.1:5000/api/v1/cameras/', {
+         method: 'POST',
+         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+         body: JSON.stringify({
+             name: newCamera.name || 'New Camera',
+             source_type: newCamera.source_type,
+             stream_reference: newCamera.stream_reference,
+             status: 'OFFLINE',
+             enabled: true,
+             configuration: { fps: 5, resolution: '1920x1080' }
+         })
+      });
+      if (!res.ok) throw new Error('Failed to create camera');
+      const created = await res.json();
+      
+      // 2. Start session
+      const sessRes = await fetch(`http://127.0.0.1:5000/api/v1/cameras/${created.id}/sessions`, {
+         method: 'POST',
+         headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!sessRes.ok) throw new Error('Failed to start session');
+      
+      setIsAddCameraModalOpen(false);
+      setNewCamera({ name: '', source_type: 'SIMULATED', stream_reference: '' });
+      fetchData();
+    } catch (err) {
+      alert('Failed to add camera');
+    }
+  };
   
   const [cameras, setCameras] = useState<Camera[]>([]);
   const [allEvents, setAllEvents] = useState<SecurityEvent[]>([]);
@@ -36,6 +74,45 @@ export default function SecurityMonitoring() {
 
   useEffect(() => {
     fetchData();
+    
+    webSocketService.connect();
+    
+    const unsubTelemetry = webSocketService.subscribe('camera_telemetry', (data: any) => {
+      // data contains camera_id, session_id, frame_number, timestamp, detections, severity, event_type
+      setCameras(prev => prev.map(c => 
+        c.id === data.camera_id 
+          ? { ...c, detectionCount: (c.detectionCount || 0) + data.detections.length, lastEventTime: data.timestamp } 
+          : c
+      ));
+      
+      setLiveTelemetry((prev: any) => {
+        // If we are looking at this camera, update telemetry
+        if (data.camera_id) { // In a real app we'd check `selectedCamera?.id === data.camera_id` but we can't capture state easily without refs
+           return data; 
+        }
+        return prev;
+      });
+    });
+    
+    const unsubAlert = webSocketService.subscribe('new_alert', (alert: any) => {
+      setAllEvents(prev => [{
+        id: alert.id,
+        type: alert.title,
+        severity: alert.severity,
+        timestamp: alert.created_at,
+        cameraId: alert.camera_id,
+        description: alert.description,
+        location: 'Detected Location',
+        relatedEntitiesCount: 0,
+        status: 'active'
+      }, ...prev]);
+    });
+
+    return () => {
+      unsubTelemetry();
+      unsubAlert();
+      webSocketService.disconnect();
+    };
   }, []);
 
   if (loading) {
@@ -84,22 +161,32 @@ export default function SecurityMonitoring() {
                 <span className="text-red-500 font-mono text-xs font-bold tracking-widest uppercase">REC</span>
               </div>
               <div className="absolute bottom-4 left-4 font-mono text-xs text-white/70">
-                {new Date().toISOString().replace('T', ' ').substring(0, 19)}
+                {liveTelemetry && liveTelemetry.camera_id === selectedCamera.id ? new Date(liveTelemetry.timestamp).toISOString().replace('T', ' ').substring(0, 19) : new Date().toISOString().replace('T', ' ').substring(0, 19)}
               </div>
               
-              <PlaySquare size={48} className="text-[var(--color-bhairav-border)]/50 group-hover:text-[var(--color-bhairav-primary)] transition-colors" />
+              {/* Snapshot Display / Placeholder */}
+              {liveTelemetry && liveTelemetry.camera_id === selectedCamera.id && liveTelemetry.snapshot_id ? (
+                 <img src={`http://localhost:5000/api/v1/evidence/snapshots/${liveTelemetry.snapshot_id}.jpg`} className="absolute inset-0 w-full h-full object-contain opacity-50" onError={(e) => (e.currentTarget.style.display = 'none')} />
+              ) : (
+                 <PlaySquare size={48} className="text-[var(--color-bhairav-border)]/50 group-hover:text-[var(--color-bhairav-primary)] transition-colors" />
+              )}
               
               {/* Overlay elements to simulate AI tracking */}
-              <div className="absolute top-1/3 left-1/4 w-32 h-48 border border-[var(--color-bhairav-primary)]/50 bg-[var(--color-bhairav-primary)]/10 animate-pulse hidden group-hover:block">
-                 <span className="absolute -top-6 left-0 bg-[var(--color-bhairav-primary)]/80 text-white text-[10px] px-1 font-mono">PERSON 98%</span>
-              </div>
+              {liveTelemetry && liveTelemetry.camera_id === selectedCamera.id && liveTelemetry.detections && liveTelemetry.detections.map((det: Detection, idx: number) => {
+                 // Convert normalized coords to percentages if available, or just mock it
+                 return (
+                   <div key={idx} className="absolute top-1/3 left-1/4 w-32 h-48 border border-[var(--color-bhairav-primary)]/50 bg-[var(--color-bhairav-primary)]/10 animate-pulse">
+                      <span className="absolute -top-6 left-0 bg-[var(--color-bhairav-primary)]/80 text-white text-[10px] px-1 font-mono">{det.label.toUpperCase()} {Math.round(det.confidence * 100)}%</span>
+                   </div>
+                 );
+              })}
             </div>
 
             <div className="flex gap-4">
-              <button className="flex-1 bg-[var(--color-bhairav-surface)] hover:bg-[var(--color-bhairav-surface-hover)] border border-[var(--color-bhairav-border)] text-white py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2">
+              <button className="flex-1 bg-[var(--color-bhairav-surface)] hover:bg-[var(--color-bhairav-surface-hover)] border border-[var(--color-bhairav-border)] text-[var(--color-bhairav-text)] py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2">
                 <Shield size={16} /> Investigate
               </button>
-              <button className="flex-1 bg-[var(--color-bhairav-surface)] hover:bg-[var(--color-bhairav-surface-hover)] border border-[var(--color-bhairav-border)] text-white py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2">
+              <button className="flex-1 bg-[var(--color-bhairav-surface)] hover:bg-[var(--color-bhairav-surface-hover)] border border-[var(--color-bhairav-border)] text-[var(--color-bhairav-text)] py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2">
                 <MapPin size={16} /> Open in Map
               </button>
               <button className="flex-1 bg-[var(--color-bhairav-primary)]/20 hover:bg-[var(--color-bhairav-primary)]/30 border border-[var(--color-bhairav-primary)]/50 text-[var(--color-bhairav-primary)] py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2">
@@ -168,10 +255,47 @@ export default function SecurityMonitoring() {
           <h2 className="text-2xl font-bold tracking-tight">Security Monitoring</h2>
           <p className="text-[var(--color-bhairav-text-muted)] mt-1">Live grid of active intelligence feeds</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-4">
            <Badge status="info" dot={false}>{cameras.length} Active Feeds</Badge>
+           <button onClick={() => setIsAddCameraModalOpen(true)} className="flex items-center gap-1 bg-[var(--color-bhairav-primary)] text-[var(--color-bhairav-text)] px-3 py-1.5 rounded-md text-sm font-medium hover:bg-[var(--color-bhairav-primary-hover)] transition-colors shadow-lg shadow-[var(--color-bhairav-primary)]/20">
+              <Plus size={16} /> Deploy Source
+           </button>
         </div>
       </div>
+      
+      {/* Add Camera Modal */}
+      {isAddCameraModalOpen && (
+        <div className="fixed inset-0 bg-[#000]/70 backdrop-blur-sm z-[1000] flex items-center justify-center p-4">
+          <div className="bg-[var(--color-bhairav-surface)] border border-[var(--color-bhairav-primary)]/30 rounded-xl p-6 w-full max-w-md shadow-[0_0_50px_rgba(59,130,246,0.15)] animate-in zoom-in-95 duration-200">
+            <h3 className="text-xl font-bold mb-4 uppercase tracking-tight flex items-center gap-2">
+              <CameraIcon className="text-[var(--color-bhairav-primary)]" /> Deploy Video Source
+            </h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-widest text-[var(--color-bhairav-text-muted)] mb-1.5">Source Name</label>
+                <input type="text" value={newCamera.name} onChange={e => setNewCamera({...newCamera, name: e.target.value})} className="w-full bg-[var(--color-bhairav-bg)] border border-[var(--color-bhairav-border)] rounded-md px-3 py-2.5 text-sm focus:border-[var(--color-bhairav-primary)] outline-none transition-colors" placeholder="e.g., Gate 1 RTSP" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-widest text-[var(--color-bhairav-text-muted)] mb-1.5">Ingestion Protocol</label>
+                <select value={newCamera.source_type} onChange={e => setNewCamera({...newCamera, source_type: e.target.value})} className="w-full bg-[var(--color-bhairav-bg)] border border-[var(--color-bhairav-border)] rounded-md px-3 py-2.5 text-sm focus:border-[var(--color-bhairav-primary)] outline-none transition-colors appearance-none">
+                   <option value="SIMULATED">Simulated Engine (Synthetic)</option>
+                   <option value="WEBCAM">Local Webcam (USB/PCIe)</option>
+                   <option value="VIDEO_FILE">File Ingestion (MP4/AVI)</option>
+                   <option value="RTSP">Network Stream (RTSP/HTTP)</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-widest text-[var(--color-bhairav-text-muted)] mb-1.5">Stream Reference</label>
+                <input type="text" value={newCamera.stream_reference} onChange={e => setNewCamera({...newCamera, stream_reference: e.target.value})} className="w-full bg-[var(--color-bhairav-bg)] border border-[var(--color-bhairav-border)] rounded-md px-3 py-2.5 text-sm focus:border-[var(--color-bhairav-primary)] outline-none transition-colors" placeholder="e.g., 0, /path/to/video.mp4, rtsp://..." />
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-3 mt-8 pt-4 border-t border-[var(--color-bhairav-border)]">
+              <button onClick={() => setIsAddCameraModalOpen(false)} className="px-4 py-2.5 text-xs font-bold uppercase tracking-widest text-[var(--color-bhairav-text-muted)] hover:text-white transition-colors">Cancel</button>
+              <button onClick={handleAddCamera} className="bg-[var(--color-bhairav-primary)] text-white px-5 py-2.5 rounded-md text-xs font-bold uppercase tracking-widest hover:bg-[var(--color-bhairav-primary-hover)] transition-colors shadow-lg">Initialize</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {cameras.length === 0 ? (
         <EmptyState icon={CameraIcon} title="No Cameras Available" description="No security cameras are currently configured or online." />

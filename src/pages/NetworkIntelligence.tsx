@@ -190,7 +190,7 @@ export function NetworkIntelligence() {
               />
               <button
                 onClick={() => setFullscreen((f) => !f)}
-                className="absolute top-3 right-3 p-1.5 rounded bg-[var(--color-bhairav-bg)]/80 border border-[var(--color-bhairav-border-strong)] text-[var(--color-bhairav-text-muted)] hover:text-white transition-colors"
+                className="absolute top-3 right-3 p-1.5 rounded bg-[var(--color-bhairav-bg)]/80 border border-[var(--color-bhairav-border-strong)] text-[var(--color-bhairav-text-muted)] hover:text-[var(--color-bhairav-text)] transition-colors"
                 title={fullscreen ? 'Exit fullscreen' : 'Fullscreen'}
               >
                 {fullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}

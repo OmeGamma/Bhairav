@@ -51,15 +51,12 @@ def require_permissions(required_permissions: List[str]) -> Callable:
     ):
         role_dict = await db.roles.find_one({"_id": current_user.role_id})
         if not role_dict:
-            # If no role ID matches in DB, maybe they are super ADMIN or the role string itself was stored
-            # For simplicity, if role_id is a string like "ADMIN", we check hardcoded or string-based mapping
             role_dict = await db.roles.find_one({"name": current_user.role_id})
             if not role_dict:
                 raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Role not found")
         
         user_permissions = set(role_dict.get("permissions", []))
         
-        # Admin bypass or full match
         if "system.admin" in user_permissions:
             return current_user
 
@@ -71,3 +68,42 @@ def require_permissions(required_permissions: List[str]) -> Callable:
                 )
         return current_user
     return permission_checker
+
+CLASSIFICATION_LEVELS = {
+    "PUBLIC": 0,
+    "INTERNAL": 1,
+    "RESTRICTED": 2,
+    "CONFIDENTIAL": 3,
+}
+
+class ClassificationChecker:
+    def __init__(self, min_level: str):
+        self.min_level = min_level
+    
+    async def __call__(self, current_user: UserInDB = Depends(get_current_user), db: AsyncIOMotorDatabase = Depends(get_db)):
+        role_dict = await db.roles.find_one({"_id": current_user.role_id})
+        if not role_dict:
+            role_dict = await db.roles.find_one({"name": current_user.role_id})
+        
+        user_permissions = set(role_dict.get("permissions", [])) if role_dict else set()
+        
+        if "system.admin" in user_permissions:
+            return current_user
+        
+        user_max_classification = "PUBLIC"
+        for perm in user_permissions:
+            if perm.startswith("classification."):
+                user_max_classification = perm.split(".", 1)[1].upper()
+        
+        user_level = CLASSIFICATION_LEVELS.get(user_max_classification, 0)
+        required_level = CLASSIFICATION_LEVELS.get(self.min_level.upper(), 0)
+        
+        if user_level < required_level:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Insufficient classification clearance. Required: {self.min_level}"
+            )
+        return current_user
+
+def require_classification_level(min_level: str):
+    return ClassificationChecker(min_level)

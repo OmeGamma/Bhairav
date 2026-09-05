@@ -2,6 +2,7 @@ import { Outlet, useLocation } from 'react-router-dom';
 import { Navbar } from './Navbar';
 import { BhairavFooter } from './BhairavFooter';
 import { ScrollToTop } from '../common/ScrollToTop';
+import { ErrorBoundary } from '../common/ErrorBoundary';
 
 /**
  * Single global layout used by every route in the app.
@@ -17,7 +18,9 @@ export function AppLayout() {
       <ScrollToTop />
       <Navbar />
       <main className="flex-1 w-full">
-        <Outlet />
+        <ErrorBoundary>
+          <Outlet />
+        </ErrorBoundary>
       </main>
       <BhairavFooter />
     </div>

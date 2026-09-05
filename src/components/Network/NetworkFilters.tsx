@@ -109,7 +109,7 @@ export function NetworkFilters({ onFilterChange, onReset, onSearchSubmit, initia
                 if (e.key === 'Escape') setSearch('');
               }}
               placeholder="Search person, vehicle, case..."
-              className="w-full pl-9 pr-8 py-2 bg-[var(--color-bhairav-bg)] border border-[var(--color-bhairav-graphite)] rounded-md text-sm text-white focus:outline-none focus:border-[var(--color-bhairav-steel)] transition-colors placeholder:text-[var(--color-bhairav-text-muted)]/50"
+              className="w-full pl-9 pr-8 py-2 bg-[var(--color-bhairav-bg)] border border-[var(--color-bhairav-graphite)] rounded-md text-sm text-[var(--color-bhairav-text)] focus:outline-none focus:border-[var(--color-bhairav-steel)] transition-colors placeholder:text-[var(--color-bhairav-text-muted)]/50"
             />
             {search && (
               <button

@@ -9,6 +9,7 @@ import asyncio
 import os
 import sys
 from datetime import datetime, timedelta
+from pathlib import Path
 from bson import ObjectId
 
 # Add backend app dir to path
@@ -40,7 +41,9 @@ async def seed():
     print("\nClearing existing demo collections...")
     for col in ["cameras", "security_zones", "events", "persons", "vehicles",
                 "locations", "relationships", "cases", "incidents", "alerts",
-                "network_entities"]:
+                "network_entities", "evidence_files", "evidence_versions",
+                "evidence_audit", "processing_jobs", "ingestion_results",
+                "entities", "extracted_entities", "extracted_relationships"]:
         await db[col].delete_many({"_demo": True})
 
     # ---- Locations ----
@@ -319,6 +322,204 @@ async def seed():
     ]
     await db.network_relationships.insert_many(network_relationships) if False else await db.relationships.insert_many(network_relationships)
 
+    # ---- Evidence Files ----
+    print("Seeding evidence files...")
+    import hashlib
+    def sha256_of(text: str) -> str:
+        return hashlib.sha256(text.encode()).hexdigest()
+
+    evidence_files = [
+        {
+            "original_filename": "FIR_BH-2026-001.txt",
+            "stored_filename": "fir_sample.txt",
+            "mime_type": "text/plain",
+            "extension": "txt",
+            "size_bytes": 245,
+            "storage_provider": "local",
+            "storage_key": str(Path(__file__).resolve().parent.parent / "storage" / "evidence" / "documents" / "fir_sample.txt"),
+            "checksum_sha256": sha256_of("FIR No. BH-2026-001\nDate: 2026-08-15\nComplainant: Person Alpha\nDescription: Intrusion detected at Restricted Zone Alpha. Vehicle UP32AB1234 observed.\nEvidence: CCTV footage from BOP-03.\n"),
+            "source_type": "FIR",
+            "classification": "RESTRICTED",
+            "description": "[DEMO] First Information Report for case BH-2026-001 documenting intrusion at Zone Alpha.",
+            "tags": ["BH-2026-001", "intrusion", "zone-alpha"],
+            "case_id": str(cases[0]["_id"]) if cases else None,
+            "investigation_id": "BH-1024",
+            "processing_status": "PROCESSED",
+            "version": 1,
+            "is_original": True,
+            "is_deleted": False,
+            "uploaded_by": str(person_ids[0]),
+            "uploaded_at": NOW - timedelta(days=5),
+            "updated_at": NOW - timedelta(days=5),
+            "created_at": NOW - timedelta(days=5),
+            "_demo": True,
+        },
+        {
+            "original_filename": "Surveillance_Report_SectorX.txt",
+            "stored_filename": "surveillance_report.txt",
+            "mime_type": "text/plain",
+            "extension": "txt",
+            "size_bytes": 198,
+            "storage_provider": "local",
+            "storage_key": str(Path(__file__).resolve().parent.parent / "storage" / "evidence" / "documents" / "surveillance_report.txt"),
+            "checksum_sha256": sha256_of("SURVEILLANCE REPORT\nCase: BH-2026-001\nSubject: Person Beta\nLocation: Sector X North Gate\nObservations: Person Beta observed loitering for 15 minutes. Associated with vehicle DL05CD5678.\n"),
+            "source_type": "SURVEILLANCE_REPORT",
+            "classification": "INTERNAL",
+            "description": "[DEMO] Surveillance report for Sector X North Gate.",
+            "tags": ["BH-2026-001", "surveillance", "sector-x"],
+            "case_id": str(cases[0]["_id"]) if cases else None,
+            "investigation_id": "BH-1024",
+            "processing_status": "PROCESSED",
+            "version": 1,
+            "is_original": True,
+            "is_deleted": False,
+            "uploaded_by": str(person_ids[1]),
+            "uploaded_at": NOW - timedelta(days=4),
+            "updated_at": NOW - timedelta(days=4),
+            "created_at": NOW - timedelta(days=4),
+            "_demo": True,
+        },
+        {
+            "original_filename": "CDR_August_2026.csv",
+            "stored_filename": "cdr_august.csv",
+            "mime_type": "text/csv",
+            "extension": "csv",
+            "size_bytes": 156,
+            "storage_provider": "local",
+            "storage_key": str(Path(__file__).resolve().parent.parent / "storage" / "evidence" / "cdr" / "cdr_august.csv"),
+            "checksum_sha256": sha256_of("caller,receiver,timestamp,duration,cell_tower,call_type\n+91-9876543210,+91-9876543211,2026-08-01T10:00:00Z,120,Tower-Alpha,OUTGOING\n+91-9876543211,+91-9876543210,2026-08-01T14:00:00Z,45,Tower-Beta,INCOMING\n+91-9876543210,+91-9876543212,2026-08-02T09:00:00Z,300,Tower-Gamma,OUTGOING\n"),
+            "source_type": "CDR",
+            "classification": "RESTRICTED",
+            "description": "[DEMO] CDR data for August 2026 showing communication patterns.",
+            "tags": ["BH-2026-001", "cdr", "communications"],
+            "case_id": str(cases[0]["_id"]) if cases else None,
+            "investigation_id": "BH-1024",
+            "processing_status": "PROCESSED",
+            "version": 1,
+            "is_original": True,
+            "is_deleted": False,
+            "uploaded_by": str(person_ids[2]),
+            "uploaded_at": NOW - timedelta(days=3),
+            "updated_at": NOW - timedelta(days=3),
+            "created_at": NOW - timedelta(days=3),
+            "_demo": True,
+        },
+        {
+            "original_filename": "Financial_Transactions_August.csv",
+            "stored_filename": "transactions_august.csv",
+            "mime_type": "text/csv",
+            "extension": "csv",
+            "size_bytes": 189,
+            "storage_provider": "local",
+            "storage_key": str(Path(__file__).resolve().parent.parent / "storage" / "evidence" / "financial" / "transactions_august.csv"),
+            "checksum_sha256": sha256_of("transaction_id,sender,receiver,account,amount,timestamp,location,transaction_type\nTXN001,Person Alpha,Person Beta,ACC-1001,50000,2026-08-05T11:00:00Z,Delhi,TRANSFER\nTXN002,Person Beta,Org Orion,ACC-2002,120000,2026-08-10T16:00:00Z,Mumbai,CASH_DEPOSIT\n"),
+            "source_type": "FINANCIAL_RECORD",
+            "classification": "CONFIDENTIAL",
+            "description": "[DEMO] Financial transaction records for August 2026.",
+            "tags": ["BH-2026-001", "financial", "transactions"],
+            "case_id": str(cases[0]["_id"]) if cases else None,
+            "investigation_id": "BH-1024",
+            "processing_status": "PROCESSED",
+            "version": 1,
+            "is_original": True,
+            "is_deleted": False,
+            "uploaded_by": str(person_ids[0]),
+            "uploaded_at": NOW - timedelta(days=2),
+            "updated_at": NOW - timedelta(days=2),
+            "created_at": NOW - timedelta(days=2),
+            "_demo": True,
+        },
+    ]
+    ev_result = await db.evidence_files.insert_many(evidence_files)
+    ev_ids = [str(e) for e in ev_result.inserted_ids]
+
+    # ---- Processing Jobs ----
+    print("Seeding processing jobs...")
+    processing_jobs = []
+    for ev_id in ev_ids:
+        processing_jobs.append({
+            "file_id": ev_id,
+            "job_type": "FILE_VALIDATION",
+            "status": "COMPLETED",
+            "progress": 100.0,
+            "created_by": str(person_ids[0]),
+            "created_at": NOW - timedelta(days=5),
+            "started_at": NOW - timedelta(days=5),
+            "completed_at": NOW - timedelta(days=5),
+            "_demo": True,
+        })
+    pj_result = await db.processing_jobs.insert_many(processing_jobs)
+    pj_ids = [str(p) for p in pj_result.inserted_ids]
+
+    # ---- Entities ----
+    print("Seeding extracted entities...")
+    entities = [
+        {"entity_type": "PERSON", "canonical_name": "Person Alpha", "aliases": ["A. Singh"], "confidence": 0.9, "source_files": [ev_ids[0]], "_demo": True, "created_at": NOW, "updated_at": NOW},
+        {"entity_type": "PERSON", "canonical_name": "Person Beta", "aliases": [], "confidence": 0.85, "source_files": [ev_ids[0], ev_ids[1]], "_demo": True, "created_at": NOW, "updated_at": NOW},
+        {"entity_type": "VEHICLE", "canonical_name": "UP32AB1234", "confidence": 0.9, "source_files": [ev_ids[0]], "_demo": True, "created_at": NOW, "updated_at": NOW},
+        {"entity_type": "VEHICLE", "canonical_name": "DL05CD5678", "confidence": 0.85, "source_files": [ev_ids[1]], "_demo": True, "created_at": NOW, "updated_at": NOW},
+        {"entity_type": "PHONE", "canonical_name": "+91-9876543210", "confidence": 0.95, "source_files": [ev_ids[2]], "_demo": True, "created_at": NOW, "updated_at": NOW},
+        {"entity_type": "PHONE", "canonical_name": "+91-9876543211", "confidence": 0.95, "source_files": [ev_ids[2]], "_demo": True, "created_at": NOW, "updated_at": NOW},
+        {"entity_type": "ORGANIZATION", "canonical_name": "Org Orion", "confidence": 0.7, "source_files": [ev_ids[3]], "_demo": True, "created_at": NOW, "updated_at": NOW},
+        {"entity_type": "LOCATION", "canonical_name": "Zone Alpha", "confidence": 0.8, "source_files": [ev_ids[0]], "_demo": True, "created_at": NOW, "updated_at": NOW},
+        {"entity_type": "CASE", "canonical_name": "BH-2026-001", "confidence": 1.0, "source_files": [ev_ids[0], ev_ids[1]], "_demo": True, "created_at": NOW, "updated_at": NOW},
+    ]
+    ent_result = await db.entities.insert_many(entities)
+    ent_ids = [str(e) for e in ent_result.inserted_ids]
+    ent_by_name = {e["canonical_name"].upper(): str(e["_id"]) for e in entities}
+
+    def eid(name: str) -> str:
+        return ent_by_name.get(name.upper(), "")
+
+    # ---- Relationships from entities ----
+    print("Seeding entity relationships...")
+    entity_relationships = [
+        {"source_entity_id": eid("Person Alpha"), "target_entity_id": eid("Person Beta"), "relationship_type": "ASSOCIATED_WITH", "confidence": 0.7, "source_file_id": ev_ids[0], "_demo": True, "created_at": NOW},
+        {"source_entity_id": eid("Person Alpha"), "target_entity_id": eid("UP32AB1234"), "relationship_type": "USES", "confidence": 0.8, "source_file_id": ev_ids[0], "_demo": True, "created_at": NOW},
+        {"source_entity_id": eid("Person Beta"), "target_entity_id": eid("DL05CD5678"), "relationship_type": "USES", "confidence": 0.75, "source_file_id": ev_ids[1], "_demo": True, "created_at": NOW},
+        {"source_entity_id": eid("Person Beta"), "target_entity_id": eid("+91-9876543211"), "relationship_type": "CALLED", "confidence": 0.7, "source_file_id": ev_ids[2], "_demo": True, "created_at": NOW},
+        {"source_entity_id": eid("Person Alpha"), "target_entity_id": eid("Zone Alpha"), "relationship_type": "TRAVELLED_TO", "confidence": 0.6, "source_file_id": ev_ids[0], "_demo": True, "created_at": NOW},
+        {"source_entity_id": eid("Person Beta"), "target_entity_id": eid("Org Orion"), "relationship_type": "WORKS_FOR", "confidence": 0.5, "source_file_id": ev_ids[3], "_demo": True, "created_at": NOW},
+    ]
+    await db.relationships.insert_many(entity_relationships)
+
+    # ---- Extracted entities and relationships ----
+    extracted_entities = [
+        {"file_id": ev_ids[0], "job_id": pj_ids[1] if len(pj_ids) > 1 else None, "entity_type": "PERSON", "canonical_name": "Person Alpha", "confidence": 0.9, "extraction_method": "regex", "_demo": True, "created_at": NOW},
+        {"file_id": ev_ids[0], "job_id": pj_ids[1] if len(pj_ids) > 1 else None, "entity_type": "PERSON", "canonical_name": "Person Beta", "confidence": 0.85, "extraction_method": "regex", "_demo": True, "created_at": NOW},
+        {"file_id": ev_ids[2], "job_id": pj_ids[3] if len(pj_ids) > 3 else None, "entity_type": "PHONE", "canonical_name": "+91-9876543210", "confidence": 0.95, "extraction_method": "regex", "_demo": True, "created_at": NOW},
+    ]
+    await db.extracted_entities.insert_many(extracted_entities)
+
+    extracted_rels = [
+        {"file_id": ev_ids[0], "job_id": pj_ids[1] if len(pj_ids) > 1 else None, "source_entity_name": "Person Alpha", "target_entity_name": "Person Beta", "relationship_type": "ASSOCIATED_WITH", "confidence": 0.7, "_demo": True, "created_at": NOW},
+        {"file_id": ev_ids[2], "job_id": pj_ids[3] if len(pj_ids) > 3 else None, "source_entity_name": "+91-9876543210", "target_entity_name": "+91-9876543211", "relationship_type": "CALLED", "confidence": 0.7, "_demo": True, "created_at": NOW},
+    ]
+    await db.extracted_relationships.insert_many(extracted_rels)
+
+    # ---- Ingestion Results ----
+    ingestion_results = [
+        {"file_id": ev_ids[2], "job_id": pj_ids[2] if len(pj_ids) > 2 else None, "total_records": 3, "valid_records": 3, "invalid_records": 0, "duplicate_records": 0, "warnings": [], "errors": [], "_demo": True, "created_at": NOW},
+        {"file_id": ev_ids[3], "job_id": pj_ids[3] if len(pj_ids) > 3 else None, "total_records": 2, "valid_records": 2, "invalid_records": 0, "duplicate_records": 0, "warnings": [], "errors": [], "_demo": True, "created_at": NOW},
+    ]
+    await db.ingestion_results.insert_many(ingestion_results)
+
+    # ---- Evidence Audit ----
+    print("Seeding evidence audit...")
+    evidence_audit = []
+    for idx, ev in enumerate(evidence_files):
+        evidence_audit.append({
+            "file_id": ev_ids[idx],
+            "actor_user_id": str(person_ids[0]),
+            "action": "FILE_UPLOADED",
+            "resource_type": "evidence_file",
+            "resource_id": ev_ids[idx],
+            "metadata": {"filename": ev["original_filename"]},
+            "timestamp": ev["uploaded_at"],
+            "_demo": True,
+        })
+    await db.evidence_audit.insert_many(evidence_audit)
+
     # ---- Summary ----
     counts = {
         "locations": await db.locations.count_documents({"_demo": True}),
@@ -330,6 +531,14 @@ async def seed():
         "network_entities": await db.network_entities.count_documents({"_demo": True}),
         "relationships": await db.relationships.count_documents({"_demo": True}),
         "cases": await db.cases.count_documents({"_demo": True}),
+        "evidence_files": await db.evidence_files.count_documents({"_demo": True}),
+        "evidence_versions": await db.evidence_versions.count_documents({"_demo": True}),
+        "evidence_audit": await db.evidence_audit.count_documents({"_demo": True}),
+        "processing_jobs": await db.processing_jobs.count_documents({"_demo": True}),
+        "entities": await db.entities.count_documents({"_demo": True}),
+        "extracted_entities": await db.extracted_entities.count_documents({"_demo": True}),
+        "extracted_relationships": await db.extracted_relationships.count_documents({"_demo": True}),
+        "ingestion_results": await db.ingestion_results.count_documents({"_demo": True}),
     }
     print("\n" + "=" * 50)
     print("SEED COMPLETE")

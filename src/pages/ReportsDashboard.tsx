@@ -39,8 +39,8 @@ export const ReportsDashboard: React.FC = () => {
     <div className="p-6 max-w-7xl mx-auto">
       <div className="flex flex-col md:flex-row md:justify-between md:items-end mb-8 gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">Intelligence Reports</h1>
-          <p className="text-gray-400 text-sm mt-1">Generated intelligence and welfare summaries</p>
+          <h1 className="text-2xl font-bold text-[var(--color-bhairav-text)]">Intelligence Reports</h1>
+          <p className="text-[var(--color-bhairav-text-muted)] text-sm mt-1">Generated intelligence and welfare summaries</p>
         </div>
 
         <div className="flex gap-2">

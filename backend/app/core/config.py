@@ -23,6 +23,39 @@ class Settings(BaseSettings):
     STORAGE_SECRET_KEY: str | None = None
     STORAGE_BUCKET: str | None = None
 
+    STORAGE_PROVIDER: str = "local"
+    STORAGE_ROOT: str = "./storage"
+    MAX_FILE_SIZE_MB: int = 100
+    ALLOWED_EXTENSIONS: List[str] = [
+        "pdf", "doc", "docx", "txt", "csv", "xls", "xlsx", "json",
+        "jpg", "jpeg", "png", "gif", "bmp", "webp",
+        "mp4", "avi", "mov", "mkv",
+        "mp3", "wav", "ogg", "m4a",
+    ]
+    ALLOWED_MIME_TYPES: List[str] = [
+        "application/pdf",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "text/plain",
+        "text/csv",
+        "application/vnd.ms-excel",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "application/json",
+        "image/jpeg",
+        "image/png",
+        "image/gif",
+        "image/bmp",
+        "image/webp",
+        "video/mp4",
+        "video/x-msvideo",
+        "video/quicktime",
+        "video/x-matroska",
+        "audio/mpeg",
+        "audio/wav",
+        "audio/ogg",
+        "audio/mp4",
+    ]
+
     # AI Services
     AI_SERVICE_URL: str | None = None
     AI_SERVICE_API_KEY: str | None = None

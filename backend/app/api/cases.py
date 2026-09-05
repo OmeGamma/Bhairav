@@ -22,6 +22,7 @@ async def get_cases(
     items = await cursor.to_list(length=limit)
     for item in items:
         item["_id"] = str(item["_id"])
+        item["id"] = item.pop("_id")
     return items
 
 @router.get("/{case_id}", response_model=CaseResponse)
@@ -36,6 +37,7 @@ async def get_case(
     if not item:
         raise HTTPException(status_code=404, detail="Not found")
     item["_id"] = str(item["_id"])
+    item["id"] = item.pop("_id")
     return item
 
 @router.post("/", response_model=CaseResponse)
@@ -49,6 +51,7 @@ async def create_case(
     item_dict["updated_at"] = datetime.utcnow()
     result = await db.cases.insert_one(item_dict)
     item_dict["_id"] = str(result.inserted_id)
+    item_dict["id"] = item_dict.pop("_id")
     return item_dict
 
 @router.patch("/{case_id}", response_model=CaseResponse)
@@ -71,4 +74,5 @@ async def update_case(
     
     item = await db.cases.find_one({"_id": ObjectId(case_id)})
     item["_id"] = str(item["_id"])
+    item["id"] = item.pop("_id")
     return item

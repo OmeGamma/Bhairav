@@ -1,48 +1,58 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { lazy, Suspense } from 'react';
 import { AppLayout } from './components/layout/AppLayout';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { ScrollToTop } from './components/common/ScrollToTop';
+import { LoadingState } from './components/common/LoadingState';
 
-// Public pages
-import LandingPage from './pages/public/LandingPage';
-import AboutPage from './pages/public/AboutPage';
-import ContactPage from './pages/public/ContactPage';
-import RequestAccessPage from './pages/public/RequestAccessPage';
-import SecurityPage from './pages/public/SecurityPage';
-import DataProtectionPage from './pages/public/DataProtectionPage';
-import PrivacyPolicyPage from './pages/public/PrivacyPolicyPage';
-import TermsOfServicePage from './pages/public/TermsOfServicePage';
-import CookiePolicyPage from './pages/public/CookiePolicyPage';
-import AccessibilityPage from './pages/public/AccessibilityPage';
 
-// Auth
-import LoginPage from './pages/auth/LoginPage';
-import RegisterPage from './pages/auth/RegisterPage';
-import OnboardingPage from './pages/auth/OnboardingPage';
 
-// Post-login home
-import PostLoginHome from './pages/PostLoginHome';
+const LandingPage = lazy(() => import('./pages/public/LandingPage'));
+const AboutPage = lazy(() => import('./pages/public/AboutPage'));
+const ContactPage = lazy(() => import('./pages/public/ContactPage'));
+const RequestAccessPage = lazy(() => import('./pages/public/RequestAccessPage'));
+const SecurityPage = lazy(() => import('./pages/public/SecurityPage'));
+const DataProtectionPage = lazy(() => import('./pages/public/DataProtectionPage'));
+const PrivacyPolicyPage = lazy(() => import('./pages/public/PrivacyPolicyPage'));
+const TermsOfServicePage = lazy(() => import('./pages/public/TermsOfServicePage'));
+const CookiePolicyPage = lazy(() => import('./pages/public/CookiePolicyPage'));
+const AccessibilityPage = lazy(() => import('./pages/public/AccessibilityPage'));
 
-// App pages
-import CommandCenter from './pages/command-center/CommandCenter';
-import SecurityMap from './pages/security/SecurityMap';
-import SecurityMonitoring from './pages/security/SecurityMonitoring';
-import SecurityEvents from './pages/security/SecurityEvents';
-import AttentionCenter from './pages/AttentionCenter';
-import SearchPage from './pages/SearchPage';
-import NotificationsPage from './pages/NotificationsPage';
-import ProfilePage from './pages/ProfilePage';
-import { Verification } from './pages/Verification';
-import { VerificationHistory } from './pages/VerificationHistory';
-import { NetworkIntelligence } from './pages/NetworkIntelligence';
-import { PersonnelDashboard } from './pages/PersonnelDashboard';
-import { WelfareCheckIn } from './pages/WelfareCheckIn';
-import { SupportCenter } from './pages/SupportCenter';
-import AskBhairav from './pages/AskBhairav';
-import { ReportsDashboard } from './pages/ReportsDashboard';
-import TasksPage from './pages/TasksPage';
+const LoginPage = lazy(() => import('./pages/auth/LoginPage'));
+const RegisterPage = lazy(() => import('./pages/auth/RegisterPage'));
+const OnboardingPage = lazy(() => import('./pages/auth/OnboardingPage'));
+
+const PostLoginHome = lazy(() => import('./pages/PostLoginHome'));
+
+const CommandCenter = lazy(() => import('./pages/command-center/CommandCenter'));
+const SecurityMap = lazy(() => import('./pages/security/SecurityMap'));
+const SecurityMonitoring = lazy(() => import('./pages/security/SecurityMonitoring'));
+const SecurityEvents = lazy(() => import('./pages/security/SecurityEvents'));
+const AttentionCenter = lazy(() => import('./pages/AttentionCenter'));
+const SearchPage = lazy(() => import('./pages/SearchPage'));
+const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
+const ProfilePage = lazy(() => import('./pages/ProfilePage'));
+const Verification = lazy(() => import('./pages/Verification'));
+const VerificationHistory = lazy(() => import('./pages/VerificationHistory'));
+const NetworkIntelligence = lazy(() => import('./pages/NetworkIntelligence'));
+const PersonnelDashboard = lazy(() => import('./pages/PersonnelDashboard'));
+const WelfareCheckIn = lazy(() => import('./pages/WelfareCheckIn'));
+const SupportCenter = lazy(() => import('./pages/SupportCenter'));
+const AskBhairav = lazy(() => import('./pages/AskBhairav'));
+const ReportsDashboard = lazy(() => import('./pages/ReportsDashboard'));
+const TasksPage = lazy(() => import('./pages/TasksPage'));
+const EvidenceFiles = lazy(() => import('./pages/EvidenceFiles'));
+const Cases = lazy(() => import('./pages/Cases'));
+
+function RouteSuspense({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-[400px]"><LoadingState message="Loading…" /></div>}>
+      {children}
+    </Suspense>
+  );
+}
 
 function App() {
   return (
@@ -50,70 +60,60 @@ function App() {
       <AuthProvider>
         <BrowserRouter>
           <Routes>
-            {/* Single global layout for all routes */}
             <Route element={<AppLayout />}>
+              <Route path="/" element={<RouteSuspense><LandingPage /></RouteSuspense>} />
+              <Route path="/landing" element={<RouteSuspense><LandingPage /></RouteSuspense>} />
+              <Route path="/about" element={<RouteSuspense><AboutPage /></RouteSuspense>} />
+              <Route path="/contact" element={<RouteSuspense><ContactPage /></RouteSuspense>} />
+              <Route path="/privacy" element={<RouteSuspense><PrivacyPolicyPage /></RouteSuspense>} />
+              <Route path="/terms" element={<RouteSuspense><TermsOfServicePage /></RouteSuspense>} />
+              <Route path="/cookies" element={<RouteSuspense><CookiePolicyPage /></RouteSuspense>} />
+              <Route path="/accessibility" element={<RouteSuspense><AccessibilityPage /></RouteSuspense>} />
+              <Route path="/data-protection" element={<RouteSuspense><DataProtectionPage /></RouteSuspense>} />
+              <Route path="/security" element={<RouteSuspense><SecurityPage /></RouteSuspense>} />
+              <Route path="/onboarding" element={<RouteSuspense><OnboardingPage /></RouteSuspense>} />
+              <Route path="/request-access" element={<RouteSuspense><RequestAccessPage /></RouteSuspense>} />
 
-              {/* Public marketing */}
-              <Route path="/" element={<LandingPage />} />
-              <Route path="/landing" element={<LandingPage />} />
-              <Route path="/about" element={<AboutPage />} />
-              <Route path="/contact" element={<ContactPage />} />
-              <Route path="/privacy" element={<PrivacyPolicyPage />} />
-              <Route path="/terms" element={<TermsOfServicePage />} />
-              <Route path="/cookies" element={<CookiePolicyPage />} />
-              <Route path="/accessibility" element={<AccessibilityPage />} />
-              <Route path="/data-protection" element={<DataProtectionPage />} />
-              <Route path="/security" element={<SecurityPage />} />
-              <Route path="/onboarding" element={<OnboardingPage />} />
-              <Route path="/request-access" element={<RequestAccessPage />} />
+              <Route path="/login" element={<RouteSuspense><LoginPage /></RouteSuspense>} />
+              <Route path="/register" element={<RouteSuspense><RegisterPage /></RouteSuspense>} />
+              <Route path="/signup" element={<RouteSuspense><RegisterPage /></RouteSuspense>} />
 
-              {/* Auth */}
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/register" element={<RegisterPage />} />
-              <Route path="/signup" element={<RegisterPage />} />
-
-              {/* Protected */}
               <Route element={<ProtectedRoute />}>
-                {/* Post-login home */}
-                <Route path="/home" element={<PostLoginHome />} />
+                <Route path="/home" element={<RouteSuspense><PostLoginHome /></RouteSuspense>} />
 
-                {/* Primary */}
-                <Route path="/command-center" element={<CommandCenter />} />
-                <Route path="/command-centre" element={<CommandCenter />} />
+                <Route path="/command-center" element={<RouteSuspense><CommandCenter /></RouteSuspense>} />
+                <Route path="/command-centre" element={<RouteSuspense><CommandCenter /></RouteSuspense>} />
 
-                {/* Video Intelligence (IBVAP) */}
-                <Route path="/security/map" element={<SecurityMap />} />
-                <Route path="/security/monitoring" element={<SecurityMonitoring />} />
-                <Route path="/security/events/:id" element={<SecurityEvents />} />
-                <Route path="/intelligence/events" element={<SecurityEvents />} />
-                <Route path="/attention" element={<AttentionCenter />} />
+                <Route path="/security/map" element={<RouteSuspense><SecurityMap /></RouteSuspense>} />
+                <Route path="/security/monitoring" element={<RouteSuspense><SecurityMonitoring /></RouteSuspense>} />
+                <Route path="/security/events/:id" element={<RouteSuspense><SecurityEvents /></RouteSuspense>} />
+                <Route path="/intelligence/events" element={<RouteSuspense><SecurityEvents /></RouteSuspense>} />
+                <Route path="/attention" element={<RouteSuspense><AttentionCenter /></RouteSuspense>} />
 
-                {/* Criminal Network */}
-                <Route path="/network" element={<NetworkIntelligence />} />
-                <Route path="/network/:entityId" element={<NetworkIntelligence />} />
-                <Route path="/verification" element={<Verification />} />
-                <Route path="/verification/history" element={<VerificationHistory />} />
+                <Route path="/network" element={<RouteSuspense><NetworkIntelligence /></RouteSuspense>} />
+                <Route path="/network/:entityId" element={<RouteSuspense><NetworkIntelligence /></RouteSuspense>} />
+                <Route path="/verification" element={<RouteSuspense><Verification /></RouteSuspense>} />
+                <Route path="/verification/history" element={<RouteSuspense><VerificationHistory /></RouteSuspense>} />
                 <Route path="/document-verification" element={<Navigate to="/verification" replace />} />
 
-                {/* Personnel & Operations */}
-                <Route path="/personnel" element={<PersonnelDashboard />} />
+                <Route path="/personnel" element={<RouteSuspense><PersonnelDashboard /></RouteSuspense>} />
                 <Route path="/personnel-welfare" element={<Navigate to="/personnel" replace />} />
-                <Route path="/personnel/check-in" element={<WelfareCheckIn />} />
-                <Route path="/personnel/support" element={<SupportCenter />} />
-                <Route path="/tasks" element={<TasksPage />} />
-                <Route path="/reports" element={<ReportsDashboard />} />
+                <Route path="/personnel/check-in" element={<RouteSuspense><WelfareCheckIn /></RouteSuspense>} />
+                <Route path="/personnel/support" element={<RouteSuspense><SupportCenter /></RouteSuspense>} />
+                <Route path="/tasks" element={<RouteSuspense><TasksPage /></RouteSuspense>} />
+                <Route path="/reports" element={<RouteSuspense><ReportsDashboard /></RouteSuspense>} />
+                <Route path="/evidence" element={<RouteSuspense><EvidenceFiles /></RouteSuspense>} />
+                <Route path="/cases" element={<RouteSuspense><Cases /></RouteSuspense>} />
                 <Route path="/maps-analytics" element={<Navigate to="/security/map" replace />} />
 
-                {/* AI + utility */}
-                <Route path="/ask-bhairav" element={<AskBhairav />} />
+                <Route path="/ask-bhairav" element={<RouteSuspense><AskBhairav /></RouteSuspense>} />
                 <Route path="/ai-assistant" element={<Navigate to="/ask-bhairav" replace />} />
-                <Route path="/intelligence/search" element={<SearchPage />} />
-                <Route path="/notifications" element={<NotificationsPage />} />
-                <Route path="/profile" element={<ProfilePage />} />
+                <Route path="/intelligence/search" element={<RouteSuspense><SearchPage /></RouteSuspense>} />
+                <Route path="/notifications" element={<RouteSuspense><NotificationsPage /></RouteSuspense>} />
+                <Route path="/profile" element={<RouteSuspense><ProfilePage /></RouteSuspense>} />
                 <Route path="/settings" element={<Navigate to="/profile" replace />} />
               </Route>
 
-              {/* Fallback */}
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>
           </Routes>

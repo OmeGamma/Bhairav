@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Circle } from 'react-leaflet';
 import { Shield, Camera as CameraIcon, Filter, LayoutPanelLeft, AlertTriangle, MapPin, X } from 'lucide-react';
 import { Badge } from '../../components/common/Badge';
 import { LoadingState } from '../../components/common/LoadingState';
-import { ErrorState } from '../../components/common/ErrorState';
 import { eventService } from '../../services/eventService';
 import { cameraService } from '../../services/cameraService';
+import { webSocketService } from '../../services/webSocketService';
 import type { SecurityEvent, Camera } from '../../types';
 import 'leaflet/dist/leaflet.css';
 import { Icon } from 'leaflet';
@@ -39,16 +39,21 @@ export default function SecurityMap() {
 
   const mapCenter = { lat: 28.6139, lng: 77.2090 }; // New Delhi
 
+  const [locations, setLocations] = useState<{ id: string; name: string; latitude: number; longitude: number }[]>([]);
+  const locationMap = useMemo(() => new Map(locations.map(l => [l.id, l])), [locations]);
+
   const fetchData = async () => {
     setLoading(true);
     setError(null);
     try {
-      const [eventsData, camerasData] = await Promise.all([
+      const [eventsData, camerasData, locationsData] = await Promise.all([
         eventService.getSecurityEvents(),
-        cameraService.getCameras()
+        cameraService.getCameras(),
+        fetch('http://127.0.0.1:5000/api/v1/locations/', { headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` } }).then(r => r.json()).catch(() => []),
       ]);
       setEvents(eventsData);
       setCameras(camerasData);
+      setLocations(locationsData);
     } catch (err) {
       setError('Failed to load map data.');
     } finally {
@@ -58,6 +63,34 @@ export default function SecurityMap() {
 
   useEffect(() => {
     fetchData();
+    
+    webSocketService.connect();
+    const unsubAlert = webSocketService.subscribe('new_alert', (alert: any) => {
+      setEvents(prev => {
+        // Fallback coords
+        const coords = { 
+          lat: 28.6139 + (Math.random() - 0.5) * 0.01, 
+          lng: 77.2090 + (Math.random() - 0.5) * 0.01 
+        };
+        return [{
+          id: alert.id,
+          type: alert.title,
+          severity: alert.severity,
+          timestamp: alert.created_at,
+          cameraId: alert.camera_id,
+          description: alert.description,
+          location: 'Detected Location',
+          relatedEntitiesCount: 0,
+          status: 'active',
+          coords: coords
+        }, ...prev];
+      });
+    });
+    
+    return () => {
+      unsubAlert();
+      webSocketService.disconnect();
+    };
   }, []);
 
   if (loading) {
@@ -94,10 +127,10 @@ export default function SecurityMap() {
             style={{ height: '100%', width: '100%', background: '#121316' }}
             className="z-0"
           >
-            {/* Dark mode map tiles (using MapTiler) */}
+            {/* Esri World Imagery (satellite, free, no API key required) */}
             <TileLayer
-              url={`https://api.maptiler.com/maps/basic-v2-dark/256/{z}/{x}/{y}.png?key=${import.meta.env.VITE_MAP_PUBLIC_KEY}`}
-              attribution='&copy; <a href="https://www.maptiler.com/copyright/">MapTiler</a> &copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
+              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+              attribution='&copy; <a href="https://www.esri.com/">Esri</a> &copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
             />
             
             {/* Security Zones (Simulated) */}
@@ -113,20 +146,24 @@ export default function SecurityMap() {
             />
 
             {/* Render Cameras */}
-            {cameras.map(cam => (
-              <Marker 
-                key={cam.id} 
-                position={[mapCenter.lat + (Math.random() - 0.5) * 0.02, mapCenter.lng + (Math.random() - 0.5) * 0.02]} 
-                icon={iconCamera}
-              >
-                <Popup className="bg-[var(--color-bhairav-surface)] text-[var(--color-bhairav-text)] border-[var(--color-bhairav-border)]">
-                  <div className="p-1">
-                    <h4 className="font-bold">{cam.id}</h4>
-                    <p className="text-xs">{cam.location}</p>
-                  </div>
-                </Popup>
-              </Marker>
-            ))}
+            {cameras.map(cam => {
+              const loc = locationMap.get(cam.location_id);
+              const position = loc ? [loc.latitude, loc.longitude] as [number, number] : [mapCenter.lat, mapCenter.lng] as [number, number];
+              return (
+                <Marker 
+                  key={cam.id} 
+                  position={position} 
+                  icon={iconCamera}
+                >
+                  <Popup className="bg-[var(--color-bhairav-surface)] text-[var(--color-bhairav-text)] border-[var(--color-bhairav-border)]">
+                    <div className="p-1">
+                      <h4 className="font-bold">{cam.name || cam.id}</h4>
+                      <p className="text-xs">{cam.location}</p>
+                    </div>
+                  </Popup>
+                </Marker>
+              );
+            })}
 
             {/* Render Events */}
             {events.map(evt => evt.coords && (
@@ -207,7 +244,7 @@ export default function SecurityMap() {
                 <button className="w-full bg-[var(--color-bhairav-primary)] hover:bg-[var(--color-bhairav-primary-hover)] text-white py-2 rounded-md text-sm font-medium transition-colors">
                   Investigate Event
                 </button>
-                <button className="w-full bg-[var(--color-bhairav-surface)] hover:bg-[var(--color-bhairav-surface-hover)] border border-[var(--color-bhairav-border)] text-white py-2 rounded-md text-sm transition-colors">
+                <button className="w-full bg-[var(--color-bhairav-surface)] hover:bg-[var(--color-bhairav-surface-hover)] border border-[var(--color-bhairav-border)] text-[var(--color-bhairav-text)] py-2 rounded-md text-sm transition-colors">
                   Ask Bhairav
                 </button>
               </div>

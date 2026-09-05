@@ -19,8 +19,8 @@
   --color-bhairav-border-strong: rgba(31, 41, 51, 0.18);
 
   /* Glass — translucent with backdrop blur */
-  --color-bhairav-glass: rgba(255, 255, 255, 0.55);
-  --color-bhairav-glass-border: rgba(255, 255, 255, 0.35);
+  --color-bhairav-glass: rgba(255, 255, 255, 0.72);
+  --color-bhairav-glass-border: rgba(255, 255, 255, 0.6);
   --color-bhairav-glass-shadow: 0 8px 32px rgba(31, 41, 51, 0.08);
 
   /* Text */
@@ -29,16 +29,16 @@
   --color-bhairav-text-subtle: #86909C;
 
   /* Brand palette */
-  --color-bhairav-primary: #3E6E9E;       /* blue accent */
-  --color-bhairav-primary-hover: #345E89;
-  --color-bhairav-primary-soft: #DCE8F2;  /* chip / hover bg */
-  --color-bhairav-olive: #5B6650;         /* army/security grey */
+  --color-bhairav-primary: #2563EB;
+  --color-bhairav-primary-hover: #1D4ED8;
+  --color-bhairav-primary-soft: #DBEAFE;
+  --color-bhairav-olive: #5B6650;
   --color-bhairav-olive-soft: #E5E8E0;
 
   /* Semantic */
-  --color-bhairav-critical: #C0392B;
-  --color-bhairav-warning: #C68A2A;
-  --color-bhairav-verified: #2E7D5B;
+  --color-bhairav-critical: #DC2626;
+  --color-bhairav-warning: #F59E0B;
+  --color-bhairav-verified: #16A34A;
   --color-bhairav-neutral: #6b7280;
 
   /* Aliases for legacy components */
@@ -60,7 +60,7 @@
   --color-bhairav-border: rgba(231, 234, 238, 0.10);
   --color-bhairav-border-strong: rgba(231, 234, 238, 0.18);
 
-  --color-bhairav-glass: rgba(38, 43, 51, 0.6);
+  --color-bhairav-glass: rgba(38, 43, 51, 0.72);
   --color-bhairav-glass-border: rgba(231, 234, 238, 0.12);
   --color-bhairav-glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
 
@@ -98,6 +98,10 @@
     transition: background-color 350ms ease, color 350ms ease;
   }
 
+  #root {
+    min-height: 100vh;
+  }
+
   ::selection {
     background-color: var(--color-bhairav-primary);
     color: #fff;
@@ -109,6 +113,14 @@
 /* ------------------------------------------------------------------ */
 
 @layer utilities {
+
+  /* Z-index hierarchy */
+  .z-navbar { z-index: 50; }
+  .z-dropdown { z-index: 40; }
+  .z-modal { z-index: 50; }
+  .z-overlay { z-index: 40; }
+  .z-map { z-index: 0; }
+  .z-map-controls { z-index: 1000; }
 
   /* Severity notches */
   .severity-notch-critical { @apply border-l-[3px] border-l-[var(--color-bhairav-critical)]; }

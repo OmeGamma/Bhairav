@@ -44,6 +44,8 @@ const FEATURE_GROUPS: FeatureGroup[] = [
     label: 'Personnel & Operations',
     items: [
       { title: 'Personnel Welfare', description: 'Readiness, fatigue, and welfare check-ins', to: '/personnel', icon: HeartPulse },
+      { title: 'Evidence & Files', description: 'Intelligence documents, datasets, media and evidence', to: '/evidence', icon: FileSearch },
+      { title: 'Investigations', description: 'Manage investigations and linked evidence', to: '/cases', icon: Shield },
       { title: 'Reports', description: 'Generate and review intelligence reports', to: '/reports', icon: FileSearch },
       { title: 'Tasks', description: 'Assigned tasks and operational follow-ups', to: '/tasks', icon: Activity, badge: 'New' },
       { title: 'Notifications', description: 'System and event notifications', to: '/notifications', icon: Bell },
@@ -123,7 +125,7 @@ export function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-50">
+    <header className="sticky top-0 z-[1000]">
       <div className="glass border-b border-[var(--color-bhairav-glass-border)]">
         <div className="max-w-[1600px] mx-auto px-4 lg:px-6 h-16 flex items-center justify-between gap-3">
 
@@ -181,7 +183,7 @@ export function Navbar() {
                   </button>
 
                   {megaOpen && (
-                    <div className="absolute left-0 mt-2 w-[min(96vw,900px)] glass-sm p-5 animate-slide-down origin-top-left">
+                    <div className="absolute left-0 mt-2 w-[min(96vw,900px)] glass-sm p-5 animate-slide-down origin-top-left z-[60]">
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                         {FEATURE_GROUPS.map((group) => (
                           <div key={group.label}>
@@ -273,7 +275,7 @@ export function Navbar() {
                 </button>
 
                 {searchOpen && (
-                  <div className="absolute top-16 left-0 right-0 px-4 pb-3 animate-slide-down">
+                  <div className="absolute top-16 left-0 right-0 px-4 pb-3 animate-slide-down z-40">
                     <form onSubmit={handleSearchSubmit} className="max-w-2xl mx-auto glass p-1.5 flex items-center gap-2">
                       <Search size={18} className="ml-3 text-[var(--color-bhairav-text-muted)] shrink-0" />
                       <input
@@ -319,7 +321,7 @@ export function Navbar() {
                   <ChevronDown size={14} className={cn('hidden md:inline text-[var(--color-bhairav-text-muted)] transition-transform', userMenuOpen && 'rotate-180')} />
                 </button>
                 {userMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-64 glass-sm p-2 animate-slide-down">
+                  <div className="absolute right-0 mt-2 w-64 glass-sm p-2 animate-slide-down z-[60]">
                     <div className="px-3 py-2.5 mb-1 rounded-md bg-[var(--color-bhairav-surface)]/40">
                       <p className="text-sm font-semibold text-[var(--color-bhairav-text)] truncate">
                         {user?.name || 'Officer'}
@@ -385,7 +387,7 @@ export function Navbar() {
 
         {/* Mobile drawer */}
         {mobileOpen && (
-          <div className="lg:hidden border-t border-[var(--color-bhairav-border)] max-h-[calc(100vh-4rem)] overflow-y-auto scrollbar-themed">
+          <div className="lg:hidden border-t border-[var(--color-bhairav-border)] max-h-[calc(100vh-4rem)] overflow-y-auto scrollbar-themed z-50">
             <div className="px-4 py-3 space-y-1">
               {isAuthenticated ? (
                 <>

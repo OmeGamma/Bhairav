@@ -163,16 +163,20 @@ def _classify_severity(features: Dict[str, Any], payload: Dict[str, Any]) -> Tup
     return "INFO", "scene_normal"
 
 
-def analyze_video_payload(payload: Dict[str, Any]) -> VideoAnalyzeResponse:
+def analyze_frame(
+    frame: np.ndarray, 
+    camera_id: str, 
+    session_id: str, 
+    frame_index: int, 
+    payload: Dict[str, Any] = None
+) -> VideoAnalyzeResponse:
     """
-    Public entry point. Runs the real OpenCV pipeline on a deterministic
-    synthetic frame and returns a structured response.
+    Public entry point. Runs the real OpenCV pipeline on a given frame
+    and returns a structured response.
     """
-    camera_id = payload.get("camera_id", "CAM-DEMO")
-    video_id = payload.get("video_id", "BOP-01")
-    frame_index = int(payload.get("frame_index", payload.get("frame_number", 0) or 0))
-
-    frame = _generate_synthetic_frame(camera_id, video_id, frame_index)
+    if payload is None:
+        payload = {}
+        
     features = _analyse_frame(frame)
     severity, event_type = _classify_severity(features, payload)
 
@@ -219,12 +223,22 @@ def analyze_video_payload(payload: Dict[str, Any]) -> VideoAnalyzeResponse:
         model_info={
             "model": "OpenCV classical CV (Canny + Histogram + Connected Components)",
             "version": cv2.__version__,
-            "processing_mode": "opencv_synthetic_frame",
-            "frame_source": "deterministic_synthetic",
-            "frame_resolution": f"{_FRAME_W}x{_FRAME_H}",
+            "processing_mode": "real_or_synthetic_frame",
+            "frame_resolution": f"{frame.shape[1]}x{frame.shape[0]}",
             "features": features,
             "frame_index": frame_index,
-            "video_id": video_id,
-            "notes": "Detections are CV-derived from connected-component blobs; not deep-learning. Real person detection would require a YOLO/Detectron model.",
+            "session_id": session_id,
+            "notes": "Detections are CV-derived from connected-component blobs; not deep-learning.",
         },
     )
+
+def analyze_video_payload(payload: Dict[str, Any]) -> VideoAnalyzeResponse:
+    """
+    Legacy entry point for simulated payloads.
+    """
+    camera_id = payload.get("camera_id", "CAM-DEMO")
+    video_id = payload.get("video_id", "BOP-01")
+    frame_index = int(payload.get("frame_index", payload.get("frame_number", 0) or 0))
+
+    frame = _generate_synthetic_frame(camera_id, video_id, frame_index)
+    return analyze_frame(frame, camera_id, video_id, frame_index, payload)

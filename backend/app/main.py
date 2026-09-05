@@ -1,10 +1,11 @@
-from fastapi import FastAPI, APIRouter
+from fastapi import FastAPI, APIRouter, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import logging
 
 from app.core.config import settings
 from app.core.database import connect_to_mongo, close_mongo_connection, get_db
+from app.core.websocket import websocket_manager
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -64,12 +65,24 @@ async def lifespan(app: FastAPI):
                     "cameras.read", "locations.read", "events.read", "incidents.read",
                     "cases.read", "persons.read", "vehicles.read", "documents.read",
                     "verification.read", "network.read", "personnel.read", "welfare.read",
-                    "support.read", "search.execute", "reports.read", "audit.read"
+                    "support.read", "search.execute", "reports.read", "audit.read",
+                    "evidence.read", "evidence.create", "evidence.update", "evidence.delete",
+                    "entities.read", "processing.read"
                 ]
             })
             print("Created default officer role")
 
     yield
+    
+    # Graceful shutdown of camera processing loops
+    from app.services.camera_manager import camera_manager
+    import asyncio
+    stop_tasks = []
+    for cam_id in list(camera_manager.active_sessions.keys()):
+        stop_tasks.append(camera_manager.stop_session(cam_id))
+    if stop_tasks:
+        await asyncio.gather(*stop_tasks)
+
     await close_mongo_connection()
 
 app = FastAPI(
@@ -100,12 +113,24 @@ async def health_check():
         "database": db_status
     }
 
+@app.websocket("/ws/telemetry")
+async def websocket_telemetry(websocket: WebSocket):
+    await websocket_manager.connect(websocket)
+    try:
+        while True:
+            data = await websocket.receive_text()
+            # For future: client could send {"action": "subscribe", "camera_id": "CAM1"}
+    except WebSocketDisconnect:
+        websocket_manager.disconnect(websocket)
+
 from app.api import (
     auth, users, cameras, locations, security_zones,
     events, incidents, cases, persons, vehicles,
     documents, verification, network,
     personnel, welfare, support,
-    notifications, audit, search, reports, stats
+    notifications, audit, search, reports, stats,
+    evidence, entities, processing, networkx_bridge,
+    alerts
 )
 
 app.include_router(auth.router, prefix="/api/v1")
@@ -114,6 +139,7 @@ app.include_router(cameras.router, prefix="/api/v1")
 app.include_router(locations.router, prefix="/api/v1")
 app.include_router(security_zones.router, prefix="/api/v1")
 app.include_router(events.router, prefix="/api/v1")
+app.include_router(alerts.router, prefix="/api/v1")
 app.include_router(incidents.router, prefix="/api/v1")
 app.include_router(cases.router, prefix="/api/v1")
 app.include_router(persons.router, prefix="/api/v1")
@@ -129,6 +155,10 @@ app.include_router(audit.router, prefix="/api/v1")
 app.include_router(search.router, prefix="/api/v1")
 app.include_router(reports.router, prefix="/api/v1")
 app.include_router(stats.router, prefix="/api/v1")
+app.include_router(evidence.router, prefix="/api/v1")
+app.include_router(entities.router, prefix="/api/v1")
+app.include_router(processing.router, prefix="/api/v1")
+app.include_router(networkx_bridge.router, prefix="/api/v1")
 
 from app.api.ai_routes import vision, document, identity, network as ai_network, welfare as ai_welfare, assistant, voice
 

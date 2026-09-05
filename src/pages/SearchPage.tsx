@@ -129,7 +129,7 @@ export default function SearchPage() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search names, IDs, plates, locations, events..."
-            className="w-full glass-sm border-2 border-[var(--color-bhairav-border-strong)] text-base sm:text-lg rounded-xl pl-14 pr-32 py-4 shadow-2xl focus:outline-none focus:border-[var(--color-bhairav-primary)] focus:ring-4 focus:ring-[var(--color-bhairav-primary)]/20 transition-all placeholder:text-[var(--color-bhairav-text-muted)]/70 text-white"
+            className="w-full glass-sm border-2 border-[var(--color-bhairav-border-strong)] text-base sm:text-lg rounded-xl pl-14 pr-32 py-4 shadow-2xl focus:outline-none focus:border-[var(--color-bhairav-primary)] focus:ring-4 focus:ring-[var(--color-bhairav-primary)]/20 transition-all placeholder:text-[var(--color-bhairav-text-muted)]/70 text-[var(--color-bhairav-text)]"
           />
           <div className="absolute right-3 z-20 flex items-center gap-2">
             {query && (

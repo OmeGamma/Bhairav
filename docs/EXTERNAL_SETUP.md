@@ -36,10 +36,10 @@ For document intelligence and semantic search.
 - **Visibility**: **SECRET**. 
 
 ## 6. Maps Setup
-The React frontend requires a public map key to initialize geospatial features.
-- **Required Variable**: `VITE_MAP_PUBLIC_KEY`
+The Security Map page uses Esri World Imagery tiles, which are free and require no API key. If you later swap to a provider that needs a key, add it to the frontend `.env`.
+- **Optional Variable**: `VITE_MAP_PUBLIC_KEY`
 - **Location**: `/.env` (Frontend)
-- **Visibility**: **PUBLIC**. Note: It is safe for this key to be bundled in the browser, but you should still restrict its domain usage in your map provider's dashboard.
+- **Visibility**: **PUBLIC**. Only needed if you replace the tile provider with one that requires authentication.
 
 ## 7. Restart Requirements
 If you modify `.env` variables in either the frontend or backend, you **must restart the server**:
