@@ -109,7 +109,7 @@ export const getWelfareIndicators = async (): Promise<WelfareIndicators> => {
   ]);
 
   const metrics = summary?.metrics || {};
-  const totalCheckIns = Object.values(metrics).reduce((s: number, v: any) => s + (Number(v) || 0), 0);
+  const totalCheckIns = Object.values(metrics).reduce((s: number, v: any) => s + (Number(v) || 0), 0) as number;
 
   return {
     workloadTrend: totalCheckIns > 5 ? 'INCREASING' : 'STABLE',

@@ -1,4 +1,3 @@
-import type { Task } from '../types';
 import { simulateApiCall } from './apiClient';
 
 export interface Task {
