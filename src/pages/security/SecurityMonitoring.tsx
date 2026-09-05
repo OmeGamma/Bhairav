@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Camera as CameraIcon, MapPin, Activity, AlertTriangle, PlaySquare, Shield, Info, ArrowLeft } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Camera as CameraIcon, MapPin, Activity, AlertTriangle, PlaySquare, Shield, Info, ArrowLeft, User, Car, Clock, Zap } from 'lucide-react';
 import { Card } from '../../components/common/Card';
 import { Badge } from '../../components/common/Badge';
 import { LoadingState } from '../../components/common/LoadingState';
@@ -7,7 +7,8 @@ import { ErrorState } from '../../components/common/ErrorState';
 import { EmptyState } from '../../components/common/EmptyState';
 import { cameraService } from '../../services/cameraService';
 import { eventService } from '../../services/eventService';
-import type { Camera, SecurityEvent } from '../../types';
+import { aiService } from '../../services/aiService';
+import type { Camera, SecurityEvent, CameraSession, InferenceResult, WebSocketMessage } from '../../types';
 
 export default function SecurityMonitoring() {
   const [selectedCamera, setSelectedCamera] = useState<Camera | null>(null);
@@ -16,6 +17,13 @@ export default function SecurityMonitoring() {
   const [allEvents, setAllEvents] = useState<SecurityEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // AI-specific state
+  const [activeSession, setActiveSession] = useState<CameraSession | null>(null);
+  const [inferenceResult, setInferenceResult] = useState<InferenceResult | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [aiStatus, setAiStatus] = useState<any>(null);
+  const wsRef = useRef<WebSocket | null>(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -27,6 +35,14 @@ export default function SecurityMonitoring() {
       ]);
       setCameras(camerasData);
       setAllEvents(eventsData);
+      
+      // Get AI status
+      try {
+        const status = await aiService.getAIStatus();
+        setAiStatus(status);
+      } catch (e) {
+        console.warn('AI status not available:', e);
+      }
     } catch (err) {
       setError('Failed to load camera feeds.');
     } finally {
@@ -34,9 +50,81 @@ export default function SecurityMonitoring() {
     }
   };
 
+  const startAISession = async (cameraId: string) => {
+    try {
+      setIsProcessing(true);
+      const session = await aiService.createCameraSession(
+        cameraId,
+        'VIDEO_FILE',
+        'demo_video.mp4', // Placeholder for demo
+        {
+          processing_enabled: true,
+          fps_limit: 15
+        }
+      );
+      setActiveSession(session);
+      
+      // Connect WebSocket for real-time updates
+      const ws = aiService.createWebSocketConnection(
+        (message: WebSocketMessage) => {
+          if (message.type === 'detection.created' || message.type === 'track.updated') {
+            console.log('AI Event:', message);
+          }
+        },
+        cameraId,
+        (error) => console.error('WebSocket error:', error),
+        () => console.log('WebSocket closed')
+      );
+      wsRef.current = ws;
+      
+    } catch (e) {
+      console.error('Failed to start AI session:', e);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const stopAISession = async () => {
+    if (activeSession) {
+      await aiService.stopCameraSession(activeSession.session_id);
+      setActiveSession(null);
+      setInferenceResult(null);
+    }
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+  };
+
+  const processFrame = async () => {
+    if (!activeSession) return;
+    
+    try {
+      setIsProcessing(true);
+      const result = await aiService.processSessionFrame(activeSession.session_id);
+      setInferenceResult(result);
+    } catch (e) {
+      console.error('Failed to process frame:', e);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   useEffect(() => {
     fetchData();
+    
+    return () => {
+      stopAISession();
+    };
   }, []);
+
+  useEffect(() => {
+    if (selectedCamera) {
+      startAISession(selectedCamera.id);
+    } else {
+      stopAISession();
+    }
+  }, [selectedCamera]);
 
   if (loading) {
     return <LoadingState fullHeight message="Initializing video monitoring..." />;
@@ -68,9 +156,16 @@ export default function SecurityMonitoring() {
               <MapPin size={14} /> {selectedCamera.location}
             </p>
           </div>
-          <Badge status="info" dot={false} className="px-3 py-1 font-mono tracking-widest text-xs uppercase bg-[var(--color-bhairav-surface)] border-[var(--color-bhairav-border)] text-[var(--color-bhairav-text)]">
-            {selectedCamera.isSimulated ? 'SIMULATED FEED' : 'LIVE FEED'}
-          </Badge>
+          <div className="flex items-center gap-2">
+            {activeSession && (
+              <Badge status="verified" dot={false} className="px-3 py-1 font-mono tracking-widest text-xs uppercase">
+                AI ACTIVE
+              </Badge>
+            )}
+            <Badge status="info" dot={false} className="px-3 py-1 font-mono tracking-widest text-xs uppercase bg-[var(--color-bhairav-surface)] border-[var(--color-bhairav-border)] text-[var(--color-bhairav-text)]">
+              {selectedCamera.isSimulated ? 'SIMULATED FEED' : 'LIVE FEED'}
+            </Badge>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
@@ -87,13 +182,65 @@ export default function SecurityMonitoring() {
                 {new Date().toISOString().replace('T', ' ').substring(0, 19)}
               </div>
               
-              <PlaySquare size={48} className="text-[var(--color-bhairav-border)]/50 group-hover:text-[var(--color-bhairav-primary)] transition-colors" />
+              {/* AI Detection Overlays */}
+              {inferenceResult && inferenceResult.detections.length > 0 && (
+                inferenceResult.detections.map((detection, idx) => (
+                  <div
+                    key={idx}
+                    className="absolute border-2 border-[var(--color-bhairav-primary)] bg-[var(--color-bhairav-primary)]/10"
+                    style={{
+                      left: `${(detection.bbox.x1 / 640) * 100}%`,
+                      top: `${(detection.bbox.y1 / 480) * 100}%`,
+                      width: `${((detection.bbox.x2 - detection.bbox.x1) / 640) * 100}%`,
+                      height: `${((detection.bbox.y2 - detection.bbox.y1) / 480) * 100}%`
+                    }}
+                  >
+                    <span className="absolute -top-6 left-0 bg-[var(--color-bhairav-primary)]/90 text-white text-[10px] px-1 font-mono">
+                      {detection.label.toUpperCase()} {(detection.confidence * 100).toFixed(0)}%
+                    </span>
+                  </div>
+                ))
+              )}
               
-              {/* Overlay elements to simulate AI tracking */}
-              <div className="absolute top-1/3 left-1/4 w-32 h-48 border border-[var(--color-bhairav-primary)]/50 bg-[var(--color-bhairav-primary)]/10 animate-pulse hidden group-hover:block">
-                 <span className="absolute -top-6 left-0 bg-[var(--color-bhairav-primary)]/80 text-white text-[10px] px-1 font-mono">PERSON 98%</span>
-              </div>
+              <PlaySquare size={48} className="text-[var(--color-bhairav-border)]/50 group-hover:text-[var(--color-bhairav-primary)] transition-colors" />
             </div>
+
+            {/* AI Metrics Bar */}
+            {activeSession && (
+              <div className="bg-[var(--color-bhairav-surface)] border border-[var(--color-bhairav-border)] rounded-lg p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm font-medium flex items-center gap-2">
+                    <Zap size={16} className="text-[var(--color-bhairav-primary)]" />
+                    AI Metrics
+                  </span>
+                  <button
+                    onClick={processFrame}
+                    disabled={isProcessing}
+                    className="text-xs bg-[var(--color-bhairav-primary)] hover:bg-[var(--color-bhairav-primary)]/80 px-3 py-1 rounded transition-colors disabled:opacity-50"
+                  >
+                    {isProcessing ? 'Processing...' : 'Process Frame'}
+                  </button>
+                </div>
+                <div className="grid grid-cols-4 gap-4">
+                  <div>
+                    <span className="text-xs text-[var(--color-bhairav-text-muted)] block">Detections</span>
+                    <span className="font-mono text-lg">{inferenceResult?.detections.length || 0}</span>
+                  </div>
+                  <div>
+                    <span className="text-xs text-[var(--color-bhairav-text-muted)] block">Tracks</span>
+                    <span className="font-mono text-lg">{inferenceResult?.tracks.length || 0}</span>
+                  </div>
+                  <div>
+                    <span className="text-xs text-[var(--color-bhairav-text-muted)] block">Inference</span>
+                    <span className="font-mono text-lg">{inferenceResult?.metrics.inference_time_ms.toFixed(0)}ms</span>
+                  </div>
+                  <div>
+                    <span className="text-xs text-[var(--color-bhairav-text-muted)] block">FPS</span>
+                    <span className="font-mono text-lg">{activeSession.ai_metrics?.fps.toFixed(1) || '--'}</span>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="flex gap-4">
               <button className="flex-1 bg-[var(--color-bhairav-surface)] hover:bg-[var(--color-bhairav-surface-hover)] border border-[var(--color-bhairav-border)] text-white py-2.5 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2">
@@ -120,6 +267,24 @@ export default function SecurityMonitoring() {
                   <span className="font-medium text-[var(--color-bhairav-verified)] capitalize">{selectedCamera.status}</span>
                 </div>
               </div>
+              
+              {/* AI Detection Breakdown */}
+              {inferenceResult && (
+                <div className="mt-4 pt-4 border-t border-[var(--color-bhairav-border)]">
+                  <span className="text-xs text-[var(--color-bhairav-text-muted)] block mb-2">AI Detection Breakdown</span>
+                  <div className="space-y-2">
+                    {inferenceResult.detections.map((detection, idx) => (
+                      <div key={idx} className="flex items-center justify-between text-sm">
+                        <span className="flex items-center gap-2">
+                          {detection.label === 'person' ? <User size={14} /> : <Car size={14} />}
+                          {detection.label}
+                        </span>
+                        <span className="font-mono text-xs">{(detection.confidence * 100).toFixed(0)}%</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </Card>
 
             <Card title="Event Timeline" className="flex-1 min-h-[300px]">

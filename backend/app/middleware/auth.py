@@ -2,7 +2,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 import jwt
 from pydantic import ValidationError
-from typing import List, Callable
+from typing import List, Callable, Optional
 
 from app.core.config import settings
 from app.core.database import get_db
@@ -71,3 +71,36 @@ def require_permissions(required_permissions: List[str]) -> Callable:
                 )
         return current_user
     return permission_checker
+
+
+async def get_current_user_ws(token: Optional[str], db: AsyncIOMotorDatabase) -> Optional[UserInDB]:
+    """
+    WebSocket authentication function.
+    
+    Similar to get_current_user but for WebSocket connections.
+    """
+    if not token:
+        return None
+    
+    try:
+        payload = jwt.decode(
+            token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM]
+        )
+        token_data = TokenPayload(**payload)
+    except (jwt.PyJWTError, ValidationError):
+        return None
+    
+    if not token_data.sub:
+        return None
+
+    user_dict = await db.users.find_one({"_id": ObjectId(token_data.sub)})
+    if not user_dict:
+        return None
+    
+    user_dict["_id"] = str(user_dict["_id"])
+    user = UserInDB(**user_dict)
+    
+    if user.status != "ACTIVE":
+        return None
+    
+    return user

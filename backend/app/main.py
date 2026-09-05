@@ -130,7 +130,8 @@ app.include_router(search.router, prefix="/api/v1")
 app.include_router(reports.router, prefix="/api/v1")
 app.include_router(stats.router, prefix="/api/v1")
 
-from app.api.ai_routes import vision, document, identity, network as ai_network, welfare as ai_welfare, assistant, voice
+from app.api.ai_routes import vision, document, identity, network as ai_network, welfare as ai_welfare, assistant, voice, video_processing
+from app.api import websocket
 
 app.include_router(vision.router, prefix="/api/v1/ai", tags=["vision"])
 app.include_router(document.router, prefix="/api/v1/ai", tags=["document"])
@@ -139,5 +140,7 @@ app.include_router(ai_network.router, prefix="/api/v1/ai", tags=["network"])
 app.include_router(ai_welfare.router, prefix="/api/v1/ai", tags=["welfare"])
 app.include_router(assistant.router, prefix="/api/v1/ai", tags=["assistant"])
 app.include_router(voice.router, prefix="/api/v1/ai", tags=["voice"])
+app.include_router(video_processing.router, prefix="/api/v1/ai", tags=["video_processing"])
+app.include_router(websocket.router)
 
 app.include_router(api_router)

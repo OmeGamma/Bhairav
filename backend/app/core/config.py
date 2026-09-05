@@ -43,6 +43,16 @@ class Settings(BaseSettings):
     STT_MODEL: str | None = None
     TTS_MODEL: str | None = None
 
+    # AI/ML Configuration
+    AI_DETECTOR_PROVIDER: str = "yolo"
+    AI_MODEL_PATH: str = "yolov8n.pt"
+    AI_DEVICE: str = "auto"
+    AI_CONFIDENCE_THRESHOLD: float = 0.40
+    AI_NIGHT_START: str = "20:00"
+    AI_NIGHT_END: str = "05:00"
+    AI_DWELL_TIME_THRESHOLD: int = 30
+    AI_EVENT_COOLDOWN: int = 15
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
 settings = Settings()
