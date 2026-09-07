@@ -17,6 +17,14 @@ db = client[MONGODB_DB_NAME]
 def get_collection(collection_name: str):
     return db[collection_name]
 
+def setup_indexes():
+    # TTL Index for Soft Deletes (15 days = 15 * 24 * 60 * 60 = 1296000 seconds)
+    db["cases"].create_index("deletedAt", expireAfterSeconds=1296000)
+    print("MongoDB indexes verified/created.")
+
+# Setup indexes on load
+setup_indexes()
+
 def check_connection():
     try:
         client.admin.command('ping')

@@ -8,29 +8,14 @@ import Cases from './components/Cases';
 import CaseForm from './components/CaseForm';
 import CaseDetail from './components/CaseDetail';
 import ReportView from './components/ReportView';
+import ReportsList from './components/ReportsList';
+import Profile from './components/Profile';
 import DocumentIntelligence from './components/DocumentIntelligence';
 import VideoIntelligence from './components/VideoIntelligence';
 import Alerts from './components/Alerts';
-import PlaceholderPage from './components/PlaceholderPage';
+import Settings from './components/Settings';
+import Landing from './components/Landing';
 import { NotificationProvider } from './components/contexts/NotificationContext';
-
-const Landing = () => (
-  <div className="min-h-screen flex items-center justify-center bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text">
-    <div className="text-center">
-      <h1 className="text-5xl font-bold text-gray-900 dark:text-white mb-4">
-        AI-Powered Intelligence for a Safer World
-      </h1>
-      <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto">
-        Analyze criminal intelligence, investigate connected networks, understand crime patterns and extract actionable insights from video evidence using AI.
-      </p>
-      <div className="flex justify-center gap-4">
-        <a href="/login" className="px-6 py-3 bg-light-accent dark:bg-dark-accent text-white font-medium rounded-lg hover:bg-blue-600 transition-colors">
-          Access Bhairav
-        </a>
-      </div>
-    </div>
-  </div>
-);
 
 const Login = () => {
   return (
@@ -75,11 +60,11 @@ function App() {
           <Route path="/documents" element={<DocumentIntelligence />} />
           <Route path="/video-intelligence" element={<VideoIntelligence />} />
           <Route path="/alerts" element={<Alerts />} />
-          <Route path="/reports" element={<PlaceholderPage />} />
-          <Route path="/search" element={<PlaceholderPage />} />
-          <Route path="/analytics" element={<PlaceholderPage />} />
-          <Route path="/settings" element={<PlaceholderPage />} />
-          <Route path="/profile" element={<PlaceholderPage />} />
+          <Route path="/reports" element={<ReportsList />} />
+          <Route path="/search" element={<AIAnalyzer />} />
+          <Route path="/analytics" element={<Dashboard />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/profile" element={<Profile />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
@@ -88,3 +73,4 @@ function App() {
 }
 
 export default App;
+

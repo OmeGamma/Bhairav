@@ -20,6 +20,7 @@
     height: 100%;
     margin: 0;
     padding: 0;
+    overflow: hidden;
   }
 
   html {
@@ -34,8 +35,6 @@
     transition-duration: 200ms;
   }
 
-  .dark body,
-  body.dark,
   html.dark body {
     background-color: var(--color-dark-bg);
     color: var(--color-dark-text);
@@ -46,7 +45,7 @@
   .leaflet-container {
     background: #e5e7eb;
   }
-  .dark .leaflet-container {
+  html.dark .leaflet-container {
     background: #1e293b;
   }
 }

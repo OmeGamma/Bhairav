@@ -33,7 +33,7 @@ const CaseForm: React.FC = () => {
     if (isEditing) {
       const fetchCase = async () => {
         try {
-          const res = await fetch(`http://localhost:8000/api/cases/${caseId}`);
+          const res = await fetch(`/api/cases/${caseId}`);
           if (!res.ok) throw new Error("Failed to load case data");
           const data = await res.json();
           setFormData({
@@ -92,8 +92,8 @@ const CaseForm: React.FC = () => {
 
     try {
       const url = isEditing 
-        ? `http://localhost:8000/api/cases/${caseId}` 
-        : `http://localhost:8000/api/cases`;
+        ? `/api/cases/${caseId}` 
+        : `/api/cases`;
       
       const method = isEditing ? 'PUT' : 'POST';
 
@@ -240,3 +240,4 @@ const CaseForm: React.FC = () => {
 };
 
 export default CaseForm;
+

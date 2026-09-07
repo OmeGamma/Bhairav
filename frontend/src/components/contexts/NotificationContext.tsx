@@ -24,7 +24,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
 
   const fetchNotifications = async () => {
     try {
-      const res = await fetch('http://localhost:8000/api/notifications');
+      const res = await fetch('/api/notifications');
       if (res.ok) {
         const data = await res.json();
         setNotifications(data);
@@ -43,7 +43,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
 
   const markAsRead = async (id: number) => {
     try {
-      await fetch('http://localhost:8000/api/notifications/read', {
+      await fetch('/api/notifications/read', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify([id])
@@ -56,7 +56,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
 
   const markAllAsRead = async () => {
     try {
-      await fetch('http://localhost:8000/api/notifications/read_all', { method: 'POST' });
+      await fetch('/api/notifications/read_all', { method: 'POST' });
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
     } catch (err) {
       console.error("Failed to mark all as read", err);
@@ -77,3 +77,4 @@ export const useNotifications = () => {
   }
   return context;
 };
+

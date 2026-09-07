@@ -1,13 +1,53 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Layout from './layout/Layout';
-import { FileSearch, Upload, CheckCircle2, XCircle, FileText } from 'lucide-react';
+import { FileSearch, Upload, CheckCircle2, XCircle, FileText, FolderOpen } from 'lucide-react';
 
 const DocumentIntelligence: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [results, setResults] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [selectedCase, setSelectedCase] = useState('');
+  const [cases, setCases] = useState<any[]>([]);
+  const [existingDocs, setExistingDocs] = useState<any[]>([]);
+  const [isLoadingDocs, setIsLoadingDocs] = useState(false);
+  const [viewingFile, setViewingFile] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const fetchCases = async () => {
+      try {
+        const res = await fetch('/api/cases');
+        if (res.ok) {
+          const data = await res.json();
+          setCases(data);
+          if (data.length > 0) setSelectedCase(data[0].case_number);
+        }
+      } catch (err) {
+        console.error("Failed to load cases", err);
+      }
+    };
+    fetchCases();
+  }, []);
+
+  useEffect(() => {
+    const fetchDocs = async () => {
+      if (!selectedCase) return;
+      setIsLoadingDocs(true);
+      try {
+        const res = await fetch(`/api/documents?case_id=${encodeURIComponent(selectedCase)}`);
+        if (res.ok) {
+          const data = await res.json();
+          setExistingDocs(data);
+        }
+      } catch (err) {
+        console.error("Failed to load documents", err);
+      } finally {
+        setIsLoadingDocs(false);
+      }
+    };
+    fetchDocs();
+  }, [selectedCase]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -24,7 +64,7 @@ const DocumentIntelligence: React.FC = () => {
     try {
       const formData = new FormData();
       formData.append("file", file);
-      const res = await fetch("http://localhost:8000/api/documents/upload", {
+      const res = await fetch("/api/documents/upload", {
         method: "POST",
         body: formData,
       });
@@ -50,6 +90,16 @@ const DocumentIntelligence: React.FC = () => {
             <p className="text-gray-500 dark:text-gray-400 mt-1">
               Upload case documents (PDF, JPG) to extract structured intelligence using AI.
             </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <FolderOpen className="w-4 h-4 text-gray-500" />
+            <select
+              value={selectedCase}
+              onChange={(e) => setSelectedCase(e.target.value)}
+              className="bg-light-bg dark:bg-dark-bg border border-light-border dark:border-dark-border text-sm rounded-md px-2 py-1 text-gray-700 dark:text-gray-300"
+            >
+              {cases.map(c => <option key={c.case_number} value={c.case_number}>{c.case_number} - {c.title}</option>)}
+            </select>
           </div>
         </div>
 
@@ -212,7 +262,66 @@ const DocumentIntelligence: React.FC = () => {
             )}
           </div>
         </div>
+
+        {/* Existing Documents */}
+        <div className="bg-white dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border p-6">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">
+            Existing Documents for {selectedCase}
+          </h2>
+          {isLoadingDocs ? (
+            <div className="p-4 text-center text-gray-500">Loading documents...</div>
+          ) : existingDocs.length === 0 ? (
+            <div className="p-4 text-center text-gray-500">No documents found for this case.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-800">
+                  <tr>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Document ID</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">File Name</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Uploaded</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                  {existingDocs.map((doc: any) => (
+                    <tr key={doc._id || doc.documentId} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                      <td className="px-4 py-2 text-sm font-medium text-light-accent dark:text-dark-accent">{doc.documentId || doc._id}</td>
+                      <td className="px-4 py-2 text-sm text-gray-900 dark:text-white">{doc.fileName || 'N/A'}</td>
+                      <td className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">{doc.mimeType || 'N/A'}</td>
+                      <td className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">{doc.processingStatus || 'PENDING'}</td>
+                      <td className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">{doc.uploadedAt ? new Date(doc.uploadedAt).toLocaleDateString() : 'N/A'}</td>
+                      <td className="px-4 py-2 flex items-center space-x-3">
+                        <button onClick={() => setViewingFile(`/api/files/${doc.documentId || doc._id}`)} className="text-xs text-blue-600 dark:text-blue-400 hover:underline">View</button>
+                        <a href={`/api/files/${doc.documentId || doc._id}?download=true`} className="text-xs text-light-accent hover:underline">Download</a>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* File Viewer Modal */}
+      {viewingFile && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-white dark:bg-dark-card w-full max-w-5xl h-[80vh] rounded-lg shadow-xl flex flex-col overflow-hidden">
+            <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="font-semibold text-gray-900 dark:text-white">Document Viewer</h3>
+              <button onClick={() => setViewingFile(null)} className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
+                <XCircle className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="flex-1 bg-gray-100 dark:bg-gray-900">
+              <iframe src={viewingFile} className="w-full h-full border-none" title="Document Viewer" />
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 };

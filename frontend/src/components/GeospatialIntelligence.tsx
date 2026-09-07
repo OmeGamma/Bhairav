@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import Layout from './layout/Layout';
 import { Map as MapIcon, Filter, MapPin } from 'lucide-react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap, Circle } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Link } from 'react-router-dom';
@@ -32,9 +32,9 @@ const MapUpdater: React.FC<{ center: [number, number] }> = ({ center }) => {
 };
 
 const getMarkerColor = (c: any) => {
-  if (c.status === 'Closed') return '#22C55E';
-  if (c.priority === 'High') return '#EF4444';
-  if (c.priority === 'Medium') return '#F97316';
+  if (c.status?.toUpperCase() === 'CLOSED') return '#22C55E';
+  if (c.priority?.toUpperCase() === 'HIGH') return '#EF4444';
+  if (c.priority?.toUpperCase() === 'MEDIUM') return '#F97316';
   return '#3B82F6';
 };
 
@@ -43,14 +43,20 @@ const GeospatialIntelligence: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState('All');
   const [filterPriority, setFilterPriority] = useState('All');
   const [filterCrime, setFilterCrime] = useState('All');
+  const [hotspots, setHotspots] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchCases = async () => {
       try {
-        const res = await fetch('http://localhost:8000/api/cases');
+        const res = await fetch('/api/cases');
         if (res.ok) {
           const data = await res.json();
           setCases(data);
+        }
+        const hotRes = await fetch('/api/hotspots');
+        if (hotRes.ok) {
+           const hotData = await hotRes.json();
+           setHotspots(hotData);
         }
       } catch (err) {
         console.error("Failed to load cases for map", err);
@@ -61,10 +67,10 @@ const GeospatialIntelligence: React.FC = () => {
 
   const uniqueCrimes = ['All', ...Array.from(new Set(cases.map(c => c.crime_type).filter(Boolean)))];
 
-  const filteredCases = cases.filter(c => {
-    if (filterStatus !== 'All' && c.status !== filterStatus) return false;
-    if (filterPriority !== 'All' && c.priority !== filterPriority) return false;
-    if (filterCrime !== 'All' && c.crime_type !== filterCrime) return false;
+   const filteredCases = cases.filter(c => {
+    if (filterStatus !== 'All' && (c.status || '').toUpperCase() !== filterStatus.toUpperCase()) return false;
+    if (filterPriority !== 'All' && (c.priority || '').toUpperCase() !== filterPriority.toUpperCase()) return false;
+    if (filterCrime !== 'All' && (c.crime_type || c.crimeType) !== filterCrime) return false;
     return true;
   });
 
@@ -73,19 +79,7 @@ const GeospatialIntelligence: React.FC = () => {
     ? [validLocations[0].location.latitude, validLocations[0].location.longitude]
     : [20.5937, 78.9629];
 
-  const hotspots = useMemo(() => {
-    const cityMap: Record<string, { count: number; lat: number; lng: number; cases: string[] }> = {};
-    for (const c of filteredCases) {
-      if (!c.location?.latitude || !c.location?.longitude) continue;
-      const key = c.location.city || c.location.district || 'Unknown';
-      if (!cityMap[key]) {
-        cityMap[key] = { count: 0, lat: c.location.latitude, lng: c.location.longitude, cases: [] };
-      }
-      cityMap[key].count += 1;
-      cityMap[key].cases.push(c.case_number);
-    }
-    return Object.values(cityMap).sort((a, b) => b.count - a.count);
-  }, [filteredCases]);
+
 
   return (
     <Layout>
@@ -153,11 +147,40 @@ const GeospatialIntelligence: React.FC = () => {
             scrollWheelZoom={true}
             style={{ width: '100%', height: '100%', minHeight: '600px' }}
           >
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
+            {import.meta.env.VITE_MAPTILER_API_KEY ? (
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://maptiler.com/">MapTiler</a>'
+                url={`https://api.maptiler.com/maps/streets/{z}/{x}/{y}.png?key=${import.meta.env.VITE_MAPTILER_API_KEY}`}
+              />
+            ) : (
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+            )}
             <MapUpdater center={center} />
+            
+            {hotspots.map((h, i) => (
+               <Circle 
+                 key={'hotspot_'+i}
+                 center={[h.lat, h.lng]}
+                 pathOptions={{ 
+                   color: h.severity === 'HIGH' ? '#ef4444' : h.severity === 'MEDIUM' ? '#f97316' : '#3b82f6',
+                   fillColor: h.severity === 'HIGH' ? '#ef4444' : h.severity === 'MEDIUM' ? '#f97316' : '#3b82f6',
+                   fillOpacity: 0.2,
+                   weight: 2
+                 }}
+                 radius={h.severity === 'HIGH' ? 50000 : h.severity === 'MEDIUM' ? 30000 : 15000}
+               >
+                 <Popup>
+                   <div className="text-sm font-medium">
+                     <p className="font-bold text-gray-900">{h.is_manual ? h.name || 'Intelligence Zone' : 'Auto Hotspot'}</p>
+                     <p>Severity: <span className="font-bold">{h.severity}</span></p>
+                     {!h.is_manual && <p>Cluster size: {h.count} cases</p>}
+                   </div>
+                 </Popup>
+               </Circle>
+            ))}
 
             {filteredCases.map(c => {
               if (!c.location || !c.location.latitude || !c.location.longitude) return null;
@@ -213,3 +236,4 @@ const GeospatialIntelligence: React.FC = () => {
 };
 
 export default GeospatialIntelligence;
+

@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from './layout/Layout';
-import { Search, BrainCircuit, ShieldAlert, Database, MapPin, Users, Network } from 'lucide-react';
+import { Search, BrainCircuit, ShieldAlert, Database, MapPin, Users, Network, Video, FileText } from 'lucide-react';
 
 const AIAnalyzer: React.FC = () => {
   const [query, setQuery] = useState('');
@@ -28,7 +28,7 @@ const AIAnalyzer: React.FC = () => {
     setError(null);
 
     try {
-      const res = await fetch('http://localhost:8000/api/intelligence/query', {
+      const res = await fetch('/api/intelligence/query', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: query.trim(), role: 'Analyst' }),
@@ -51,28 +51,69 @@ const AIAnalyzer: React.FC = () => {
     }
   };
 
+  const renderFileSection = (title: string, items: any[], type: string, icon: React.ReactNode) => {
+    if (!items || items.length === 0) return null;
+    return (
+      <div className="mb-6">
+        <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-3 flex items-center">
+          {icon}
+          <span className="ml-2">{title}</span>
+          <span className="ml-2 text-xs bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded-full">{items.length}</span>
+        </h4>
+        <div className="space-y-2">
+          {items.slice(0, 10).map((file: any, idx: number) => {
+            const item = file.item || file;
+            const caseId = file.caseId;
+            return (
+              <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                    {item.fileName || item.title || item.documentId || item.evidenceId || item.videoId || 'Unknown'}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Case: {caseId} • {item.mimeType || item.type || type}
+                  </p>
+                </div>
+                <div className="flex gap-2 ml-4">
+                  <Link to={`/cases/${caseId}`} className="text-xs text-light-accent hover:underline">View Case</Link>
+                  <a href={`/api/files/${item.documentId || item.evidenceId || item.videoId || item._id}`} target="_blank" rel="noopener noreferrer" className="text-xs text-green-600 hover:underline">Download</a>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
   const renderDataRetrieval = (data: any[]) => {
     if (!data || data.length === 0) return <p className="text-gray-500">No matching records found.</p>;
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {data.map((item: any, idx: number) => (
-          <div key={idx} className="bg-white dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border p-5 flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-semibold px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded uppercase">
-                  CASE
-                </span>
-                <ShieldAlert className="w-4 h-4 text-gray-400" />
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {data.map((item: any, idx: number) => (
+            <div key={idx} className="bg-white dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border p-5 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-semibold px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded uppercase">
+                    CASE
+                  </span>
+                  <ShieldAlert className="w-4 h-4 text-gray-400" />
+                </div>
+                <h3 className="font-bold text-gray-900 dark:text-white text-lg">{item.title}</h3>
+                <p className="text-sm font-mono text-light-accent dark:text-dark-accent mt-1">{item.caseNumber}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 line-clamp-2">{item.crimeType} - {item.city || item.district}</p>
               </div>
-              <h3 className="font-bold text-gray-900 dark:text-white text-lg">{item.title}</h3>
-              <p className="text-sm font-mono text-light-accent dark:text-dark-accent mt-1">{item.caseNumber}</p>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 line-clamp-2">{item.crimeType} - {item.city || item.district}</p>
+              <Link to={`/cases/${item.caseNumber}`} className="mt-4 text-center text-sm font-semibold text-light-accent dark:text-dark-accent hover:underline">
+                View Case Details
+              </Link>
             </div>
-            <Link to={`/cases/${item.caseNumber}`} className="mt-4 text-center text-sm font-semibold text-light-accent dark:text-dark-accent hover:underline">
-              View Case Details
-            </Link>
-          </div>
-        ))}
+          ))}
+        </div>
+        
+        {results && renderFileSection('Documents', results.documents, 'Document', <FileText className="w-4 h-4" />)}
+        {results && renderFileSection('Evidence', results.evidence, 'Evidence', <ShieldAlert className="w-4 h-4" />)}
+        {results && renderFileSection('Videos', results.videos, 'Video', <Video className="w-4 h-4" />)}
       </div>
     );
   };
@@ -259,3 +300,4 @@ const AIAnalyzer: React.FC = () => {
 };
 
 export default AIAnalyzer;
+

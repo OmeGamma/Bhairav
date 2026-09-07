@@ -26,7 +26,7 @@ const SuspectProfile: React.FC = () => {
       setIsLoading(true);
       setError(null);
       try {
-        const res = await fetch(`http://localhost:8000/api/suspects/${id}`);
+        const res = await fetch(`/api/suspects/${id}`);
         if (!res.ok) throw new Error('Suspect not found');
         const json = await res.json();
         setData(json);
@@ -145,3 +145,4 @@ const SuspectProfile: React.FC = () => {
 };
 
 export default SuspectProfile;
+

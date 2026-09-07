@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 
 const Cases: React.FC = () => {
   const [casesData, setCasesData] = useState<any[]>([]);
+  const [viewMode, setViewMode] = useState<'active' | 'deleted'>('active');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filterCity, setFilterCity] = useState('All');
@@ -14,10 +15,11 @@ const Cases: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
 
-  const fetchCases = async () => {
+  const fetchCases = async (mode: 'active' | 'deleted') => {
     setIsLoading(true);
     try {
-      const res = await fetch('http://localhost:8000/api/cases');
+      const endpoint = mode === 'deleted' ? '/api/cases/deleted' : '/api/cases';
+      const res = await fetch(endpoint);
       if (!res.ok) throw new Error('Failed to load cases.');
       const data = await res.json();
       setCasesData(data);
@@ -30,8 +32,8 @@ const Cases: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchCases();
-  }, []);
+    fetchCases(viewMode);
+  }, [viewMode]);
 
   const cities = ['All', ...Array.from(new Set(casesData.map(c => c.location?.city).filter(Boolean)))];
   const states = ['All', ...Array.from(new Set(casesData.map(c => c.location?.state).filter(Boolean)))];
@@ -41,8 +43,8 @@ const Cases: React.FC = () => {
     if (filterCity !== 'All' && c.location?.city !== filterCity) return false;
     if (filterState !== 'All' && c.location?.state !== filterState) return false;
     if (filterCrime !== 'All' && c.crimeType !== filterCrime) return false;
-    if (filterPriority !== 'All' && c.priority !== filterPriority) return false;
-    if (filterStatus !== 'All' && c.status !== filterStatus) return false;
+    if (filterPriority !== 'All' && c.priority?.toUpperCase() !== filterPriority) return false;
+    if (filterStatus !== 'All' && c.status?.toUpperCase() !== filterStatus) return false;
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       const match = [c.case_number, c.title, c.crimeType, c.description, c.city, c.district, c.state, c.suspect]
@@ -54,19 +56,21 @@ const Cases: React.FC = () => {
   });
 
   const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'High': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
-      case 'Medium': return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400';
-      case 'Low': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
+    const p = (priority || '').toUpperCase();
+    switch (p) {
+      case 'HIGH': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
+      case 'MEDIUM': return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400';
+      case 'LOW': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
       default: return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
     }
   };
 
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Open': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
-      case 'Under Investigation': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
-      case 'Closed': return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+    const s = (status || '').toUpperCase();
+    switch (s) {
+      case 'OPEN': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
+      case 'UNDER INVESTIGATION': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
+      case 'CLOSED': return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
       default: return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
     }
   };
@@ -84,18 +88,36 @@ const Cases: React.FC = () => {
               Manage investigations, evidence, and case intelligence.
             </p>
           </div>
-          <Link
-            to="/cases/new"
-            className="px-4 py-2 bg-light-accent dark:bg-dark-accent text-white rounded-md font-medium hover:bg-opacity-90 transition-colors flex items-center"
-          >
-            <Plus className="w-5 h-5 mr-2" />
-            New Case
-          </Link>
+          <div className="flex gap-3">
+            <div className="flex bg-gray-100 dark:bg-gray-800 rounded-md p-1">
+              <button 
+                onClick={() => setViewMode('active')} 
+                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${viewMode === 'active' ? 'bg-white dark:bg-gray-700 shadow text-gray-900 dark:text-white' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+              >
+                Active
+              </button>
+              <button 
+                onClick={() => setViewMode('deleted')} 
+                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${viewMode === 'deleted' ? 'bg-white dark:bg-gray-700 shadow text-gray-900 dark:text-white' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+              >
+                Deleted
+              </button>
+            </div>
+            {viewMode === 'active' && (
+              <Link
+                to="/cases/new"
+                className="px-4 py-2 bg-light-accent dark:bg-dark-accent text-white rounded-md font-medium hover:bg-opacity-90 transition-colors flex items-center"
+              >
+                <Plus className="w-5 h-5 mr-2" />
+                New Case
+              </Link>
+            )}
+          </div>
         </div>
 
         {error && (
           <div className="p-4 bg-red-100 text-red-700 rounded-md">
-            {error} <button onClick={fetchCases} className="ml-2 underline">Retry</button>
+            {error} <button onClick={() => fetchCases(viewMode)} className="ml-2 underline">Retry</button>
           </div>
         )}
 
@@ -192,13 +214,17 @@ const Cases: React.FC = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium flex items-center gap-2">
                         <Link to={`/cases/${caseItem.case_number}`} className="text-light-accent dark:text-dark-accent hover:underline">View</Link>
-                        <Link to={`/cases/${caseItem.case_number}/edit`} className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
-                          <Edit3 className="w-4 h-4" />
-                        </Link>
-                        {caseItem.status !== 'Closed' && (
-                          <Link to={`/cases/${caseItem.case_number}`} className="text-green-600 hover:text-green-800" title="Close Case">
-                            <CheckCircle className="w-4 h-4" />
-                          </Link>
+                        {viewMode === 'active' && (
+                          <>
+                            <Link to={`/cases/${caseItem.case_number}/edit`} className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
+                              <Edit3 className="w-4 h-4" />
+                            </Link>
+                            {caseItem.status !== 'Closed' && (
+                              <Link to={`/cases/${caseItem.case_number}`} className="text-green-600 hover:text-green-800" title="Close Case">
+                                <CheckCircle className="w-4 h-4" />
+                              </Link>
+                            )}
+                          </>
                         )}
                       </td>
                     </tr>
@@ -214,3 +240,4 @@ const Cases: React.FC = () => {
 };
 
 export default Cases;
+

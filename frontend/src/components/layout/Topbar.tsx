@@ -23,8 +23,12 @@ function useOnClickOutside(ref: React.RefObject<HTMLElement | null>, handler: (e
 }
 
 const Topbar: React.FC = () => {
-  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-    return (localStorage.getItem('bhairav-theme') as 'light' | 'dark') || 'dark';
+  const [theme, setTheme] = useState<'light' | 'dark' | 'system'>(() => {
+    const saved = localStorage.getItem('bhairav-theme');
+    if (saved === 'light' || saved === 'dark' || saved === 'system') {
+      return saved as 'light' | 'dark' | 'system';
+    }
+    return 'dark';
   });
   
   const [scope, setScope] = useState('India');
@@ -44,16 +48,27 @@ const Topbar: React.FC = () => {
   const { notifications, markAsRead, markAllAsRead } = useNotifications();
 
   useEffect(() => {
+    const root = document.documentElement;
     if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
+      root.classList.add('dark');
+    } else if (theme === 'light') {
+      root.classList.remove('dark');
     } else {
-      document.documentElement.classList.remove('dark');
+      if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        root.classList.add('dark');
+      } else {
+        root.classList.remove('dark');
+      }
     }
     localStorage.setItem('bhairav-theme', theme);
   }, [theme]);
 
   const toggleTheme = () => {
-    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+    setTheme(prev => {
+      if (prev === 'dark') return 'light';
+      if (prev === 'light') return 'system';
+      return 'dark';
+    });
   };
 
   const handleLogout = () => {
@@ -237,3 +252,4 @@ const Topbar: React.FC = () => {
 };
 
 export default Topbar;
+

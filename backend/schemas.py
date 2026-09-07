@@ -8,6 +8,9 @@ class LocationBase(BaseModel):
     district: Optional[str] = None
     city: Optional[str] = None
     address: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    policeStation: Optional[str] = None
 
 class LocationResponse(LocationBase):
     id: str

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import Layout from './layout/Layout';
-import { FolderOpen, ArrowLeft, FileText, User, Video, GitBranch, Shield, Activity, Car, Building2, FileSearch } from 'lucide-react';
+import { FolderOpen, ArrowLeft, FileText, User, Video, GitBranch, Shield, Activity, Car, Building2, FileSearch, MapPin } from 'lucide-react';
 
 const CaseDetail: React.FC = () => {
   const { caseId } = useParams();
@@ -13,7 +13,7 @@ const CaseDetail: React.FC = () => {
   useEffect(() => {
     const fetchCase = async () => {
       try {
-        const res = await fetch(`http://localhost:8000/api/cases/${caseId}`);
+        const res = await fetch(`/api/cases/${caseId}`);
         if (!res.ok) throw new Error('Case not found or unable to load.');
         const data = await res.json();
         setCaseData(data);
@@ -60,7 +60,7 @@ const CaseDetail: React.FC = () => {
                 onClick={async () => {
                   if (confirm("Are you sure you want to close this case?")) {
                     try {
-                      const res = await fetch(`http://localhost:8000/api/cases/${caseData.case_number}/close`, { method: 'PATCH' });
+                      const res = await fetch(`/api/cases/${caseData.case_number}/close`, { method: 'PATCH' });
                       if (res.ok) {
                         const updated = await res.json();
                         setCaseData(updated);
@@ -78,12 +78,35 @@ const CaseDetail: React.FC = () => {
             <Link to={`/cases/${caseData.case_number}/edit`} className="px-3 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-md font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center text-sm">
               Edit Case
             </Link>
+            <button
+              onClick={async () => {
+                if (confirm("Are you sure you want to delete this case? It will be moved to the recycle bin for 15 days.")) {
+                  try {
+                    const res = await fetch(`/api/cases/${caseData.case_number}`, { method: 'DELETE' });
+                    if (res.ok) {
+                      navigate('/cases');
+                    }
+                  } catch (err) {
+                    console.error(err);
+                  }
+                }
+              }}
+              className="px-3 py-2 border border-red-500 text-red-600 dark:text-red-400 rounded-md font-medium hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center text-sm"
+            >
+              Delete Case
+            </button>
             <Link to={`/criminal-network?case=${caseData.case_number}`} className="px-3 py-2 bg-light-accent dark:bg-dark-accent text-white rounded-md font-medium hover:bg-blue-600 transition-colors flex items-center text-sm">
               <GitBranch className="w-4 h-4 mr-2" /> Network
             </Link>
-            <Link to={`/report-preview`} state={{ caseData }} className="px-3 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-md font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center text-sm">
-              <FileText className="w-4 h-4 mr-2" /> Report
+            <Link to={`/geospatial`} className="px-3 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-md font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center text-sm">
+              <MapPin className="w-4 h-4 mr-2" /> View on Map
             </Link>
+            <a href={`/api/reports/generate?case_id=${encodeURIComponent(caseData.case_number)}`} download className="px-3 py-2 border border-purple-300 dark:border-purple-600 text-purple-700 dark:text-purple-400 rounded-md font-medium hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors flex items-center text-sm">
+              <FileText className="w-4 h-4 mr-2" /> Generate PDF Report
+            </a>
+            <a href={`/api/cases/${caseData.case_number}/export/doc`} download className="px-3 py-2 border border-blue-300 dark:border-blue-600 text-blue-700 dark:text-blue-400 rounded-md font-medium hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center text-sm">
+              <FileText className="w-4 h-4 mr-2" /> Download (.DOCX)
+            </a>
           </div>
         </div>
 
@@ -235,3 +258,4 @@ const CaseDetail: React.FC = () => {
 };
 
 export default CaseDetail;
+

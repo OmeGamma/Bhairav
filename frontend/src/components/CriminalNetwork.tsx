@@ -19,53 +19,107 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { Network } from 'lucide-react';
+import dagre from 'dagre';
 
-const statusColors: Record<string, { bg: string; border: string; text: string }> = {
-  Case: { bg: '#EFF6FF', border: '#3B82F6', text: '#1E3A8A' },
-  Suspect: { bg: '#FEE2E2', border: '#EF4444', text: '#7F1D1D' },
-  Person: { bg: '#F3F4F6', border: '#6B7280', text: '#1F2937' },
-  Victim: { bg: '#FEF3C7', border: '#D97706', text: '#78350F' },
-  Evidence: { bg: '#D1FAE5', border: '#10B981', text: '#064E3B' },
-  Document: { bg: '#E0E7FF', border: '#4F46E5', text: '#312E81' },
-  Video: { bg: '#FCE7F3', border: '#EC4899', text: '#831843' },
-  Vehicle: { bg: '#E0F2FE', border: '#0284C7', text: '#082F49' },
-  Organization: { bg: '#EDE9FE', border: '#8B5CF6', text: '#4C1D95' },
-  FIR: { bg: '#FFEDD5', border: '#EA580C', text: '#7C2D12' },
-  Location: { bg: '#ECFCCB', border: '#65A30D', text: '#1A2E05' },
+
+const statusColors: Record<string, { bg: string; border: string; text: string; icon?: string }> = {
+  Case: { bg: '#EFF6FF', border: '#3B82F6', text: '#1E3A8A', icon: '◇' },
+  Suspect: { bg: '#FEE2E2', border: '#EF4444', text: '#7F1D1D', icon: '●' },
+  Person: { bg: '#F3F4F6', border: '#6B7280', text: '#1F2937', icon: '●' },
+  Victim: { bg: '#FEF3C7', border: '#D97706', text: '#78350F', icon: '●' },
+  Evidence: { bg: '#D1FAE5', border: '#10B981', text: '#064E3B', icon: '⬢' },
+  Document: { bg: '#E0E7FF', border: '#4F46E5', text: '#312E81', icon: '⬢' },
+  Video: { bg: '#FCE7F3', border: '#EC4899', text: '#831843', icon: '▶' },
+  Vehicle: { bg: '#E0F2FE', border: '#0284C7', text: '#082F49', icon: '◆' },
+  Organization: { bg: '#EDE9FE', border: '#8B5CF6', text: '#4C1D95', icon: '⬢' },
+  FIR: { bg: '#FFEDD5', border: '#EA580C', text: '#7C2D12', icon: '■' },
+  Location: { bg: '#ECFCCB', border: '#65A30D', text: '#1A2E05', icon: '📍' },
 };
 
 const CustomNode = ({ data, selected }: NodeProps) => {
   const nodeData = data as { label?: string; type?: string };
   const colors = statusColors[nodeData.type || 'Case'] || statusColors.Case;
+  const label = nodeData.label || 'Unknown';
+  const isCase = nodeData.type === 'Case';
+  
+  const nodeStyle: React.CSSProperties = {
+    background: colors.bg,
+    border: `2px solid ${colors.border}`,
+    color: colors.text,
+    fontWeight: 700,
+    fontSize: 10,
+    textAlign: 'center',
+    overflow: 'hidden',
+    boxShadow: selected ? `0 0 0 4px ${colors.border}55` : '0 4px 6px -1px rgba(0,0,0,0.1)',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '8px',
+    minWidth: 70,
+    maxWidth: 120,
+    height: isCase ? 70 : 70,
+    borderRadius: isCase ? '4px' : '50%',
+    transform: isCase ? 'rotate(45deg)' : 'none',
+    transformOrigin: 'center center',
+  };
+
+  const innerStyle: React.CSSProperties = {
+    transform: isCase ? 'rotate(-45deg)' : 'none',
+    lineHeight: 1.1,
+    wordBreak: 'break-word',
+    maxWidth: '100%',
+  };
+
   return (
-    <div
-      style={{
-        background: colors.bg,
-        border: `2px solid ${colors.border}`,
-        borderRadius: '50%',
-        width: 90,
-        height: 90,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        textAlign: 'center',
-        padding: 6,
-        color: colors.text,
-        fontWeight: 700,
-        fontSize: 11,
-        boxShadow: selected ? `0 0 0 4px ${colors.border}55` : '0 4px 6px -1px rgba(0,0,0,0.1)',
-      }}
-    >
-      <Handle type="target" position={Position.Top} className="!bg-gray-400" />
-      <div style={{ lineHeight: 1.1 }}>{nodeData.label || 'Unknown'}</div>
-      <div style={{ fontSize: 9, opacity: 0.8, marginTop: 2 }}>{nodeData.type || 'Case'}</div>
-      <Handle type="source" position={Position.Bottom} className="!bg-gray-400" />
+    <div style={nodeStyle}>
+      <Handle type="target" position={Position.Top} className="!bg-gray-400" style={{ transform: isCase ? 'rotate(-45deg)' : 'none' }} />
+      <div style={innerStyle}>
+        <div style={{ fontSize: 14, marginBottom: 2 }}>{colors.icon}</div>
+        <div style={{ fontSize: 9, opacity: 0.9, maxHeight: 24, overflow: 'hidden' }}>{label}</div>
+        <div style={{ fontSize: 8, opacity: 0.7, marginTop: 1 }}>{nodeData.type || 'Case'}</div>
+      </div>
+      <Handle type="source" position={Position.Bottom} className="!bg-gray-400" style={{ transform: isCase ? 'rotate(-45deg)' : 'none' }} />
     </div>
   );
 };
 
 const nodeTypes = { customNode: CustomNode };
+
+const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'TB') => {
+  const dagreGraph = new dagre.graphlib.Graph();
+  dagreGraph.setDefaultEdgeLabel(() => ({}));
+  
+  const nodeWidth = 100;
+  const nodeHeight = 100;
+
+  dagreGraph.setGraph({ rankdir: direction, nodesep: 60, ranksep: 100 });
+
+  nodes.forEach((node) => {
+    dagreGraph.setNode(node.id, { width: nodeWidth, height: nodeHeight });
+  });
+
+  edges.forEach((edge) => {
+    dagreGraph.setEdge(edge.source, edge.target);
+  });
+
+  dagre.layout(dagreGraph);
+
+  const newNodes = nodes.map((node) => {
+    const nodeWithPosition = dagreGraph.node(node.id);
+    const newNode = {
+      ...node,
+      position: {
+        x: nodeWithPosition.x - nodeWidth / 2,
+        y: nodeWithPosition.y - nodeHeight / 2,
+      },
+    };
+    return newNode;
+  });
+
+  return { nodes: newNodes, edges };
+};
+
 
 const CriminalNetwork: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -82,7 +136,7 @@ const CriminalNetwork: React.FC = () => {
   useEffect(() => {
     const fetchCases = async () => {
       try {
-        const res = await fetch('http://localhost:8000/api/cases');
+        const res = await fetch('/api/cases');
         if (res.ok) {
           const data = await res.json();
           setAvailableCases(data);
@@ -106,7 +160,7 @@ const CriminalNetwork: React.FC = () => {
       setEdges([]);
 
       try {
-        const res = await fetch(`http://localhost:8000/api/network/${selectedCase}`);
+        const res = await fetch(`/api/network/${selectedCase}`);
         if (!res.ok) throw new Error('Failed to load network data');
         const data = await res.json();
 
@@ -123,8 +177,10 @@ const CriminalNetwork: React.FC = () => {
           animated: true,
         }));
 
-        setNodes(mappedNodes);
-        setEdges(mappedEdges);
+        const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(mappedNodes, mappedEdges);
+
+        setNodes(layoutedNodes);
+        setEdges(layoutedEdges);
       } catch (err: any) {
         setError(err.message);
       } finally {
@@ -209,6 +265,7 @@ const CriminalNetwork: React.FC = () => {
             </div>
           ) : (
             <ReactFlow
+              key={selectedCase}
               nodes={nodes}
               edges={edges}
               onNodesChange={onNodesChange}
@@ -234,3 +291,4 @@ const CriminalNetwork: React.FC = () => {
 };
 
 export default CriminalNetwork;
+

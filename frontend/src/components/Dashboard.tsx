@@ -7,41 +7,40 @@ import {
   FileText,
   CheckCircle,
   Clock,
+  Search,
+  Map as MapIcon,
+  Network,
+  Cpu,
+  ChevronRight,
+  Bell
 } from 'lucide-react';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Cell,
-} from 'recharts';
-import { Link } from 'react-router-dom';
-
-const COLORS = ['#0284C7', '#0EA5E9', '#38BDF8', '#7DD3FC', '#BAE6FD'];
+import { Link, useNavigate } from 'react-router-dom';
 
 const Dashboard: React.FC = () => {
   const [analytics, setAnalytics] = useState<any>(null);
   const [recentCases, setRecentCases] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        const [analyticsRes, casesRes] = await Promise.all([
-          fetch('http://localhost:8000/api/analytics'),
-          fetch('http://localhost:8000/api/cases'),
+        const [analyticsRes, casesRes, notifRes] = await Promise.all([
+          fetch('/api/analytics'),
+          fetch('/api/cases'),
+          fetch('/api/notifications')
         ]);
-        if (analyticsRes.ok) {
-          const data = await analyticsRes.json();
-          setAnalytics(data);
-        }
+        if (analyticsRes.ok) setAnalytics(await analyticsRes.json());
         if (casesRes.ok) {
           const data = await casesRes.json();
           setRecentCases(data.slice(0, 5));
+        }
+        if (notifRes.ok) {
+          const data = await notifRes.json();
+          setNotifications(data.filter((n: any) => !n.isRead).slice(0, 5));
         }
       } catch (err) {
         console.error("Failed to load dashboard data", err);
@@ -52,11 +51,19 @@ const Dashboard: React.FC = () => {
     fetchData();
   }, []);
 
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      // The AI analyzer is typically where natural language search lives.
+      navigate(`/ai-analyzer?q=${encodeURIComponent(searchQuery)}`);
+    }
+  };
+
   const statusCounts = useMemo(() => {
     if (!analytics?.cases_by_status) return { open: 0, investigation: 0, closed: 0 };
     const map: Record<string, number> = {};
     for (const item of analytics.cases_by_status) {
-      map[item.status] = item.count;
+      map[item.status.toUpperCase()] = item.count;
     }
     return {
       open: map['OPEN'] || 0,
@@ -67,123 +74,289 @@ const Dashboard: React.FC = () => {
 
   const statCards = analytics
     ? [
-        { name: 'Total Cases', value: analytics.total_cases.toLocaleString(), icon: Briefcase, color: 'text-blue-500' },
-        { name: 'Open Cases', value: statusCounts.open.toLocaleString(), icon: Clock, color: 'text-yellow-500' },
-        { name: 'Under Investigation', value: statusCounts.investigation.toLocaleString(), icon: AlertTriangle, color: 'text-orange-500' },
-        { name: 'Closed Cases', value: statusCounts.closed.toLocaleString(), icon: CheckCircle, color: 'text-green-500' },
-        { name: 'Evidence Items', value: analytics.total_evidence.toLocaleString(), icon: FileText, color: 'text-purple-500' },
-        { name: 'Video Evidence', value: analytics.total_videos.toLocaleString(), icon: Video, color: 'text-teal-500' },
+        { name: 'Total Cases', value: analytics.total_cases.toLocaleString(), icon: Briefcase, color: 'text-blue-500', bg: 'bg-blue-500/20' },
+        { name: 'Open Cases', value: statusCounts.open.toLocaleString(), icon: Clock, color: 'text-yellow-500', bg: 'bg-yellow-500/20' },
+        { name: 'Under Investigation', value: statusCounts.investigation.toLocaleString(), icon: AlertTriangle, color: 'text-orange-500', bg: 'bg-orange-500/20' },
+        { name: 'Closed Cases', value: statusCounts.closed.toLocaleString(), icon: CheckCircle, color: 'text-green-500', bg: 'bg-green-500/20' },
+         { name: 'High Priority', value: (analytics.cases_by_priority?.find((p: any) => p.priority.toUpperCase() === 'HIGH')?.count || 0).toLocaleString(), icon: AlertTriangle, color: 'text-red-500', bg: 'bg-red-500/20' },
+        { name: 'Evidence Items', value: analytics.total_evidence.toLocaleString(), icon: FileText, color: 'text-purple-500', bg: 'bg-purple-500/20' },
+        { name: 'Documents', value: 0, icon: FileText, color: 'text-indigo-500', bg: 'bg-indigo-500/20' }, // Missing document count endpoint
+        { name: 'Videos', value: analytics.total_videos.toLocaleString(), icon: Video, color: 'text-teal-500', bg: 'bg-teal-500/20' },
       ]
     : [];
 
-  const cityData = analytics?.cases_by_city || [];
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'High': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
-      case 'Medium': return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400';
-      case 'Low': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+  const getPriorityBadge = (priority: string) => {
+    const p = (priority || '').toUpperCase();
+    switch (p) {
+      case 'HIGH': return 'bg-red-500/10 text-red-500 border border-red-500/20';
+      case 'MEDIUM': return 'bg-orange-500/10 text-orange-500 border border-orange-500/20';
+      case 'LOW': return 'bg-blue-500/10 text-blue-500 border border-blue-500/20';
+      default: return 'bg-gray-500/10 text-gray-500 border border-gray-500/20';
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Open': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
-      case 'Under Investigation': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
-      case 'Closed': return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+  const getStatusBadge = (status: string) => {
+    const s = (status || '').toUpperCase();
+    switch (s) {
+      case 'OPEN': return 'bg-green-500/10 text-green-500 border border-green-500/20';
+      case 'UNDER INVESTIGATION': return 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/20';
+      case 'CLOSED': return 'bg-gray-500/10 text-gray-500 border border-gray-500/20';
+      default: return 'bg-gray-500/10 text-gray-500 border border-gray-500/20';
     }
   };
 
   return (
     <Layout>
-      <div className="space-y-6 max-w-7xl mx-auto pb-12">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Overview Dashboard</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Last updated: Just now</p>
+      <div className="space-y-8 max-w-7xl mx-auto pb-12 fade-in">
+        
+        {/* Header & Search */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-gradient-to-r from-light-card to-white dark:from-dark-card dark:to-dark-bg p-8 rounded-2xl shadow-sm border border-light-border dark:border-dark-border">
+          <div className="flex-1 w-full">
+            <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-light-accent to-blue-600 dark:from-blue-400 dark:to-cyan-300">Bhairav Intelligence Search</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Natural-language grounded search across MongoDB cases, persons, and evidence.</p>
+            
+            <form onSubmit={handleSearch} className="mt-6 relative w-full max-w-2xl group">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <Search className="h-5 w-5 text-gray-400 group-focus-within:text-light-accent dark:group-focus-within:text-blue-400 transition-colors" />
+              </div>
+              <input
+                type="text"
+                className="block w-full pl-11 pr-4 py-4 bg-white/50 dark:bg-dark-bg/50 border border-gray-200 dark:border-gray-700 rounded-xl leading-5 bg-transparent placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-light-accent dark:focus:ring-blue-500 focus:border-light-accent dark:focus:border-blue-500 transition-all sm:text-sm backdrop-blur-sm"
+                placeholder="E.g., Mumbai vehicle theft involving Rajesh..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              <button type="submit" className="absolute inset-y-2 right-2 px-4 py-1.5 bg-light-accent hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors">
+                Search
+              </button>
+            </form>
           </div>
-          {analytics && (
-            <span className="text-xs bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 px-2 py-1 rounded border border-yellow-300 dark:border-yellow-700">DEMO DATA</span>
-          )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-          {isLoading
-            ? Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="bg-white dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border p-4 flex items-center animate-pulse">
-                  <div className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 w-8 h-8" />
-                  <div className="ml-3 space-y-2">
-                    <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-20" />
-                    <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-10" />
+        {/* Top Intelligence Summary */}
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 px-1">Top Intelligence Summary</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+            {isLoading
+              ? Array.from({ length: 8 }).map((_, i) => (
+                  <div key={i} className="bg-white dark:bg-dark-card rounded-xl p-4 flex flex-col items-center justify-center animate-pulse border border-light-border dark:border-dark-border min-h-[110px]">
+                    <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 mb-2"></div>
+                    <div className="h-4 w-12 bg-gray-200 dark:bg-gray-700 rounded mb-1"></div>
+                    <div className="h-3 w-16 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                  </div>
+                ))
+              : statCards.map((stat) => (
+                  <div key={stat.name} className="bg-white dark:bg-dark-card rounded-xl p-4 flex flex-col items-center justify-center text-center shadow-sm border border-light-border dark:border-dark-border transition-all hover:scale-[1.03] hover:shadow-md group cursor-default min-h-[110px]">
+                    <div className={`p-2 rounded-lg ${stat.bg} ${stat.color} mb-3 group-hover:scale-110 transition-transform`}>
+                      <stat.icon className="w-5 h-5" />
+                    </div>
+                    <p className="text-xl font-bold text-gray-900 dark:text-white leading-tight">{stat.value}</p>
+                    <p className="text-[10px] uppercase tracking-wider font-medium text-gray-500 dark:text-gray-400 mt-1">{stat.name}</p>
+                  </div>
+                ))}
+          </div>
+        </div>
+
+        {/* Triple Lens Area */}
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 px-1">Triple-Lens Analysis</h2>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            {/* 1. AI Intelligence */}
+            <Link to="/ai-analyzer" className="block group">
+              <div className="h-full bg-gradient-to-br from-indigo-50 to-white dark:from-gray-800 dark:to-dark-card rounded-2xl shadow-sm border border-indigo-100 dark:border-gray-700 p-6 transition-all hover:shadow-lg hover:border-indigo-300 dark:hover:border-indigo-500 relative overflow-hidden">
+                <div className="absolute -right-4 -top-4 w-24 h-24 bg-indigo-500/10 rounded-full blur-2xl group-hover:bg-indigo-500/20 transition-all"></div>
+                <div className="flex justify-between items-start mb-4">
+                  <div className="p-3 rounded-xl bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400">
+                    <Cpu className="w-6 h-6" />
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-indigo-500 transition-colors" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">AI Intelligence</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 line-clamp-3">
+                  Natural language investigation results grounded in MongoDB. Extract insights, identify patterns, and correlate seemingly unrelated events automatically.
+                </p>
+                <div className="mt-auto">
+                  <div className="text-xs font-medium text-indigo-600 dark:text-indigo-400 flex items-center">
+                    Launch AI Analysis <ChevronRight className="w-3 h-3 ml-1" />
                   </div>
                 </div>
-              ))
-            : statCards.map((stat) => {
-                const Icon = stat.icon;
-                return (
-                  <div key={stat.name} className="bg-white dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border p-4 flex items-center transition-transform hover:scale-105 cursor-default">
-                    <div className={`p-2 rounded-full bg-opacity-20 bg-gray-100 dark:bg-gray-800 ${stat.color}`}>
-                      <Icon className="w-5 h-5" />
-                    </div>
-                    <div className="ml-3">
-                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400">{stat.name}</p>
-                      <p className="text-xl font-semibold text-gray-900 dark:text-white">{stat.value}</p>
-                    </div>
+              </div>
+            </Link>
+
+            {/* 2. Criminal Network */}
+            <Link to="/criminal-network" className="block group">
+              <div className="h-full bg-gradient-to-br from-emerald-50 to-white dark:from-gray-800 dark:to-dark-card rounded-2xl shadow-sm border border-emerald-100 dark:border-gray-700 p-6 transition-all hover:shadow-lg hover:border-emerald-300 dark:hover:border-emerald-500 relative overflow-hidden">
+                <div className="absolute -right-4 -bottom-4 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl group-hover:bg-emerald-500/20 transition-all"></div>
+                <div className="flex justify-between items-start mb-4">
+                  <div className="p-3 rounded-xl bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400">
+                    <Network className="w-6 h-6" />
                   </div>
-                );
-              })}
+                  <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-emerald-500 transition-colors" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Criminal Network</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  Live network preview mapped from relational links between persons, vehicles, evidence, and FIRs in the database.
+                </p>
+                
+                {/* Mock Graph Preview */}
+                <div className="relative h-24 mb-4 rounded-lg bg-emerald-50/50 dark:bg-emerald-900/20 border border-emerald-100/50 dark:border-emerald-800/30 overflow-hidden flex items-center justify-center">
+                   <div className="absolute w-2 h-2 bg-emerald-500 rounded-full z-10"></div>
+                   <div className="absolute w-2 h-2 bg-blue-500 rounded-full z-10 -ml-12 -mt-8"></div>
+                   <div className="absolute w-2 h-2 bg-red-500 rounded-full z-10 ml-16 mt-6"></div>
+                   <div className="absolute w-2 h-2 bg-orange-500 rounded-full z-10 ml-8 -mt-10"></div>
+                   <svg className="absolute inset-0 w-full h-full opacity-50 stroke-emerald-500/30 dark:stroke-emerald-400/30" strokeWidth="1">
+                     <line x1="50%" y1="50%" x2="35%" y2="25%" />
+                     <line x1="50%" y1="50%" x2="70%" y2="75%" />
+                     <line x1="50%" y1="50%" x2="60%" y2="20%" />
+                   </svg>
+                </div>
+
+                <div className="mt-auto">
+                  <div className="text-xs font-medium text-emerald-600 dark:text-emerald-400 flex items-center">
+                    Explore Graph <ChevronRight className="w-3 h-3 ml-1" />
+                  </div>
+                </div>
+              </div>
+            </Link>
+
+            {/* 3. Geospatial Intelligence */}
+            <Link to="/geospatial" className="block group">
+              <div className="h-full bg-gradient-to-br from-amber-50 to-white dark:from-gray-800 dark:to-dark-card rounded-2xl shadow-sm border border-amber-100 dark:border-gray-700 p-6 transition-all hover:shadow-lg hover:border-amber-300 dark:hover:border-amber-500 relative overflow-hidden">
+                <div className="absolute -left-4 -top-4 w-24 h-24 bg-amber-500/10 rounded-full blur-2xl group-hover:bg-amber-500/20 transition-all"></div>
+                <div className="flex justify-between items-start mb-4">
+                  <div className="p-3 rounded-xl bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400">
+                    <MapIcon className="w-6 h-6" />
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-amber-500 transition-colors" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Geospatial Intelligence</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  Live map and hotspot preview identifying high incident concentrations and spatial patterns.
+                </p>
+
+                {/* Mock Map Preview */}
+                <div className="relative h-24 mb-4 rounded-lg bg-blue-50/50 dark:bg-blue-900/10 border border-amber-100/50 dark:border-amber-800/30 overflow-hidden flex items-center justify-center bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]">
+                   <div className="absolute w-4 h-4 bg-red-500 rounded-full z-10 opacity-60 blur-[4px] -ml-8 -mt-2 animate-pulse"></div>
+                   <div className="absolute w-3 h-3 bg-red-500 rounded-full z-10 border-2 border-white -ml-8 -mt-2"></div>
+                   
+                   <div className="absolute w-6 h-6 bg-orange-500 rounded-full z-10 opacity-50 blur-[6px] ml-12 mt-6"></div>
+                   <div className="absolute w-3 h-3 bg-orange-500 rounded-full z-10 border-2 border-white ml-12 mt-6"></div>
+                </div>
+
+                <div className="mt-auto">
+                  <div className="text-xs font-medium text-amber-600 dark:text-amber-400 flex items-center">
+                    Open Map <ChevronRight className="w-3 h-3 ml-1" />
+                  </div>
+                </div>
+              </div>
+            </Link>
+
+          </div>
         </div>
 
+        {/* Recent Cases & Live Alerts */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 bg-white dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border p-6 min-h-[400px]">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Cases by City</h2>
-            <div className="h-72 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={cityData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                  <XAxis dataKey="city" stroke="#9CA3AF" />
-                  <YAxis stroke="#9CA3AF" />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: '#1E293B', borderColor: '#334155', color: '#F8FAFC' }}
-                    itemStyle={{ color: '#0EA5E9' }}
-                  />
-                  <Bar dataKey="count" fill="#0284C7">
-                    {cityData.map((_entry: any, index: number) => (
-                      <Cell key={index} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+          
+          {/* Recent Cases Table */}
+          <div className="lg:col-span-2 bg-white dark:bg-dark-card rounded-2xl shadow-sm border border-light-border dark:border-dark-border overflow-hidden flex flex-col h-full">
+            <div className="p-5 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Recent MongoDB Cases</h2>
+              <Link to="/cases" className="text-sm text-light-accent dark:text-blue-400 font-medium hover:underline">View All</Link>
+            </div>
+            <div className="flex-1 overflow-x-auto">
+              <table className="w-full text-left text-sm text-gray-500 dark:text-gray-400">
+                <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-800/50 dark:text-gray-300">
+                  <tr>
+                    <th scope="col" className="px-6 py-4">Case</th>
+                    <th scope="col" className="px-6 py-4">Crime</th>
+                    <th scope="col" className="px-6 py-4">City</th>
+                    <th scope="col" className="px-6 py-4">Status / Priority</th>
+                    <th scope="col" className="px-6 py-4">Date</th>
+                    <th scope="col" className="px-6 py-4 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {isLoading ? (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-8 text-center text-gray-500">Loading cases...</td>
+                    </tr>
+                  ) : recentCases.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-8 text-center text-gray-500">No cases found in MongoDB.</td>
+                    </tr>
+                  ) : (
+                    recentCases.map((c) => (
+                      <tr key={c._id || c.case_number} className="bg-white dark:bg-dark-card border-b dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                        <td className="px-6 py-4 font-medium text-gray-900 dark:text-white whitespace-nowrap">
+                          {c.case_number}
+                        </td>
+                        <td className="px-6 py-4">{c.crime_type || 'Unknown'}</td>
+                        <td className="px-6 py-4">{c.location?.city || c.city || 'Unknown'}</td>
+                        <td className="px-6 py-4">
+                          <div className="flex flex-col gap-1.5 items-start">
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full ${getStatusBadge(c.status)}`}>{c.status}</span>
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full ${getPriorityBadge(c.priority)}`}>{c.priority}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          {c.filingDate ? new Date(c.filingDate).toLocaleDateString() : 'N/A'}
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <div className="flex justify-end gap-3">
+                            <Link to={`/cases/${c.case_number}`} className="font-medium text-light-accent dark:text-blue-400 hover:underline">View</Link>
+                            <Link to={`/cases/${c.case_number}/edit`} className="font-medium text-gray-500 hover:text-gray-900 dark:hover:text-white">Edit</Link>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
 
-          <div className="bg-white dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border p-6 min-h-[400px]">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Recent Cases</h2>
-            <div className="space-y-3">
-              {recentCases.length === 0 && !isLoading && (
-                <p className="text-sm text-gray-500">No cases found.</p>
+          {/* Live Alerts */}
+          <div className="bg-white dark:bg-dark-card rounded-2xl shadow-sm border border-light-border dark:border-dark-border flex flex-col h-full">
+            <div className="p-5 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                <Bell className="w-5 h-5 mr-2 text-rose-500" /> Live Alerts
+              </h2>
+            </div>
+            <div className="p-0 flex-1 overflow-y-auto max-h-[400px]">
+              {isLoading ? (
+                <div className="p-6 text-center text-gray-500 text-sm">Loading alerts...</div>
+              ) : notifications.length === 0 ? (
+                <div className="p-8 text-center flex flex-col items-center justify-center h-full">
+                  <CheckCircle className="w-10 h-10 text-green-400 mb-3 opacity-50" />
+                  <p className="text-sm text-gray-500 dark:text-gray-400">No new unread alerts.</p>
+                </div>
+              ) : (
+                <ul className="divide-y divide-gray-100 dark:divide-gray-800">
+                  {notifications.map((n) => (
+                    <li key={n.id} className="p-5 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                      <div className="flex items-start">
+                        <div className="flex-shrink-0 mt-0.5">
+                          <div className="w-2 h-2 mt-1.5 rounded-full bg-rose-500 animate-pulse"></div>
+                        </div>
+                        <div className="ml-3 flex-1">
+                          <p className="text-sm font-medium text-gray-900 dark:text-white">{n.title}</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">{n.message}</p>
+                          <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">{new Date(n.createdAt).toLocaleString()}</p>
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
               )}
-              {recentCases.map((c) => (
-                <Link key={c._id || c.case_number} to={`/cases/${c.case_number}`} className="flex items-start p-3 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-100 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">{c.case_number}: {c.title}</h3>
-                      {c.dataClassification === 'DEMO_SYNTHETIC' && (
-                        <span className="text-[10px] bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded border border-yellow-300 ml-2">DEMO DATA</span>
-                      )}
-                    </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{c.crime_type} • {c.location?.city || 'Unknown'}</p>
-                    <div className="flex gap-2 mt-2">
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded ${getPriorityColor(c.priority)}`}>{c.priority}</span>
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded ${getStatusColor(c.status)}`}>{c.status}</span>
-                    </div>
-                  </div>
-                </Link>
-              ))}
+            </div>
+            <div className="p-3 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/20">
+              <Link to="/alerts" className="block w-full text-center text-sm font-medium text-light-accent dark:text-blue-400 hover:underline py-2">
+                VIEW ALL ALERTS
+              </Link>
             </div>
           </div>
+          
         </div>
       </div>
     </Layout>

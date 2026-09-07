@@ -1,19 +1,58 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Layout from './layout/Layout';
-import { Video, Upload, Play, Pause, SkipForward, SkipBack, Search, Clock, PlusCircle } from 'lucide-react';
+import { Video, Upload, Play, Pause, SkipForward, SkipBack, Search, Clock, PlusCircle, FolderOpen, XCircle } from 'lucide-react';
 
 const VideoIntelligence: React.FC = () => {
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [timelineEvents, setTimelineEvents] = useState<any[]>([]);
+  const [selectedCase, setSelectedCase] = useState('');
+  const [cases, setCases] = useState<any[]>([]);
+  const [existingVideos, setExistingVideos] = useState<any[]>([]);
+  const [isLoadingVideos, setIsLoadingVideos] = useState(false);
+  const [viewingFile, setViewingFile] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const fetchCases = async () => {
+      try {
+        const res = await fetch('/api/cases');
+        if (res.ok) {
+          const data = await res.json();
+          setCases(data);
+          if (data.length > 0) setSelectedCase(data[0].case_number);
+        }
+      } catch (err) {
+        console.error("Failed to load cases", err);
+      }
+    };
+    fetchCases();
+  }, []);
+
+  useEffect(() => {
+    const fetchVideos = async () => {
+      if (!selectedCase) return;
+      setIsLoadingVideos(true);
+      try {
+        const res = await fetch(`/api/videos?case_id=${encodeURIComponent(selectedCase)}`);
+        if (res.ok) {
+          const data = await res.json();
+          setExistingVideos(data);
+        }
+      } catch (err) {
+        console.error("Failed to load videos", err);
+      } finally {
+        setIsLoadingVideos(false);
+      }
+    };
+    fetchVideos();
+  }, [selectedCase]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       setVideoFile(e.target.files[0]);
       
-      // Simulate AI detection after a delay
       setTimeout(() => {
         setTimelineEvents([
           { time: 14, type: 'Person', description: 'Person detected entering frame', confidence: 0.92 },
@@ -61,7 +100,16 @@ const VideoIntelligence: React.FC = () => {
               Upload footage for automated event detection and timeline analysis.
             </p>
           </div>
-          
+          <div className="flex items-center gap-2">
+            <FolderOpen className="w-4 h-4 text-gray-500" />
+            <select
+              value={selectedCase}
+              onChange={(e) => setSelectedCase(e.target.value)}
+              className="bg-light-bg dark:bg-dark-bg border border-light-border dark:border-dark-border text-sm rounded-md px-2 py-1 text-gray-700 dark:text-gray-300"
+            >
+              {cases.map(c => <option key={c.case_number} value={c.case_number}>{c.case_number} - {c.title}</option>)}
+            </select>
+          </div>
           <input 
             type="file" 
             ref={fileInputRef} 
@@ -122,7 +170,7 @@ const VideoIntelligence: React.FC = () => {
                       event.type === 'Alert' ? 'bg-red-500' : 
                       event.type === 'Vehicle' ? 'bg-blue-500' : 'bg-green-500'
                     }`}
-                    style={{ left: `${(event.time / 120) * 100}%` }} // Assuming 2 min video for demo
+                    style={{ left: `${(event.time / 120) * 100}%` }}
                     title={event.description}
                   />
                 ))}
@@ -146,7 +194,7 @@ const VideoIntelligence: React.FC = () => {
 
             <div className="flex-1 overflow-y-auto p-4">
               <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Detected Events</h3>
-              
+               
               {timelineEvents.length === 0 ? (
                 <p className="text-sm text-gray-500 italic">No events detected yet. Upload a video to begin.</p>
               ) : (
@@ -182,7 +230,66 @@ const VideoIntelligence: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* Existing Videos */}
+        <div className="bg-white dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border p-6">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">
+            Existing Videos for {selectedCase}
+          </h2>
+          {isLoadingVideos ? (
+            <div className="p-4 text-center text-gray-500">Loading videos...</div>
+          ) : existingVideos.length === 0 ? (
+            <div className="p-4 text-center text-gray-500">No videos found for this case.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-800">
+                  <tr>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Video ID</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">File Name</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Uploaded</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                  {existingVideos.map((vid: any) => (
+                    <tr key={vid._id || vid.videoId} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                      <td className="px-4 py-2 text-sm font-medium text-light-accent dark:text-dark-accent">{vid.videoId || vid._id}</td>
+                      <td className="px-4 py-2 text-sm text-gray-900 dark:text-white">{vid.fileName || 'N/A'}</td>
+                      <td className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">{vid.mimeType || 'N/A'}</td>
+                      <td className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">{vid.processingStatus || 'PENDING'}</td>
+                      <td className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">{vid.uploadedAt ? new Date(vid.uploadedAt).toLocaleDateString() : 'N/A'}</td>
+                      <td className="px-4 py-2 flex items-center space-x-3">
+                        <button onClick={() => setViewingFile(`/api/files/${vid.videoId || vid._id}`)} className="text-xs text-blue-600 dark:text-blue-400 hover:underline">View</button>
+                        <a href={`/api/files/${vid.videoId || vid._id}?download=true`} className="text-xs text-light-accent hover:underline">Download</a>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Video Viewer Modal */}
+      {viewingFile && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-white dark:bg-dark-card w-full max-w-5xl h-[80vh] rounded-lg shadow-xl flex flex-col overflow-hidden">
+            <div className="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="font-semibold text-gray-900 dark:text-white">Video Viewer</h3>
+              <button onClick={() => setViewingFile(null)} className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
+                <XCircle className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="flex-1 bg-black flex items-center justify-center">
+              <video src={viewingFile} controls autoPlay className="max-w-full max-h-full" />
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 };
