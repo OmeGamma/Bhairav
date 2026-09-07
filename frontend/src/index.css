@@ -1,0 +1,52 @@
+@import "tailwindcss";
+
+@theme {
+  --color-dark-bg: #0F172A;
+  --color-dark-card: #1E293B;
+  --color-dark-border: #334155;
+  --color-dark-text: #F8FAFC;
+  --color-dark-accent: #0EA5E9;
+
+  --color-light-bg: #F1F5F9;
+  --color-light-card: #FFFFFF;
+  --color-light-border: #CBD5E1;
+  --color-light-text: #0F172A;
+  --color-light-accent: #0284C7;
+}
+
+@layer base {
+  html, body, #root {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+
+  body {
+    background-color: var(--color-light-bg);
+    color: var(--color-light-text);
+    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 200ms;
+  }
+
+  .dark body,
+  body.dark,
+  html.dark body {
+    background-color: var(--color-dark-bg);
+    color: var(--color-dark-text);
+  }
+}
+
+@layer components {
+  .leaflet-container {
+    background: #e5e7eb;
+  }
+  .dark .leaflet-container {
+    background: #1e293b;
+  }
+}
