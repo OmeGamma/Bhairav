@@ -15,62 +15,62 @@ class LocationBase(BaseModel):
 class LocationResponse(LocationBase):
     id: str
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class PersonResponse(BaseModel):
     id: str
     name: str
     role: str
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class VictimResponse(BaseModel):
     id: str
     name: str
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class EvidenceResponse(BaseModel):
     id: str
     evidenceId: str
     description: str
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class DocumentResponse(BaseModel):
     id: str
     documentId: str
     title: str
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class VideoResponse(BaseModel):
     id: str
     videoId: str
     title: str
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class VehicleResponse(BaseModel):
     id: str
     vehicleId: str
     makeModel: str
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class OrganizationResponse(BaseModel):
     id: str
     organizationId: str
     name: str
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class FIRResponse(BaseModel):
     id: str
     firId: str
     firNumber: str
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class CaseBase(BaseModel):
     case_number: str
@@ -101,7 +101,7 @@ class NotificationResponse(BaseModel):
     read: bool
     case_id: Optional[str] = None
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class AuditLogResponse(BaseModel):
     id: str
@@ -111,14 +111,14 @@ class AuditLogResponse(BaseModel):
     description: str
     case_id: Optional[str] = None
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class CaseListResponse(CaseBase):
     id: str
     date: datetime
     location: Optional[LocationResponse]
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class CaseDetailResponse(CaseBase):
     id: str
@@ -136,7 +136,7 @@ class CaseDetailResponse(CaseBase):
     firs: List[FIRResponse] = []
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class AnalyzeRequest(BaseModel):
     query: str

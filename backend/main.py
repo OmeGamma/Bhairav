@@ -54,7 +54,10 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
 
-_db_check_connection()
+try:
+    _db_check_connection()
+except Exception as e:
+    print(f"Initial DB connection check warning: {e}")
 
 BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_DIR = os.path.join(BACKEND_DIR, "uploads")
