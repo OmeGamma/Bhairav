@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from datetime import datetime
 
 class LocationBase(BaseModel):
@@ -152,3 +152,30 @@ class AnalyzeResult(BaseModel):
 class AnalyzeResponse(BaseModel):
     summary: str
     results: List[AnalyzeResult]
+
+
+class VideoReportBase(BaseModel):
+    eventType: Optional[str] = "PERSON_DETECTED"
+    sourceType: Optional[str] = "UPLOADED_VIDEO"
+    sourceName: Optional[str] = ""
+    confidence: Optional[float] = 0.0
+    className: Optional[str] = "person"
+    status: Optional[str] = "NEW"
+    caseId: Optional[str] = None
+    dataClassification: Optional[str] = "LIVE_VIDEO_EVENT"
+
+
+class VideoReportResponse(VideoReportBase):
+    id: str
+    reportId: str
+    timestamp: Optional[str] = None
+    frameNumber: Optional[int] = None
+    trackId: Optional[int] = None
+    boundingBox: Optional[Dict[str, Any]] = None
+    fullFrameFileId: Optional[str] = None
+    personCropFileId: Optional[str] = None
+    fullFrameUrl: Optional[str] = None
+    personCropUrl: Optional[str] = None
+    videoTimestamp: Optional[str] = None
+    createdAt: Optional[str] = None
+    updatedAt: Optional[str] = None

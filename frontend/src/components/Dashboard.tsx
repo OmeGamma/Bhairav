@@ -10,14 +10,16 @@ import {
   Search,
   Map as MapIcon,
   Network,
-  Cpu,
+   Cpu,
   ChevronRight,
-  Bell
+  Bell,
+  Activity
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
 const Dashboard: React.FC = () => {
-  const [analytics, setAnalytics] = useState<any>(null);
+const [analytics, setAnalytics] = useState<any>(null);
+  const [videoStats, setVideoStats] = useState<any>(null);
   const [recentCases, setRecentCases] = useState<any[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -28,10 +30,11 @@ const Dashboard: React.FC = () => {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        const [analyticsRes, casesRes, notifRes] = await Promise.all([
+        const [analyticsRes, casesRes, notifRes, videoRes] = await Promise.all([
           fetch('/api/analytics'),
           fetch('/api/cases'),
-          fetch('/api/notifications')
+          fetch('/api/notifications'),
+          fetch('/api/video-intelligence/status'),
         ]);
         if (analyticsRes.ok) setAnalytics(await analyticsRes.json());
         if (casesRes.ok) {
@@ -40,7 +43,11 @@ const Dashboard: React.FC = () => {
         }
         if (notifRes.ok) {
           const data = await notifRes.json();
-          setNotifications(data.filter((n: any) => !n.isRead).slice(0, 5));
+          setNotifications(data.filter((n: any) => !n.read).slice(0, 5));
+        }
+        if (videoRes.ok) {
+          const data = await videoRes.json();
+          setVideoStats(data.stats || null);
         }
       } catch (err) {
         console.error("Failed to load dashboard data", err);
@@ -80,8 +87,10 @@ const Dashboard: React.FC = () => {
         { name: 'Closed Cases', value: statusCounts.closed.toLocaleString(), icon: CheckCircle, color: 'text-green-500', bg: 'bg-green-500/20' },
          { name: 'High Priority', value: (analytics.cases_by_priority?.find((p: any) => p.priority.toUpperCase() === 'HIGH')?.count || 0).toLocaleString(), icon: AlertTriangle, color: 'text-red-500', bg: 'bg-red-500/20' },
         { name: 'Evidence Items', value: analytics.total_evidence.toLocaleString(), icon: FileText, color: 'text-purple-500', bg: 'bg-purple-500/20' },
-        { name: 'Documents', value: 0, icon: FileText, color: 'text-indigo-500', bg: 'bg-indigo-500/20' }, // Missing document count endpoint
-        { name: 'Videos', value: analytics.total_videos.toLocaleString(), icon: Video, color: 'text-teal-500', bg: 'bg-teal-500/20' },
+         { name: 'Documents', value: 0, icon: FileText, color: 'text-indigo-500', bg: 'bg-indigo-500/20' },
+         { name: 'Videos', value: analytics.total_videos.toLocaleString(), icon: Video, color: 'text-teal-500', bg: 'bg-teal-500/20' },
+         { name: 'Video Events', value: (videoStats?.total_events ?? 0).toLocaleString(), icon: Activity, color: 'text-rose-500', bg: 'bg-rose-500/20' },
+         { name: 'Today Events', value: (videoStats?.today_events ?? 0).toLocaleString(), icon: Clock, color: 'text-amber-500', bg: 'bg-amber-500/20' },
       ]
     : [];
 
@@ -198,21 +207,7 @@ const Dashboard: React.FC = () => {
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
                   Live network preview mapped from relational links between persons, vehicles, evidence, and FIRs in the database.
                 </p>
-                
-                {/* Mock Graph Preview */}
-                <div className="relative h-24 mb-4 rounded-lg bg-emerald-50/50 dark:bg-emerald-900/20 border border-emerald-100/50 dark:border-emerald-800/30 overflow-hidden flex items-center justify-center">
-                   <div className="absolute w-2 h-2 bg-emerald-500 rounded-full z-10"></div>
-                   <div className="absolute w-2 h-2 bg-blue-500 rounded-full z-10 -ml-12 -mt-8"></div>
-                   <div className="absolute w-2 h-2 bg-red-500 rounded-full z-10 ml-16 mt-6"></div>
-                   <div className="absolute w-2 h-2 bg-orange-500 rounded-full z-10 ml-8 -mt-10"></div>
-                   <svg className="absolute inset-0 w-full h-full opacity-50 stroke-emerald-500/30 dark:stroke-emerald-400/30" strokeWidth="1">
-                     <line x1="50%" y1="50%" x2="35%" y2="25%" />
-                     <line x1="50%" y1="50%" x2="70%" y2="75%" />
-                     <line x1="50%" y1="50%" x2="60%" y2="20%" />
-                   </svg>
-                </div>
-
-                <div className="mt-auto">
+                 <div className="mt-auto">
                   <div className="text-xs font-medium text-emerald-600 dark:text-emerald-400 flex items-center">
                     Explore Graph <ChevronRight className="w-3 h-3 ml-1" />
                   </div>
@@ -234,26 +229,41 @@ const Dashboard: React.FC = () => {
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
                   Live map and hotspot preview identifying high incident concentrations and spatial patterns.
                 </p>
-
-                {/* Mock Map Preview */}
-                <div className="relative h-24 mb-4 rounded-lg bg-blue-50/50 dark:bg-blue-900/10 border border-amber-100/50 dark:border-amber-800/30 overflow-hidden flex items-center justify-center bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]">
-                   <div className="absolute w-4 h-4 bg-red-500 rounded-full z-10 opacity-60 blur-[4px] -ml-8 -mt-2 animate-pulse"></div>
-                   <div className="absolute w-3 h-3 bg-red-500 rounded-full z-10 border-2 border-white -ml-8 -mt-2"></div>
-                   
-                   <div className="absolute w-6 h-6 bg-orange-500 rounded-full z-10 opacity-50 blur-[6px] ml-12 mt-6"></div>
-                   <div className="absolute w-3 h-3 bg-orange-500 rounded-full z-10 border-2 border-white ml-12 mt-6"></div>
-                </div>
-
-                <div className="mt-auto">
+                 <div className="mt-auto">
                   <div className="text-xs font-medium text-amber-600 dark:text-amber-400 flex items-center">
                     Open Map <ChevronRight className="w-3 h-3 ml-1" />
                   </div>
                 </div>
               </div>
+             </Link>
+
+            {/* 4. Video Intelligence */}
+            <Link to="/video-intelligence" className="block group">
+              <div className="h-full bg-gradient-to-br from-rose-50 to-white dark:from-gray-800 dark:to-dark-card rounded-2xl shadow-sm border border-rose-100 dark:border-gray-700 p-6 transition-all hover:shadow-lg hover:border-rose-300 dark:hover:border-rose-500 relative overflow-hidden">
+                <div className="absolute -right-4 -bottom-4 w-32 h-32 bg-rose-500/10 rounded-full blur-2xl group-hover:bg-rose-500/20 transition-all"></div>
+                <div className="flex justify-between items-start mb-4">
+                  <div className="p-3 rounded-xl bg-rose-100 dark:bg-rose-900/50 text-rose-600 dark:text-rose-400">
+                    <Video className="w-6 h-6" />
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-rose-500 transition-colors" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Video Intelligence</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  Real-time YOLO-based person detection from live camera feeds and uploaded videos. Track suspects, generate alerts, and link evidence to cases.
+                </p>
+                {videoStats && (
+                  <div className="mt-auto">
+                    <div className="flex gap-4 text-xs">
+                      <span className="text-rose-600 dark:text-rose-400 font-medium">{videoStats.total_events} events</span>
+                      <span className="text-gray-500 dark:text-gray-400">{videoStats.today_events} today</span>
+                    </div>
+                  </div>
+                )}
+              </div>
             </Link>
 
-          </div>
-        </div>
+           </div>
+         </div>
 
         {/* Recent Cases & Live Alerts */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

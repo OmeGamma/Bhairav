@@ -1,16 +1,18 @@
-from fastapi import FastAPI, Depends, HTTPException, File, UploadFile, Query
+from fastapi import FastAPI, Depends, HTTPException, File, UploadFile, Query, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse, JSONResponse
+from fastapi.responses import StreamingResponse, JSONResponse, FileResponse
 import os
 import json
 import re
 import math
 import io
+import cv2
+import base64
 import google.generativeai as genai
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 
-from config.database import check_connection, get_collection
+from config.database import check_connection as _db_check_connection, get_collection, setup_indexes
 from models.case import (
     create_case,
     get_all_cases,
@@ -52,10 +54,11 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
 
-check_connection()
+_db_check_connection()
 
-UPLOAD_DIR = "uploads"
-for subdir in ["documents", "evidence", "videos", "reports"]:
+BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+UPLOAD_DIR = os.path.join(BACKEND_DIR, "uploads")
+for subdir in ["documents", "evidence", "videos", "reports", "video_evidence"]:
     os.makedirs(os.path.join(UPLOAD_DIR, subdir), exist_ok=True)
 
 app = FastAPI(title="Bhairav API", version="2.0.0")
@@ -429,12 +432,78 @@ def get_suspect(suspect_id: str):
 
 @app.get("/api/health")
 def health_check():
-    from config.database import check_connection
-    db_ok = check_connection()
+    db_ok, _ = _db_check_connection()
     return {
         "backend": "OK",
         "database": "connected" if db_ok else "disconnected",
-        "version": "2.0.0"
+        "version": "2.0.0",
+        "status": "healthy" if db_ok else "degraded",
+        "components": {
+            "api": "operational",
+            "database": "connected" if db_ok else "disconnected",
+        }
+    }
+
+@app.get("/api/system/status")
+def system_status():
+    from services.yolo_service import get_yolo_status
+    from services.video_report_service import get_stats
+
+    db_ok, db_error = _db_check_connection()
+
+    uploads_dir = os.path.join(BACKEND_DIR, "uploads")
+    storage_ok = os.path.isdir(uploads_dir) and os.access(uploads_dir, os.W_OK)
+
+    ai_ok = bool(os.getenv("GEMINI_API_KEY"))
+
+    yolo_status = get_yolo_status() if VIDEO_INTELLIGENCE_ENABLED else {"initialized": False, "error": "Video Intelligence disabled"}
+    video_ok = yolo_status.get("initialized", False)
+
+    try:
+        from models.notification import get_notifications_collection
+        get_notifications_collection().count_documents({}, limit=1)
+        notifications_ok = db_ok
+    except Exception:
+        notifications_ok = False
+
+    ws_ok = len(ws_manager.active_connections) >= 0
+
+    components = {
+        "database": {
+            "status": "connected" if db_ok else "disconnected",
+            "error": db_error if not db_ok else None,
+        },
+        "storage": {
+            "status": "operational" if storage_ok else "unavailable",
+            "uploadsPath": uploads_dir,
+        },
+        "ai": {
+            "status": "configured" if ai_ok else "not_configured",
+        },
+        "videoIntelligence": {
+            "status": "operational" if video_ok else "degraded",
+            "enabled": VIDEO_INTELLIGENCE_ENABLED,
+            "yolo": yolo_status,
+            "stats": get_stats() if VIDEO_INTELLIGENCE_ENABLED else {},
+        },
+        "notifications": {
+            "status": "operational" if notifications_ok else "unavailable",
+        },
+        "websocket": {
+            "status": "operational",
+            "activeConnections": len(ws_manager.active_connections),
+        },
+    }
+
+    overall = all(
+        c.get("status") in ("connected", "operational", "configured")
+        for c in components.values()
+    )
+
+    return {
+        "status": "healthy" if overall else "degraded",
+        "version": "2.0.0",
+        "components": components,
     }
 
 @app.get("/api/documents")
@@ -485,14 +554,35 @@ def serve_file(file_id: str, download: bool = False):
         raise HTTPException(status_code=404, detail="File not found")
     
     storage_path = record.get("storagePath", "")
-    if not storage_path or not os.path.exists(storage_path):
+    if not storage_path:
+        raise HTTPException(status_code=404, detail="File unavailable")
+    
+    # Resolve storage_path to absolute path
+    # Try multiple possible locations
+    possible_paths = [
+        os.path.join(UPLOAD_DIR, storage_path),
+        os.path.join(UPLOAD_DIR, "documents", storage_path),
+        os.path.join(UPLOAD_DIR, "evidence", storage_path),
+        os.path.join(UPLOAD_DIR, "videos", storage_path),
+        os.path.join(UPLOAD_DIR, "video_evidence", storage_path),
+        os.path.join(UPLOAD_DIR, "reports", storage_path),
+        storage_path,  # in case it's already absolute
+    ]
+    
+    resolved_path = None
+    for p in possible_paths:
+        if os.path.exists(p):
+            resolved_path = p
+            break
+    
+    if not resolved_path:
         raise HTTPException(status_code=404, detail="File unavailable")
     
     mime_type = record.get("mimeType", "application/octet-stream")
-    file_name = record.get("fileName", os.path.basename(storage_path))
+    file_name = record.get("fileName", os.path.basename(resolved_path))
     
     def iterfile():
-        with open(storage_path, "rb") as f:
+        with open(resolved_path, "rb") as f:
             while chunk := f.read(8192):
                 yield chunk
     
@@ -737,10 +827,22 @@ def mark_all_notifications_read():
 async def upload_document(file: UploadFile = File(...)):
     if not file:
         raise HTTPException(status_code=400, detail="No file uploaded")
-    file_path = await doc_proc.save_upload_file(file)
+    filename = await doc_proc.save_upload_file(file)
+    file_path = os.path.join(DOCUMENTS_DIR, filename)
     text = doc_proc.extract_text_from_file(file_path)
     if not text:
+        # Still create document record even if text extraction fails
+        document_doc = create_document({
+            "documentId": f"DOC-{filename[:8]}",
+            "caseId": None,
+            "fileName": file.filename,
+            "mimeType": file.content_type or "application/octet-stream",
+            "storagePath": filename,
+            "storageUrl": f"/api/files/{filename}",
+            "extractedText": None,
+        })
         return {
+            "documentId": document_doc.get("documentId"),
             "filename": file.filename,
             "message": "File uploaded successfully. Text extraction for this format is pending integration.",
             "extracted": False
@@ -757,20 +859,52 @@ async def upload_document(file: UploadFile = File(...)):
             response = model.generate_content(prompt)
             match = re.search(r'\{.*\}', response.text, re.DOTALL)
             entities = json.loads(match.group(0)) if match else {}
+            document_doc = create_document({
+                "documentId": f"DOC-{filename[:8]}",
+                "caseId": entities.get("caseNumber"),
+                "fileName": file.filename,
+                "mimeType": file.content_type or "application/octet-stream",
+                "storagePath": filename,
+                "storageUrl": f"/api/files/{filename}",
+                "extractedText": text,
+                "entities": entities,
+            })
             return {
+                "documentId": document_doc.get("documentId"),
                 "filename": file.filename,
                 "message": "Document processed successfully.",
                 "extracted": True,
                 "entities": entities
             }
         else:
+            document_doc = create_document({
+                "documentId": f"DOC-{filename[:8]}",
+                "caseId": None,
+                "fileName": file.filename,
+                "mimeType": file.content_type or "application/octet-stream",
+                "storagePath": filename,
+                "storageUrl": f"/api/files/{filename}",
+                "extractedText": text,
+            })
             return {
+                "documentId": document_doc.get("documentId"),
                 "filename": file.filename,
                 "message": "File uploaded. AI extraction unavailable (no API key configured).",
                 "extracted": False
             }
     except Exception as e:
+        document_doc = create_document({
+            "documentId": f"DOC-{filename[:8]}",
+            "caseId": None,
+            "fileName": file.filename,
+            "mimeType": file.content_type or "application/octet-stream",
+            "storagePath": filename,
+            "storageUrl": f"/api/files/{filename}",
+            "extractedText": text,
+            "error": str(e),
+        })
         return {
+            "documentId": document_doc.get("documentId"),
             "filename": file.filename,
             "message": f"Error during extraction: {str(e)}",
             "extracted": False
@@ -848,5 +982,304 @@ def get_hotspots():
             })
     except:
         pass
-        
+
     return clusters
+
+
+VIDEO_INTELLIGENCE_ENABLED = os.getenv("VIDEO_INTELLIGENCE_ENABLED", "true").lower() in ("true", "1", "yes")
+
+from models.video_report import create_collection_indexes as _create_video_indexes
+
+@app.on_event("startup")
+def startup_event():
+    try:
+        _create_video_indexes()
+    except Exception as e:
+        print(f"Video report index creation warning: {e}")
+    if VIDEO_INTELLIGENCE_ENABLED:
+        try:
+            from services.yolo_service import initialize_yolo
+            initialize_yolo()
+        except Exception as e:
+            print(f"YOLO initialization error: {e}")
+
+
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
+
+    async def connect(self, ws: WebSocket):
+        await ws.accept()
+        self.active_connections.append(ws)
+
+    def disconnect(self, ws: WebSocket):
+        if ws in self.active_connections:
+            self.active_connections.remove(ws)
+
+    async def broadcast(self, message: dict):
+        dead = []
+        for conn in self.active_connections:
+            try:
+                import json as _json
+                await conn.send_text(_json.dumps(message))
+            except Exception:
+                dead.append(conn)
+        for d in dead:
+            self.active_connections.remove(d)
+
+
+ws_manager = ConnectionManager()
+
+
+@app.get("/api/video-intelligence/status")
+def get_video_status():
+    from services.yolo_service import get_yolo_status
+    from services.video_report_service import get_stats
+    return {
+        "enabled": VIDEO_INTELLIGENCE_ENABLED,
+        "yolo": get_yolo_status(),
+        "confidence_threshold": float(os.getenv("VIDEO_PERSON_CONFIDENCE", "0.50")),
+        "inference_fps": float(os.getenv("VIDEO_INFERENCE_FPS", "10")),
+        "alert_cooldown_seconds": float(os.getenv("VIDEO_ALERT_COOLDOWN_SECONDS", "10")),
+        "stats": get_stats() if VIDEO_INTELLIGENCE_ENABLED else {},
+    }
+
+
+@app.get("/api/video-intelligence/reports")
+def get_video_reports(
+    source_type: Optional[str] = Query(None),
+    status: Optional[str] = Query(None),
+    case_id: Optional[str] = Query(None),
+    search: Optional[str] = Query(None),
+    sort_by: str = Query("createdAt"),
+    sort_order: int = Query(-1, ge=-1, le=1),
+    limit: int = Query(100, ge=1, le=200),
+):
+    from services.video_report_service import query_video_reports
+    filters = {}
+    if source_type:
+        filters["sourceType"] = source_type
+    if status:
+        filters["status"] = status
+    if case_id:
+        filters["caseId"] = case_id
+    if search:
+        filters["$or"] = [
+            {"eventType": {"$regex": search, "$options": "i"}},
+            {"sourceName": {"$regex": search, "$options": "i"}},
+            {"className": {"$regex": search, "$options": "i"}},
+        ]
+    reports = query_video_reports(filters=filters, sort_by=sort_by, sort_order=sort_order, limit=limit)
+    return reports
+
+
+@app.get("/api/video-intelligence/reports/{report_id}")
+def get_video_report(report_id: str):
+    from services.video_report_service import get_video_report
+    report = get_video_report(report_id)
+    if not report:
+        raise HTTPException(status_code=404, detail="Video report not found")
+    return report
+
+
+@app.patch("/api/video-intelligence/reports/{report_id}")
+def update_video_report_endpoint(report_id: str, report_in: dict):
+    from services.video_report_service import update_report
+    updated = update_report(report_id, report_in)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Video report not found")
+    return updated
+
+
+@app.post("/api/video-intelligence/reports/{report_id}/link-case")
+def link_video_report_to_case(report_id: str, case_id: str = Query(...)):
+    from services.video_report_service import link_report_to_case
+    updated = link_report_to_case(report_id, case_id)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Video report not found")
+    return updated
+
+
+@app.get("/api/video-intelligence/reports/by-case/{case_id}")
+def get_reports_for_case(case_id: str):
+    from services.video_report_service import get_reports_by_case
+    return get_reports_by_case(case_id)
+
+
+@app.post("/api/video-intelligence/upload")
+async def upload_video(file: UploadFile = File(...), case_id: Optional[str] = Query(None)):
+    if not VIDEO_INTELLIGENCE_ENABLED:
+        raise HTTPException(status_code=503, detail="Video Intelligence is disabled.")
+
+    if not file or not file.filename:
+        raise HTTPException(status_code=400, detail="No file provided.")
+
+    from utils.video_utils import is_allowed_video, save_upload_file, get_mime_type, get_video_info
+    from services.video_report_service import create_video_report
+
+    if not is_allowed_video(file.filename):
+        raise HTTPException(status_code=400, detail="Unsupported video file type. Allowed: .mp4, .webm, .ogg, .avi, .mkv, .mov, .wmv, .flv")
+
+    file_bytes = await file.read()
+    if len(file_bytes) > 200 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File too large. Maximum 200MB.")
+
+    stored_name = save_upload_file(file_bytes, file.filename, "videos")
+    from config.database import get_collection
+    video_doc = create_video({
+        "videoId": f"VIDEO-{stored_name[:8]}",
+        "caseId": case_id,
+        "fileName": file.filename,
+        "mimeType": get_mime_type(file.filename),
+        "storagePath": stored_name,
+        "storageUrl": f"/api/video-files/videos/{stored_name}",
+        "processingStatus": "PROCESSING",
+    })
+
+    import threading
+    from services.video_analysis_service import video_analysis_service
+
+    def _run_analysis():
+        info = get_video_info(os.path.join(UPLOAD_DIR, "videos", stored_name))
+        try:
+            result = video_analysis_service.analyze_uploaded_video_async(
+                os.path.join(UPLOAD_DIR, "videos", stored_name),
+                source_name=file.filename,
+                case_id=case_id,
+            )
+            from models.video import get_videos_collection
+            get_videos_collection().find_one_and_update(
+                {"videoId": video_doc["videoId"]},
+                {"$set": {"processingStatus": "COMPLETED", **info}},
+                return_document=True,
+            )
+        except Exception as e:
+            print(f"Video analysis error: {e}")
+            from models.video import get_videos_collection
+            get_videos_collection().find_one_and_update(
+                {"videoId": video_doc["videoId"]},
+                {"$set": {"processingStatus": "FAILED", "error": str(e)}},
+                return_document=True,
+            )
+
+    threading.Thread(target=_run_analysis, daemon=True).start()
+
+    return {
+        "status": "processing_started",
+        "videoId": video_doc["videoId"],
+        "fileName": file.filename,
+        "message": "Video uploaded. Analysis is running in the background.",
+    }
+
+
+@app.post("/api/video-intelligence/analyze-frame")
+async def analyze_frame_api(file: UploadFile = File(...), case_id: Optional[str] = Query(None)):
+    if not VIDEO_INTELLIGENCE_ENABLED:
+        raise HTTPException(status_code=503, detail="Video Intelligence is disabled.")
+
+    from services.video_analysis_service import video_analysis_service
+    from datetime import datetime
+
+    frame_bytes = await file.read()
+    video_timestamp = datetime.utcnow().strftime("%M:%S")
+    results = video_analysis_service.analyze_camera_frame(
+        frame_bytes=frame_bytes,
+        source_name="API Frame",
+        frame_number=0,
+        video_timestamp=video_timestamp,
+        case_id=case_id,
+    )
+    return {"detections": results}
+
+
+@app.get("/api/video-files/evidence/{file_id}")
+async def serve_evidence_file(file_id: str, download: bool = False):
+    from utils.video_utils import get_file_path
+    from fastapi.responses import FileResponse
+    path = get_file_path(file_id, "evidence")
+    if os.path.exists(path):
+        from mimetypes import guess_type
+        mime_type, _ = guess_type(path)
+        disposition = "attachment" if download else "inline"
+        return FileResponse(path, media_type=mime_type or "application/octet-stream", headers={"Content-Disposition": f"{disposition}; filename=\"{os.path.basename(path)}\""})
+    raise HTTPException(status_code=404, detail="File not found")
+
+
+@app.get("/api/video-files/videos/{file_id}")
+async def serve_video_file(file_id: str, download: bool = False):
+    from utils.video_utils import get_file_path
+    from fastapi.responses import FileResponse
+    path = get_file_path(file_id, "videos")
+    if os.path.exists(path):
+        from mimetypes import guess_type
+        mime_type, _ = guess_type(path)
+        disposition = "attachment" if download else "inline"
+        return FileResponse(path, media_type=mime_type or "application/octet-stream", headers={"Content-Disposition": f"{disposition}; filename=\"{os.path.basename(path)}\""})
+    raise HTTPException(status_code=404, detail="File not found")
+
+
+@app.websocket("/ws/video-intelligence")
+async def websocket_video_intelligence(ws: WebSocket):
+    await ws_manager.connect(ws)
+    try:
+        while True:
+            try:
+                data = await ws.receive_text()
+                message = json.loads(data)
+                msg_type = message.get("type")
+
+                if msg_type == "analyze_frame":
+                    import base64
+                    import numpy as np
+                    img_data = message.get("frame")
+                    if not img_data:
+                        await ws.send_text(json.dumps({"type": "video_error", "message": "No frame data"}))
+                        continue
+
+                    frame_bytes = base64.b64decode(img_data)
+                    source_name = message.get("sourceName", "Laptop Camera")
+                    frame_number = message.get("frameNumber")
+                    video_timestamp = message.get("videoTimestamp")
+                    case_id = message.get("caseId")
+
+                    np_arr = np.frombuffer(frame_bytes, np.uint8)
+                    frame = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+                    if frame is None:
+                        await ws.send_text(json.dumps({"type": "video_error", "message": "Failed to decode frame"}))
+                        continue
+
+                    persons = video_analysis_service.analyze_camera_frame(
+                        frame_bytes=frame_bytes,
+                        source_name=source_name,
+                        frame_number=frame_number,
+                        video_timestamp=video_timestamp,
+                        case_id=case_id,
+                        on_detection=None,
+                    )
+
+                    detections = []
+                    for p in persons:
+                        detections.append({
+                            "class": "person",
+                            "confidence": p["confidence"] if isinstance(p, dict) else p,
+                            "bounding_box": p.get("bounding_box", {}) if isinstance(p, dict) else {},
+                            "track_id": p.get("track_id") if isinstance(p, dict) else None,
+                            "event_type": p.get("event_type", "PERSON_DETECTED") if isinstance(p, dict) else "PERSON_DETECTED",
+                        })
+
+                    await ws.send_text(json.dumps({
+                        "type": "detections",
+                        "source": source_name,
+                        "frame_number": frame_number,
+                        "detections": detections,
+                    }))
+
+                elif msg_type == "ping":
+                    await ws.send_text(json.dumps({"type": "pong"}))
+
+            except WebSocketDisconnect:
+                break
+            except Exception as e:
+                await ws.send_text(json.dumps({"type": "video_error", "message": str(e)}))
+    finally:
+        ws_manager.disconnect(ws)

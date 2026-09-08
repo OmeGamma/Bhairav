@@ -20,10 +20,11 @@ import clsx from 'clsx';
 const navItems = [
   { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
   { name: 'AI Criminal Analyzer', path: '/ai-analyzer', icon: BrainCircuit },
-  { name: 'Video Intelligence', path: '/video-intelligence', icon: Video },
+   { name: 'Video Intelligence', path: '/video-intelligence', icon: Video },
   { name: 'Criminal Network', path: '/criminal-network', icon: Network },
   { name: 'Geospatial Intelligence', path: '/geospatial', icon: Map },
   { name: 'Case Files', path: '/cases', icon: FolderOpen },
+  { name: 'Video Reports', path: '/video-reports', icon: Video },
   { name: 'Reports', path: '/reports', icon: FileText },
   { name: 'Document Intelligence', path: '/documents', icon: FileSearch },
   { name: 'Intelligence Search', path: '/search', icon: Search },

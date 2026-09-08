@@ -34,6 +34,17 @@ Thumbs.db
 backend/uploads/
 backend/uploads/**
 
+# YOLO / Model caches
+backend/ultralytics/
+backend/runs/
+backend/**/weights/
+
+# Patch scripts
+backend/patch.py
+frontend/patch_geo.py
+frontend/patch_network.py
+backend/patch_hotspots.py
+
 # Kilo
 .kilo/
 

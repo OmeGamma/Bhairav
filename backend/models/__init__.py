@@ -141,6 +141,33 @@ def create_video_document(data: Dict[str, Any]) -> Dict[str, Any]:
         "processingStatus": data.get("processingStatus", "PENDING"),
     }
 
+def create_video_report_document(data: Dict[str, Any]) -> Dict[str, Any]:
+    now = datetime.utcnow()
+    return {
+        "reportId": data.get("reportId", f"VIDEOREPORT-{int(now.timestamp() * 1000)}"),
+        "eventType": data.get("eventType", "PERSON_DETECTED"),
+        "sourceType": data.get("sourceType", "UPLOADED_VIDEO"),
+        "sourceName": data.get("sourceName", ""),
+        "sourceFileId": data.get("sourceFileId"),
+        "videoFileId": data.get("videoFileId"),
+        "caseId": data.get("caseId"),
+        "timestamp": data.get("timestamp", now.isoformat()),
+        "frameNumber": data.get("frameNumber"),
+        "trackId": data.get("trackId"),
+        "confidence": data.get("confidence", 0.0),
+        "className": data.get("className", "person"),
+        "boundingBox": data.get("boundingBox"),
+        "fullFrameFileId": data.get("fullFrameFileId"),
+        "personCropFileId": data.get("personCropFileId"),
+        "fullFrameUrl": data.get("fullFrameUrl"),
+        "personCropUrl": data.get("personCropUrl"),
+        "videoTimestamp": data.get("videoTimestamp"),
+        "status": data.get("status", "NEW"),
+        "dataClassification": data.get("dataClassification", "LIVE_VIDEO_EVENT"),
+        "createdAt": now,
+        "updatedAt": now,
+    }
+
 def create_person_document(data: Dict[str, Any]) -> Dict[str, Any]:
     now = datetime.utcnow()
     return {

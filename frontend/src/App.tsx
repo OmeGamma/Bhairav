@@ -11,6 +11,8 @@ import ReportView from './components/ReportView';
 import ReportsList from './components/ReportsList';
 import Profile from './components/Profile';
 import DocumentIntelligence from './components/DocumentIntelligence';
+import VideoReports from './pages/VideoReports';
+import VideoReportDetail from './pages/VideoReportDetail';
 import VideoIntelligence from './components/VideoIntelligence';
 import Alerts from './components/Alerts';
 import Settings from './components/Settings';
@@ -59,6 +61,8 @@ function App() {
           <Route path="/report-preview" element={<ReportView />} />
           <Route path="/documents" element={<DocumentIntelligence />} />
           <Route path="/video-intelligence" element={<VideoIntelligence />} />
+        <Route path="/video-reports" element={<VideoReports />} />
+        <Route path="/video-reports/:id" element={<VideoReportDetail />} />
           <Route path="/alerts" element={<Alerts />} />
           <Route path="/reports" element={<ReportsList />} />
           <Route path="/search" element={<AIAnalyzer />} />
