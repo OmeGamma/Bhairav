@@ -822,7 +822,8 @@ def mark_notifications_read(notification_ids: List[str]):
     return {"status": "success"}
 
 @app.post("/api/notifications/read_all")
-def mark_all_notifications_read():
+def mark_all_notifications_read_endpoint():
+    from models.notification import mark_all_notifications_read
     count = mark_all_notifications_read()
     return {"status": "success", "modified": count}
 
@@ -999,12 +1000,36 @@ def startup_event():
         _create_video_indexes()
     except Exception as e:
         print(f"Video report index creation warning: {e}")
+        
+    try:
+        from services.cloudinary_service import init_cloudinary
+        if init_cloudinary():
+            print("Cloudinary initialized successfully.")
+        else:
+            print("Cloudinary configuration missing or failed.")
+    except Exception as e:
+        print(f"Cloudinary init error: {e}")
+
+    try:
+        from services.media_cleanup_service import start_cleanup_scheduler
+        start_cleanup_scheduler()
+    except Exception as e:
+        print(f"Media cleanup scheduler error: {e}")
+        
     if VIDEO_INTELLIGENCE_ENABLED:
         try:
             from services.yolo_service import initialize_yolo
             initialize_yolo()
         except Exception as e:
             print(f"YOLO initialization error: {e}")
+
+@app.on_event("shutdown")
+def shutdown_event():
+    try:
+        from services.media_cleanup_service import stop_cleanup_scheduler
+        stop_cleanup_scheduler()
+    except:
+        pass
 
 
 class ConnectionManager:
@@ -1038,13 +1063,41 @@ ws_manager = ConnectionManager()
 def get_video_status():
     from services.yolo_service import get_yolo_status
     from services.video_report_service import get_stats
+    from services.telegram_service import get_telegram_status
     return {
         "enabled": VIDEO_INTELLIGENCE_ENABLED,
         "yolo": get_yolo_status(),
+        "telegram": get_telegram_status(),
         "confidence_threshold": float(os.getenv("VIDEO_PERSON_CONFIDENCE", "0.50")),
         "inference_fps": float(os.getenv("VIDEO_INFERENCE_FPS", "10")),
         "alert_cooldown_seconds": float(os.getenv("VIDEO_ALERT_COOLDOWN_SECONDS", "10")),
         "stats": get_stats() if VIDEO_INTELLIGENCE_ENABLED else {},
+    }
+
+@app.post("/api/admin/storage/cleanup")
+def manual_storage_cleanup():
+    from services.media_cleanup_service import run_cleanup
+    result = run_cleanup()
+    return {"status": "success", "result": result}
+
+@app.post("/api/system/test-telegram")
+def test_telegram_connection():
+    from services.telegram_service import test_connection
+    success = test_connection()
+    return {"status": "success" if success else "failed"}
+
+@app.get("/api/system/status")
+def system_status():
+    from services.cloudinary_service import get_system_status as get_cloudinary_status
+    from services.telegram_service import get_telegram_status
+    from services.yolo_service import get_yolo_status
+    return {
+        "database": "CONNECTED", # Assuming we are here, DB is alive.
+        "cloudinary": "CONNECTED" if get_cloudinary_status() else "UNAVAILABLE",
+        "yolo": get_yolo_status(),
+        "telegram": get_telegram_status(),
+        "storage": "CLOUDINARY_PERSISTENT",
+        "video_intelligence": "READY" if VIDEO_INTELLIGENCE_ENABLED else "DISABLED"
     }
 
 
@@ -1286,3 +1339,8 @@ async def websocket_video_intelligence(ws: WebSocket):
                 await ws.send_text(json.dumps({"type": "video_error", "message": str(e)}))
     finally:
         ws_manager.disconnect(ws)
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+

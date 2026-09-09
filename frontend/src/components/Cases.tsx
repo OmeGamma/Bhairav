@@ -35,13 +35,13 @@ const Cases: React.FC = () => {
     fetchCases(viewMode);
   }, [viewMode]);
 
-  const cities = ['All', ...Array.from(new Set(casesData.map(c => c.location?.city).filter(Boolean)))];
-  const states = ['All', ...Array.from(new Set(casesData.map(c => c.location?.state).filter(Boolean)))];
+  const cities = ['All', ...Array.from(new Set(casesData.map(c => c.location?.city || c.city).filter(Boolean)))];
+  const states = ['All', ...Array.from(new Set(casesData.map(c => c.location?.state || c.state).filter(Boolean)))];
   const crimes = ['All', ...Array.from(new Set(casesData.map(c => c.crimeType).filter(Boolean)))];
 
   const filteredCases = casesData.filter(c => {
-    if (filterCity !== 'All' && c.location?.city !== filterCity) return false;
-    if (filterState !== 'All' && c.location?.state !== filterState) return false;
+    if (filterCity !== 'All' && (c.location?.city || c.city) !== filterCity) return false;
+    if (filterState !== 'All' && (c.location?.state || c.state) !== filterState) return false;
     if (filterCrime !== 'All' && c.crimeType !== filterCrime) return false;
     if (filterPriority !== 'All' && c.priority?.toUpperCase() !== filterPriority) return false;
     if (filterStatus !== 'All' && c.status?.toUpperCase() !== filterStatus) return false;
@@ -197,7 +197,7 @@ const Cases: React.FC = () => {
                           )}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{caseItem.location?.city || 'Unknown'}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{caseItem.location?.city || caseItem.city || 'Unknown'}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{caseItem.crimeType}</td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getPriorityColor(caseItem.priority)}`}>

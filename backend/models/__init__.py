@@ -214,6 +214,34 @@ def create_organization_document(data: Dict[str, Any]) -> Dict[str, Any]:
         "createdAt": now,
     }
 
+def create_media_file_document(data: Dict[str, Any]) -> Dict[str, Any]:
+    from datetime import timedelta
+    now = datetime.utcnow()
+    import os
+    retention_days = int(os.getenv("MEDIA_RETENTION_DAYS", "7"))
+    expires_at = now + timedelta(days=retention_days)
+
+    return {
+        "fileId": data.get("fileId", f"MEDIA-{int(now.timestamp() * 1000)}"),
+        "originalName": data.get("originalName", ""),
+        "mimeType": data.get("mimeType", ""),
+        "resourceType": data.get("resourceType", "image"),
+        "cloudinaryPublicId": data.get("cloudinaryPublicId", ""),
+        "cloudinaryAssetId": data.get("cloudinaryAssetId", ""),
+        "secureUrl": data.get("secureUrl", ""),
+        "format": data.get("format", ""),
+        "bytes": data.get("bytes", 0),
+        "folder": data.get("folder", ""),
+        "uploadedBy": data.get("uploadedBy", "System"),
+        "caseId": data.get("caseId"),
+        "videoReportId": data.get("videoReportId"),
+        "eventId": data.get("eventId"),
+        "createdAt": now,
+        "expiresAt": expires_at,
+        "dataClassification": data.get("dataClassification", "GENERAL"),
+        "status": data.get("status", "ACTIVE")
+    }
+
 def create_fir_document(data: Dict[str, Any]) -> Dict[str, Any]:
     now = datetime.utcnow()
     return {
@@ -225,3 +253,4 @@ def create_fir_document(data: Dict[str, Any]) -> Dict[str, Any]:
         "description": data.get("description", ""),
         "createdAt": now,
     }
+

@@ -216,6 +216,64 @@ const Settings: React.FC = () => {
           </div>
         </div>
 
+        {/* External Notifications */}
+        <div className="bg-white dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border p-6">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 border-b border-gray-200 dark:border-gray-700 pb-2 flex items-center">
+            <Bell className="w-5 h-5 mr-2" /> External Notifications
+          </h2>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-900 dark:text-white">Telegram Alerts</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Status: {systemStatus?.telegram || 'Unknown'}</p>
+              </div>
+              <button
+                onClick={async () => {
+                  try {
+                    const res = await fetch('/api/system/test-telegram', { method: 'POST' });
+                    const data = await res.json();
+                    alert(`Telegram Test: ${data.status}`);
+                  } catch(e) {
+                    alert('Error testing telegram');
+                  }
+                }}
+                className="px-4 py-2 bg-light-accent text-white rounded-md text-sm hover:bg-blue-600 transition-colors"
+              >
+                TEST TELEGRAM
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Storage */}
+        <div className="bg-white dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border p-6">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 border-b border-gray-200 dark:border-gray-700 pb-2 flex items-center">
+            <HardDrive className="w-5 h-5 mr-2" /> Storage (7-Day Retention)
+          </h2>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-900 dark:text-white">Media Expiration Policy</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">All media auto-expires after 7 days</p>
+              </div>
+              <button
+                onClick={async () => {
+                  try {
+                    const res = await fetch('/api/admin/storage/cleanup', { method: 'POST' });
+                    const data = await res.json();
+                    alert(`Cleanup Complete: ${data.result.deleted} deleted, ${data.result.failed} failed.`);
+                  } catch(e) {
+                    alert('Error running cleanup');
+                  }
+                }}
+                className="px-4 py-2 border border-red-500 text-red-500 rounded-md text-sm hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+              >
+                RUN CLEANUP NOW
+              </button>
+            </div>
+          </div>
+        </div>
+
         {/* System Status */}
         <div className="bg-white dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border p-6">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 border-b border-gray-200 dark:border-gray-700 pb-2 flex items-center">
@@ -224,7 +282,7 @@ const Settings: React.FC = () => {
           <div className="flex items-center justify-between mb-4">
             <div>
               <p className="text-sm font-medium text-gray-900 dark:text-white">Backend Services</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Monitor system health and latency</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Monitor system health and configuration</p>
             </div>
             <button
               onClick={checkSystemStatus}
@@ -244,25 +302,22 @@ const Settings: React.FC = () => {
           {systemStatus && (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {[
-                 { key: 'database', label: 'Database', icon: Database },
-                 { key: 'storage', label: 'Storage', icon: HardDrive },
-                 { key: 'ai', label: 'AI', icon: Cpu },
-                 { key: 'videoIntelligence', label: 'Video Intelligence', icon: Video },
-                 { key: 'notifications', label: 'Notifications', icon: Bell },
-                 { key: 'websocket', label: 'WebSocket', icon: Wifi },
+                 { key: 'database', label: 'MongoDB', icon: Database },
+                 { key: 'cloudinary', label: 'Cloudinary', icon: HardDrive },
+                 { key: 'yolo', label: 'YOLO', icon: Cpu },
+                 { key: 'video_intelligence', label: 'Video Intelligence', icon: Video },
+                 { key: 'telegram', label: 'Telegram', icon: Bell },
                ].map(({ key, label, icon: Icon }) => {
-                 const service = systemStatus.components?.[key];
-                 const status = service?.status?.toLowerCase() || 'unknown';
-                const isHealthy = status === 'healthy' || status === 'operational' || status === 'ok';
-                const statusColor = isHealthy ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
-                const bgColor = isHealthy ? 'bg-green-100 dark:bg-green-900/20' : 'bg-red-100 dark:bg-red-900/20';
+                 const status = typeof systemStatus[key] === 'string' ? systemStatus[key] : (systemStatus[key]?.status || 'UNKNOWN');
+                const isHealthy = status === 'CONNECTED' || status === 'READY' || status === 'CONFIGURED' || status === 'operational' || status === 'healthy';
+                const statusColor = isHealthy ? 'text-green-600 dark:text-green-400' : (status === 'DISABLED' ? 'text-gray-500' : 'text-red-600 dark:text-red-400');
+                const bgColor = isHealthy ? 'bg-green-100 dark:bg-green-900/20' : (status === 'DISABLED' ? 'bg-gray-100 dark:bg-gray-800' : 'bg-red-100 dark:bg-red-900/20');
                 return (
                   <div key={key} className={`p-3 rounded-md border ${bgColor} ${statusColor} flex items-center gap-3`}>
                     <Icon className="w-5 h-5" />
                     <div>
                       <p className="text-xs font-medium uppercase tracking-wider">{label}</p>
                       <p className="text-sm font-bold capitalize">{status}</p>
-                      {service?.latency && <p className="text-xs opacity-75">{service.latency}ms</p>}
                     </div>
                   </div>
                 );

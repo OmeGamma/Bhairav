@@ -74,9 +74,9 @@ const GeospatialIntelligence: React.FC = () => {
     return true;
   });
 
-  const validLocations = useMemo(() => filteredCases.filter(c => c.location && c.location.latitude && c.location.longitude), [filteredCases]);
+  const validLocations = useMemo(() => filteredCases.filter(c => (c.location?.latitude || c.latitude) && (c.location?.longitude || c.longitude)), [filteredCases]);
   const center: [number, number] = validLocations.length > 0
-    ? [validLocations[0].location.latitude, validLocations[0].location.longitude]
+    ? [validLocations[0].location?.latitude || validLocations[0].latitude, validLocations[0].location?.longitude || validLocations[0].longitude]
     : [20.5937, 78.9629];
 
 
@@ -183,12 +183,14 @@ const GeospatialIntelligence: React.FC = () => {
             ))}
 
             {filteredCases.map(c => {
-              if (!c.location || !c.location.latitude || !c.location.longitude) return null;
+              const lat = c.location?.latitude || c.latitude;
+              const lng = c.location?.longitude || c.longitude;
+              if (!lat || !lng) return null;
               const markerColor = getMarkerColor(c);
               return (
                 <Marker
                   key={c._id || c.case_number}
-                  position={[c.location.latitude, c.location.longitude]}
+                  position={[lat, lng]}
                   icon={createCustomIcon(markerColor)}
                 >
                   <Popup>
@@ -196,7 +198,7 @@ const GeospatialIntelligence: React.FC = () => {
                       <h3 className="font-bold mb-1 border-b border-gray-200 pb-1 text-gray-900">{c.case_number}</h3>
                       <p className="text-xs my-0.5 text-gray-700"><strong>Title:</strong> {c.title}</p>
                       <p className="text-xs my-0.5 text-gray-700"><strong>Crime:</strong> {c.crime_type}</p>
-                      <p className="text-xs my-0.5 text-gray-700"><strong>Location:</strong> {c.location.city || c.location.district || c.location.state}</p>
+                      <p className="text-xs my-0.5 text-gray-700"><strong>Location:</strong> {c.location?.city || c.city || c.location?.district || c.district || c.location?.state || c.state}</p>
                       <p className="text-xs my-0.5 text-gray-700"><strong>Date:</strong> {new Date(c.filingDate || c.createdAt).toLocaleDateString()}</p>
                       <div className="mt-1.5 flex gap-1">
                         <span className="bg-gray-100 text-gray-800 px-1.5 py-0.5 rounded text-[10px]">{c.status}</span>

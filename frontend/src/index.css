@@ -49,3 +49,5 @@
     background: #1e293b;
   }
 }
+
+@custom-variant dark (&:is(.dark *));

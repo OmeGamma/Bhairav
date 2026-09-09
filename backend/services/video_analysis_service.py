@@ -11,9 +11,11 @@ from .yolo_service import get_yolo_service, detect_persons, track_persons
 from .video_alert_service import create_person_detection_alert
 from models.video_report import create_video_report
 from utils.video_utils import (
-    save_upload_file, save_image_bytes, encode_frame_jpeg, crop_frame,
+    save_upload_file, encode_frame_jpeg, crop_frame,
     get_video_info, get_mime_type, VIDEO_DIR, EVIDENCE_DIR,
 )
+from services.cloudinary_service import upload_image
+from models.media_file import create_media_file
 from models.video import create_video
 from models.notification import create_notification
 
@@ -59,17 +61,17 @@ class VideoAnalysisService:
             bbox = p["bounding_box"]
 
             full_ok, full_buf = encode_frame_jpeg(frame, quality=80)
-            full_frame_filename = None
-            person_crop_filename = None
+            full_frame_info = None
+            person_crop_info = None
 
             if full_ok:
-                full_frame_filename = save_image_bytes(full_buf, "evidence", ".jpg")
+                full_frame_info = full_buf
 
             crop = crop_frame(frame, bbox)
             if crop is not None and crop.size > 0:
                 crop_ok, crop_buf = encode_frame_jpeg(crop, quality=90)
                 if crop_ok:
-                    person_crop_filename = save_image_bytes(crop_buf, "evidence", ".jpg")
+                    person_crop_info = crop_buf
 
             report = create_person_detection_alert(
                 source_type="CAMERA",
@@ -80,8 +82,8 @@ class VideoAnalysisService:
                 frame_number=frame_number,
                 timestamp=ts_str,
                 video_timestamp=video_timestamp,
-                full_frame_file_id=full_frame_filename,
-                person_crop_file_id=person_crop_filename,
+                full_frame_bytes=full_frame_info,
+                person_crop_bytes=person_crop_info,
                 case_id=case_id,
             )
 
@@ -144,39 +146,30 @@ class VideoAnalysisService:
                 for p in persons:
                     bbox = p["bounding_box"]
                     full_ok, full_buf = encode_frame_jpeg(frame, quality=80)
-                    full_frame_filename = None
-                    person_crop_filename = None
+                    full_frame_info = None
+                    person_crop_info = None
 
                     if full_ok:
-                        full_frame_filename = save_image_bytes(full_buf, "evidence", ".jpg")
+                        full_frame_info = full_buf
 
                     crop = crop_frame(frame, bbox)
                     if crop is not None and crop.size > 0:
                         crop_ok, crop_buf = encode_frame_jpeg(crop, quality=90)
                         if crop_ok:
-                            person_crop_filename = save_image_bytes(crop_buf, "evidence", ".jpg")
+                            person_crop_info = crop_buf
 
-                    report = create_video_report({
-                        "eventType": "PERSON_DETECTED",
-                        "sourceType": "UPLOADED_VIDEO",
-                        "sourceName": source_name,
-                        "sourceFileId": None,
-                        "videoFileId": None,
-                        "caseId": case_id,
-                        "timestamp": datetime.utcnow().isoformat(),
-                        "frameNumber": frame_idx,
-                        "trackId": p["track_id"],
-                        "confidence": round(p["confidence"], 4),
-                        "className": "person",
-                        "boundingBox": bbox,
-                        "fullFrameFileId": full_frame_filename,
-                        "personCropFileId": person_crop_filename,
-                        "fullFrameUrl": f"/api/video-files/evidence/{full_frame_filename}" if full_frame_filename else None,
-                        "personCropUrl": f"/api/video-files/evidence/{person_crop_filename}" if person_crop_filename else None,
-                        "videoTimestamp": ts_str,
-                        "status": "NEW",
-                        "dataClassification": "LIVE_VIDEO_EVENT",
-                    })
+                    report = create_person_detection_alert(
+                        source_type="UPLOADED_VIDEO",
+                        source_name=source_name,
+                        frame_number=frame_idx,
+                        video_timestamp=ts_str,
+                        bbox=bbox,
+                        confidence=round(p["confidence"], 4),
+                        track_id=p["track_id"],
+                        full_frame_bytes=full_frame_info,
+                        person_crop_bytes=person_crop_info,
+                        case_id=case_id,
+                    )
 
                     detection_count += 1
                     alert_count += 1
@@ -254,39 +247,30 @@ class VideoAnalysisService:
                 for p in persons:
                     bbox = p["bounding_box"]
                     full_ok, full_buf = encode_frame_jpeg(frame, quality=80)
-                    full_frame_filename = None
-                    person_crop_filename = None
+                    full_frame_info = None
+                    person_crop_info = None
 
                     if full_ok:
-                        full_frame_filename = save_image_bytes(full_buf, "evidence", ".jpg")
+                        full_frame_info = full_buf
 
                     crop = crop_frame(frame, bbox)
                     if crop is not None and crop.size > 0:
                         crop_ok, crop_buf = encode_frame_jpeg(crop, quality=90)
                         if crop_ok:
-                            person_crop_filename = save_image_bytes(crop_buf, "evidence", ".jpg")
+                            person_crop_info = crop_buf
 
-                    create_video_report({
-                        "eventType": "PERSON_DETECTED",
-                        "sourceType": "UPLOADED_VIDEO",
-                        "sourceName": source_name,
-                        "sourceFileId": None,
-                        "videoFileId": None,
-                        "caseId": case_id,
-                        "timestamp": datetime.utcnow().isoformat(),
-                        "frameNumber": frame_idx,
-                        "trackId": p["track_id"],
-                        "confidence": round(p["confidence"], 4),
-                        "className": "person",
-                        "boundingBox": bbox,
-                        "fullFrameFileId": full_frame_filename,
-                        "personCropFileId": person_crop_filename,
-                        "fullFrameUrl": f"/api/video-files/evidence/{full_frame_filename}" if full_frame_filename else None,
-                        "personCropUrl": f"/api/video-files/evidence/{person_crop_filename}" if person_crop_filename else None,
-                        "videoTimestamp": f"{int((frame_idx/fps)//60):02d}:{int((frame_idx/fps)%60):02d}" if fps > 0 else "0:00",
-                        "status": "NEW",
-                        "dataClassification": "LIVE_VIDEO_EVENT",
-                    })
+                    report = create_person_detection_alert(
+                        source_type="UPLOADED_VIDEO",
+                        source_name=source_name,
+                        frame_number=frame_idx,
+                        video_timestamp=f"{int((frame_idx/fps)//60):02d}:{int((frame_idx/fps)%60):02d}" if fps > 0 else "0:00",
+                        bbox=bbox,
+                        confidence=round(p["confidence"], 4),
+                        track_id=p["track_id"],
+                        full_frame_bytes=full_frame_info,
+                        person_crop_bytes=person_crop_info,
+                        case_id=case_id,
+                    )
                     detection_count += 1
 
             frame_idx += 1
