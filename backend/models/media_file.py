@@ -32,3 +32,12 @@ def update_media_file_status(file_id: str, new_status: str) -> bool:
         {"$set": {"status": new_status}}
     )
     return result.modified_count > 0
+
+def count_media_references(public_id: str, exclude_case: str = None) -> int:
+    from services.deletion_service import count_media_references as svc_count_media_references
+    return svc_count_media_references(public_id, exclude_case)
+
+def delete_media_file(file_id: str) -> bool:
+    collection = get_media_files_collection()
+    result = collection.delete_one({"fileId": file_id})
+    return result.deleted_count > 0

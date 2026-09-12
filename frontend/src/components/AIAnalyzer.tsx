@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { apiClient } from '../api/client';
 import { Link } from 'react-router-dom';
 import Layout from './layout/Layout';
 import { Search, BrainCircuit, ShieldAlert, Database, MapPin, Users, Network, Video, FileText } from 'lucide-react';
@@ -28,21 +29,25 @@ const AIAnalyzer: React.FC = () => {
     setError(null);
 
     try {
-      const res = await fetch('/api/intelligence/query', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: query.trim(), role: 'Analyst' }),
-        signal: controller.signal,
-      });
-      if (!res.ok) throw new Error('Failed to perform analysis search.');
+      let res = await apiClient.post<any>('/api/intelligence/query', { query: query.trim(), role: 'Analyst' }, { signal: controller.signal });
       
-      const data = await res.json();
+      // Short retry for transient network issues or 500s
+      if (!res.ok && res.error && (res.error.includes('Network') || res.error.includes('timeout') || res.error.includes('500') || res.error.includes('502') || res.error.includes('503'))) {
+         await new Promise(r => setTimeout(r, 1000));
+         res = await apiClient.post<any>('/api/intelligence/query', { query: query.trim(), role: 'Analyst' }, { signal: controller.signal });
+      }
+
+      if (!res.ok) {
+        throw new Error(res.error || 'Failed to perform analysis search.');
+      }
+      
+      const data = res.data;
       if (currentRequestId === requestIdRef.current) {
         setResults(data);
       }
     } catch (err: any) {
-      if (err.name !== 'AbortError') {
-        setError(err.message);
+      if (err.name !== 'AbortError' && !err.message?.includes('AbortError') && !err.message?.includes('aborted')) {
+        setError(err.message || 'Failed to perform analysis search.');
       }
     } finally {
       if (currentRequestId === requestIdRef.current) {
@@ -171,7 +176,7 @@ const AIAnalyzer: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <h4 className="text-sm font-semibold text-gray-500 uppercase mb-2">Entities ({data.graph.nodes.length})</h4>
-            <ul className="space-y-2 max-h-[300px] overflow-y-auto">
+            <ul className="space-y-2">
               {data.graph.nodes.map((node: any) => (
                 <li key={node.id} className={`p-2 rounded border ${node.is_seed ? 'bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800' : 'bg-gray-50 border-gray-200 dark:bg-dark-bg dark:border-gray-700'}`}>
                   <span className="font-medium text-gray-900 dark:text-white">{node.label}</span>
@@ -182,7 +187,7 @@ const AIAnalyzer: React.FC = () => {
           </div>
           <div>
             <h4 className="text-sm font-semibold text-gray-500 uppercase mb-2">Connections ({data.graph.links.length})</h4>
-            <ul className="space-y-2 max-h-[300px] overflow-y-auto">
+            <ul className="space-y-2">
               {data.graph.links.map((link: any, idx: number) => {
                 const sourceNode = data.graph.nodes.find((n: any) => n.id === link.source)?.label;
                 const targetNode = data.graph.nodes.find((n: any) => n.id === link.target)?.label;

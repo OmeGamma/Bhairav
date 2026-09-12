@@ -164,6 +164,10 @@ def create_video_report_document(data: Dict[str, Any]) -> Dict[str, Any]:
         "videoTimestamp": data.get("videoTimestamp"),
         "status": data.get("status", "NEW"),
         "dataClassification": data.get("dataClassification", "LIVE_VIDEO_EVENT"),
+        "humanCount": data.get("humanCount"),
+        "objectsDetected": data.get("objectsDetected"),
+        "timeline": data.get("timeline"),
+        "videoDurationSec": data.get("videoDurationSec"),
         "createdAt": now,
         "updatedAt": now,
     }

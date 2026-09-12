@@ -24,12 +24,12 @@ IF %ERRORLEVEL% NEQ 0 (
 echo.
 echo [1/2] Starting Backend Server...
 cd backend
-start "Bhairav Backend" cmd /k "pip install -r requirements.txt && python main.py"
+start "Bhairav Backend" cmd /k "venv\Scripts\activate && uvicorn main:app --reload"
 cd ..
 
 echo [2/2] Starting Frontend Server...
 cd frontend
-start "Bhairav Frontend" cmd /k "npm install && npm run dev"
+start "Bhairav Frontend" cmd /k "npm run dev"
 cd ..
 
 echo.

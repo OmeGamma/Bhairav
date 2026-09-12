@@ -63,6 +63,18 @@ const Topbar: React.FC = () => {
     localStorage.setItem('bhairav-theme', theme);
   }, [theme]);
 
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsScopeOpen(false);
+        setShowNotifications(false);
+        setIsProfileOpen(false);
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const toggleTheme = () => {
     setTheme(prev => {
       if (prev === 'dark') return 'light';
@@ -80,33 +92,35 @@ const Topbar: React.FC = () => {
   const unreadCount = notifications.filter((n: Notification) => !n.read).length;
 
   return (
-    <header className="h-16 bg-light-card dark:bg-dark-card border-b border-light-border dark:border-dark-border flex items-center justify-between px-6 transition-colors duration-200 z-50 shrink-0">
-      <div className="flex-1 flex items-center">
+    <header className="relative z-40 flex min-h-16 w-full flex-wrap items-center justify-between gap-3 px-4 py-3 bg-light-card dark:bg-dark-card border-b border-light-border dark:border-dark-border sm:px-6 transition-colors duration-200">
+      <div className="flex min-w-0 flex-1 items-center">
         {/* Global Search */}
-        <div className="max-w-md w-full relative">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+        <div className="relative w-full max-w-md min-w-0">
+          <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
             <Search className="h-5 w-5 text-gray-400" />
           </div>
           <input
             type="text"
-            className="block w-full pl-10 pr-3 py-2 border border-light-border dark:border-dark-border rounded-md leading-5 bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-light-accent dark:focus:ring-dark-accent sm:text-sm transition-colors"
+            className="block w-full min-w-0 pl-10 pr-3 py-2 border border-light-border dark:border-dark-border rounded-md leading-5 bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-light-accent dark:focus:ring-dark-accent sm:text-sm transition-colors"
             placeholder="Global Bhairav Search..."
           />
         </div>
       </div>
 
-      <div className="flex items-center space-x-6">
+      <div className="flex w-full min-w-0 items-center justify-end gap-3 sm:w-auto sm:space-x-6">
         {/* Scope Selector */}
         <div className="relative" ref={scopeRef}>
           <button 
             onClick={() => setIsScopeOpen(!isScopeOpen)}
-            className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-light-accent dark:hover:text-dark-accent focus:outline-none"
+            aria-haspopup="menu"
+            aria-expanded={isScopeOpen}
+            className="flex max-w-full items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-light-accent dark:hover:text-dark-accent focus:outline-none focus:ring-2 focus:ring-light-accent dark:focus:ring-dark-accent rounded"
           >
-            <span className="mr-2">Scope: {scope}</span>
-            <ChevronDown className="h-4 w-4" />
+            <span className="mr-2 max-w-[9rem] truncate">Scope: {scope}</span>
+            <ChevronDown className="h-4 w-4 flex-shrink-0" />
           </button>
           {isScopeOpen && (
-            <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-light-card dark:bg-dark-card ring-1 ring-black ring-opacity-5 z-50 border border-light-border dark:border-dark-border">
+            <div className="absolute right-0 top-full mt-2 w-48 max-w-[calc(100vw-2rem)] rounded-md shadow-lg bg-light-card dark:bg-dark-card ring-1 ring-black ring-opacity-5 z-50 border border-light-border dark:border-dark-border">
               <div className="py-1">
                 {scopes.map(s => (
                   <button
@@ -139,7 +153,7 @@ const Topbar: React.FC = () => {
             )}
           </button>
           {showNotifications && (
-            <div className="absolute right-0 mt-2 w-96 rounded-md shadow-xl bg-light-card dark:bg-dark-card ring-1 ring-black ring-opacity-5 z-50 border border-light-border dark:border-dark-border">
+            <div className="absolute right-0 top-full mt-2 w-96 max-w-[calc(100vw-2rem)] rounded-md shadow-xl bg-light-card dark:bg-dark-card ring-1 ring-black ring-opacity-5 z-50 border border-light-border dark:border-dark-border">
               <div className="p-3 flex items-center justify-between border-b border-light-border dark:border-dark-border">
                 <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Alerts</h3>
                 <button onClick={markAllAsRead} className="text-xs text-light-accent dark:text-dark-accent hover:underline flex items-center focus:outline-none">
@@ -208,7 +222,7 @@ const Topbar: React.FC = () => {
           </button>
           
           {isProfileOpen && (
-            <div className="absolute right-0 mt-2 w-48 rounded-md shadow-xl bg-light-card dark:bg-dark-card ring-1 ring-black ring-opacity-5 z-50 border border-light-border dark:border-dark-border overflow-hidden">
+            <div className="absolute right-0 top-full mt-2 w-48 max-w-[calc(100vw-2rem)] rounded-md shadow-xl bg-light-card dark:bg-dark-card ring-1 ring-black ring-opacity-5 z-50 border border-light-border dark:border-dark-border overflow-hidden">
               <div className="py-1">
                 <button 
                   onClick={() => { setIsProfileOpen(false); navigate('/profile'); }}

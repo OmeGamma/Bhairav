@@ -20,7 +20,7 @@ import clsx from 'clsx';
 const navItems = [
   { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
   { name: 'AI Criminal Analyzer', path: '/ai-analyzer', icon: BrainCircuit },
-   { name: 'Video Intelligence', path: '/video-intelligence', icon: Video },
+  { name: 'Video Intelligence', path: '/video-intelligence', icon: Video },
   { name: 'Criminal Network', path: '/criminal-network', icon: Network },
   { name: 'Geospatial Intelligence', path: '/geospatial', icon: Map },
   { name: 'Case Files', path: '/cases', icon: FolderOpen },
@@ -35,14 +35,14 @@ const navItems = [
 
 const Sidebar: React.FC = () => {
   return (
-    <div className="w-64 bg-light-card dark:bg-dark-card border-r border-light-border dark:border-dark-border flex flex-col h-full transition-colors duration-200">
-      <div className="h-16 flex items-center px-6 border-b border-light-border dark:border-dark-border">
+    <div className="flex w-full flex-col border-b border-light-border bg-light-card dark:border-dark-border dark:bg-dark-card transition-colors duration-200 md:h-screen md:w-64 md:flex-shrink-0 md:border-b-0 md:border-r md:sticky md:top-0">
+      <div className="flex h-16 flex-shrink-0 items-center px-6 border-b border-light-border dark:border-dark-border">
         <Shield className="w-8 h-8 text-light-accent dark:text-dark-accent mr-3" />
         <span className="text-xl font-bold tracking-wider">BHAIRAV</span>
       </div>
       
-      <div className="flex-1 overflow-y-auto py-4">
-        <nav className="space-y-1 px-3">
+      <div className="grid grid-cols-2 gap-1 px-3 py-3 sm:grid-cols-4 md:flex md:flex-col md:overflow-y-auto md:py-4 md:space-y-1">
+        <nav className="contents">
           {navItems.map((item) => {
             const Icon = item.icon;
             return (
@@ -51,7 +51,7 @@ const Sidebar: React.FC = () => {
                 to={item.path}
                 className={({ isActive }) =>
                   clsx(
-                    'flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors',
+                    'flex min-h-10 flex-1 items-center px-3 py-2 rounded-md text-sm font-medium transition-colors md:min-w-0',
                     isActive
                       ? 'bg-light-accent/10 dark:bg-dark-accent/20 text-light-accent dark:text-dark-accent'
                       : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200'
@@ -59,7 +59,7 @@ const Sidebar: React.FC = () => {
                 }
               >
                 <Icon className="w-5 h-5 mr-3 flex-shrink-0" />
-                {item.name}
+                <span className="min-w-0 truncate">{item.name}</span>
               </NavLink>
             );
           })}

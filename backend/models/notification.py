@@ -29,3 +29,8 @@ def mark_all_notifications_read(user_id: str = "Officer") -> int:
     collection = get_notifications_collection()
     result = collection.update_many({"userId": user_id, "isRead": False}, {"$set": {"isRead": True}})
     return result.modified_count
+
+def delete_notifications_by_case(case_id: str) -> int:
+    collection = get_notifications_collection()
+    result = collection.delete_many({"caseId": case_id})
+    return result.deleted_count

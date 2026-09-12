@@ -1,9 +1,14 @@
 import os
+import logging
 import requests
 from typing import Union, Optional
 
+logger = logging.getLogger(__name__)
+
 def _is_enabled() -> bool:
-    return os.getenv("TELEGRAM_ENABLED", "false").lower() in ("true", "1", "yes")
+    enabled = os.getenv("TELEGRAM_ENABLED", "false").lower() in ("true", "1", "yes")
+    logger.info(f"[Telegram] Enabled: {enabled}")
+    return enabled
 
 def get_telegram_status() -> str:
     if not _is_enabled():
@@ -11,7 +16,11 @@ def get_telegram_status() -> str:
     
     token = os.getenv("TELEGRAM_BOT_TOKEN")
     chat_id = os.getenv("TELEGRAM_CHAT_ID")
-    if token and chat_id:
+    token_ok = bool(token)
+    chat_ok = bool(chat_id)
+    logger.info(f"[Telegram] Bot token configured: {token_ok}")
+    logger.info(f"[Telegram] Chat ID configured: {chat_ok}")
+    if token_ok and chat_ok:
         return "CONFIGURED"
     return "DISABLED"
 
@@ -23,7 +32,7 @@ def send_telegram_message(message: str) -> bool:
     chat_id = os.getenv("TELEGRAM_CHAT_ID")
     if not token or not chat_id:
         return False
-        
+         
     url = f"https://api.telegram.org/bot{token}/sendMessage"
     payload = {
         "chat_id": chat_id,
@@ -32,9 +41,12 @@ def send_telegram_message(message: str) -> bool:
     }
     try:
         res = requests.post(url, json=payload, timeout=5)
+        logger.info(f"[Telegram] sendMessage status: {res.status_code}")
+        if res.status_code != 200:
+            logger.error(f"[Telegram] sendMessage failed: {res.text}")
         return res.status_code == 200
     except Exception as e:
-        print(f"Telegram error: {e}")
+        logger.error(f"[Telegram] sendMessage error: {e}")
         return False
 
 def send_telegram_photo(photo_url_or_bytes: Union[str, bytes], caption: str = "") -> bool:
@@ -47,10 +59,11 @@ def send_telegram_photo(photo_url_or_bytes: Union[str, bytes], caption: str = ""
         return False
 
     url = f"https://api.telegram.org/bot{token}/sendPhoto"
+    photo_label = photo_url_or_bytes if isinstance(photo_url_or_bytes, str) else "<image bytes>"
+    logger.info(f"[Telegram] sendPhoto started, photo source: {photo_label}")
     
     try:
         if isinstance(photo_url_or_bytes, str):
-            # Using URL
             payload = {
                 "chat_id": chat_id,
                 "photo": photo_url_or_bytes,
@@ -59,7 +72,6 @@ def send_telegram_photo(photo_url_or_bytes: Union[str, bytes], caption: str = ""
             }
             res = requests.post(url, json=payload, timeout=10)
         else:
-            # Using bytes
             data = {
                 "chat_id": chat_id,
                 "caption": caption,
@@ -70,9 +82,12 @@ def send_telegram_photo(photo_url_or_bytes: Union[str, bytes], caption: str = ""
             }
             res = requests.post(url, data=data, files=files, timeout=10)
             
+        logger.info(f"[Telegram] sendPhoto response status: {res.status_code}")
+        if res.status_code != 200:
+            logger.error(f"[Telegram] sendPhoto failed: {res.text}")
         return res.status_code == 200
     except Exception as e:
-        print(f"Telegram photo error: {e}")
+        logger.error(f"[Telegram] sendPhoto error: {e}")
         return False
 
 def test_connection() -> bool:

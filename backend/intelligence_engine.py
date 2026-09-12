@@ -35,7 +35,7 @@ def classify_intent(query: str) -> Tuple[str, Dict[str, Any]]:
     """
     
     try:
-        model = genai.GenerativeModel('gemini-2.5-flash')
+        model = genai.GenerativeModel('gemini-flash-latest')
         response = model.generate_content(prompt)
         text = response.text.strip()
         if text.startswith("```json"):
@@ -68,6 +68,7 @@ def build_mongo_filter(entities: Dict[str, Any]) -> Dict[str, Any]:
 
 def process_data_retrieval(entities: Dict[str, Any]) -> Dict[str, Any]:
     filter_query = build_mongo_filter(entities)
+    filter_query["deletedAt"] = {"$exists": False}
     
     try:
         cases_cursor = db.cases.find(filter_query).limit(50)
@@ -122,47 +123,57 @@ def process_nl_query(query: str) -> Dict[str, Any]:
     else:
         cases = []
         filter_query = build_mongo_filter(entities)
-        if filter_query:
-            cases_cursor = db.cases.find(filter_query).limit(50)
-            for c in cases_cursor:
-                c["_id"] = str(c["_id"])
-                cases.append(c)
+        filter_query["deletedAt"] = {"$exists": False}
         
-        if not cases:
-            tokens = [t.lower() for t in query.split() if t.strip()]
-            stopwords = {"case", "cases", "the", "in", "at", "of", "and", "or", "for", "to", "a", "an", "is", "are", "was", "were", "on", "from", "by", "with", "without", "into", "new", "old", "show", "find", "search", "look", "get", "all", "any", "some", "no", "not", "yes", "please", "help", "me", "my", "we", "you", "your", "like", "as", "it", "its", "be", "been", "being", "have", "has", "had", "do", "does", "did", "will", "would", "shall", "should", "can", "could", "may", "might", "must", "here", "there", "where", "when", "why", "how", "what", "who", "whom", "which", "this", "that", "these", "those"}
-            tokens = [t for t in tokens if t not in stopwords and len(t) > 2]
-            
-            if tokens:
-                or_clauses = []
-                for token in tokens:
-                    or_clauses.append({"caseNumber": {"$regex": token, "$options": "i"}})
-                    or_clauses.append({"city": {"$regex": token, "$options": "i"}})
-                    or_clauses.append({"district": {"$regex": token, "$options": "i"}})
-                    or_clauses.append({"state": {"$regex": token, "$options": "i"}})
-                    or_clauses.append({"crimeType": {"$regex": token, "$options": "i"}})
-                    or_clauses.append({"title": {"$regex": token, "$options": "i"}})
-                
-                matched_case_numbers = set()
-                for c in db.cases.find({"$or": or_clauses}).limit(100):
+        try:
+            if filter_query:
+                cases_cursor = db.cases.find(filter_query).limit(50)
+                for c in cases_cursor:
                     c["_id"] = str(c["_id"])
-                    matched_case_numbers.add(c["caseNumber"])
-                    if c["caseNumber"] not in [x["caseNumber"] for x in cases]:
-                        cases.append(c)
+                    cases.append(c)
+            
+            if not cases:
+                tokens = [t.lower() for t in query.split() if t.strip()]
+                stopwords = {"case", "cases", "the", "in", "at", "of", "and", "or", "for", "to", "a", "an", "is", "are", "was", "were", "on", "from", "by", "with", "without", "into", "new", "old", "show", "find", "search", "look", "get", "all", "any", "some", "no", "not", "yes", "please", "help", "me", "my", "we", "you", "your", "like", "as", "it", "its", "be", "been", "being", "have", "has", "had", "do", "does", "did", "will", "would", "shall", "should", "can", "could", "may", "might", "must", "here", "there", "where", "when", "why", "how", "what", "who", "whom", "which", "this", "that", "these", "those"}
+                tokens = [t for t in tokens if t not in stopwords and len(t) > 2]
                 
-                if not matched_case_numbers:
-                    return {
-                        "status": "success",
-                        "type": "DATA_RETRIEVAL",
-                        "data": [],
-                        "message": "No matching Bhairav records were found for your query."
-                    }
+                if tokens:
+                    or_clauses = []
+                    for token in tokens:
+                        or_clauses.append({"caseNumber": {"$regex": token, "$options": "i"}})
+                        or_clauses.append({"city": {"$regex": token, "$options": "i"}})
+                        or_clauses.append({"district": {"$regex": token, "$options": "i"}})
+                        or_clauses.append({"state": {"$regex": token, "$options": "i"}})
+                        or_clauses.append({"crimeType": {"$regex": token, "$options": "i"}})
+                        or_clauses.append({"title": {"$regex": token, "$options": "i"}})
+                    
+                    matched_case_numbers = set()
+                    for c in db.cases.find({"$or": or_clauses, "deletedAt": {"$exists": False}}).limit(100):
+                        c["_id"] = str(c["_id"])
+                        matched_case_numbers.add(c["caseNumber"])
+                        if c["caseNumber"] not in [x["caseNumber"] for x in cases]:
+                            cases.append(c)
+                    
+                    if not matched_case_numbers:
+                        return {
+                            "status": "success",
+                            "type": "DATA_RETRIEVAL",
+                            "data": [],
+                            "message": "No matching records found in the Bhairav database."
+                        }
+        except Exception as e:
+            return {"status": "error", "message": f"Database connection unavailable or query failed: {str(e)}"}
         
         case_ids = [c["caseNumber"] for c in cases]
         
-        documents = search_case_metadata(case_ids, "documents", ["documentId", "fileName", "title"])
-        evidence = search_case_metadata(case_ids, "evidences", ["evidenceId", "title", "description"])
-        videos = search_case_metadata(case_ids, "videos", ["videoId", "fileName", "title"])
+        try:
+            documents = search_case_metadata(case_ids, "documents", ["documentId", "fileName", "title"])
+            evidence = search_case_metadata(case_ids, "evidences", ["evidenceId", "title", "description"])
+            videos = search_case_metadata(case_ids, "videos", ["videoId", "fileName", "title"])
+        except Exception as e:
+            documents = []
+            evidence = []
+            videos = []
         
         return {
             "status": "success",

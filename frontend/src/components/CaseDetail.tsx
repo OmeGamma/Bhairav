@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import { apiClient } from '../api/client';
 import Layout from './layout/Layout';
 import { FolderOpen, ArrowLeft, FileText, User, Video, GitBranch, Shield, Activity, Car, Building2, FileSearch, MapPin } from 'lucide-react';
 
@@ -80,20 +81,23 @@ const CaseDetail: React.FC = () => {
             </Link>
             <button
               onClick={async () => {
-                if (confirm("Are you sure you want to delete this case? It will be moved to the recycle bin for 15 days.")) {
+                if (confirm(`PERMANENT DELETE\n\nCase: ${caseData.case_number}\nThis action permanently deletes the case and associated data including evidence, reports, and media.\n\nContinue?`)) {
                   try {
-                    const res = await fetch(`/api/cases/${caseData.case_number}`, { method: 'DELETE' });
+                    const res = await apiClient.delete(`/api/cases/${caseData.case_number}`);
                     if (res.ok) {
                       navigate('/cases');
+                    } else {
+                      alert(`Unable to delete case: ${res.error || 'Unknown error'}`);
                     }
                   } catch (err) {
                     console.error(err);
+                    alert("Unable to delete case due to an unexpected error.");
                   }
                 }
               }}
               className="px-3 py-2 border border-red-500 text-red-600 dark:text-red-400 rounded-md font-medium hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center text-sm"
             >
-              Delete Case
+              Permanently Delete Case
             </button>
             <Link to={`/criminal-network?case=${caseData.case_number}`} className="px-3 py-2 bg-light-accent dark:bg-dark-accent text-white rounded-md font-medium hover:bg-blue-600 transition-colors flex items-center text-sm">
               <GitBranch className="w-4 h-4 mr-2" /> Network

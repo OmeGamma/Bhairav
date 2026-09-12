@@ -68,12 +68,14 @@ def get_yolo_service():
 def get_yolo_status():
     return dict(_yolo_status)
 
-def detect_persons(model, frame, confidence_threshold=0.50):
+SUPPORTED_CLASSES = {"person", "car", "motorcycle", "bus", "truck", "bicycle"}
+
+def detect_objects(model, frame, confidence_threshold=0.50):
     if model is None:
         return []
 
     results = model(frame, verbose=False)
-    persons = []
+    objects = []
 
     for result in results:
         boxes = result.boxes
@@ -86,7 +88,7 @@ def detect_persons(model, frame, confidence_threshold=0.50):
                 continue
 
             cls_name = model.names.get(cls_id, str(cls_id))
-            if cls_name != "person":
+            if cls_name not in SUPPORTED_CLASSES:
                 continue
 
             x1, y1, x2, y2 = box.xyxy[0].tolist()
@@ -94,8 +96,8 @@ def detect_persons(model, frame, confidence_threshold=0.50):
             if hasattr(box, 'id') and box.id is not None:
                 track_id = int(box.id[0])
 
-            persons.append({
-                "class": "person",
+            objects.append({
+                "class": cls_name,
                 "confidence": round(conf, 4),
                 "bounding_box": {
                     "x1": int(x1),
@@ -106,14 +108,14 @@ def detect_persons(model, frame, confidence_threshold=0.50):
                 "track_id": track_id,
             })
 
-    return persons
+    return objects
 
-def track_persons(model, frame, confidence_threshold=0.50):
+def track_objects(model, frame, confidence_threshold=0.50):
     if model is None:
         return []
 
     results = model.track(frame, persist=True, verbose=False)
-    persons = []
+    objects = []
 
     for result in results:
         boxes = result.boxes
@@ -126,7 +128,7 @@ def track_persons(model, frame, confidence_threshold=0.50):
                 continue
 
             cls_name = model.names.get(cls_id, str(cls_id))
-            if cls_name != "person":
+            if cls_name not in SUPPORTED_CLASSES:
                 continue
 
             x1, y1, x2, y2 = box.xyxy[0].tolist()
@@ -134,8 +136,8 @@ def track_persons(model, frame, confidence_threshold=0.50):
             if hasattr(box, 'id') and box.id is not None:
                 track_id = int(box.id[0])
 
-            persons.append({
-                "class": "person",
+            objects.append({
+                "class": cls_name,
                 "confidence": round(conf, 4),
                 "bounding_box": {
                     "x1": int(x1),
@@ -146,7 +148,7 @@ def track_persons(model, frame, confidence_threshold=0.50):
                 "track_id": track_id,
             })
 
-    return persons
+    return objects
 
 def is_yolo_available():
     status = get_yolo_status()

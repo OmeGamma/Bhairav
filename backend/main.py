@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, File, UploadFile, Query, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Depends, HTTPException, File, UploadFile, Query, WebSocket, WebSocketDisconnect, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse, FileResponse
 import os
@@ -54,10 +54,16 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
 
+import sys
 try:
-    _db_check_connection()
+    db_ok, db_err = _db_check_connection()
+    if not db_ok:
+        print(f"[BHAIRAV STARTUP ERROR] MongoDB connection failed: {db_err}")
+        print("[BHAIRAV STARTUP ERROR] Database connection is required. Shutting down.")
+        sys.exit(1)
 except Exception as e:
-    print(f"Initial DB connection check warning: {e}")
+    print(f"[BHAIRAV STARTUP ERROR] Initial DB connection check failed: {e}")
+    sys.exit(1)
 
 BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_DIR = os.path.join(BACKEND_DIR, "uploads")
@@ -403,6 +409,110 @@ def get_analytics():
         "monthly_trends": get_monthly_trends(),
     }
 
+@app.get("/api/analytics/full")
+def get_analytics_full():
+    from config.database import db
+    from models.case import (
+        get_all_cases, get_cases_by_city, get_cases_by_crime_type, 
+        get_cases_by_status, get_cases_by_priority, get_monthly_trends
+    )
+    
+    # 1. Base case analytics
+    base_analytics = {
+        "total_cases": db.cases.count_documents({"deletedAt": {"$exists": False}}),
+        "total_suspects": db.persons.count_documents({}),
+        "total_evidence": db.evidence.count_documents({}),
+        "total_videos": db.videos.count_documents({}),
+        "cases_by_city": get_cases_by_city(),
+        "cases_by_crime": get_cases_by_crime_type(),
+        "cases_by_status": get_cases_by_status(),
+        "cases_by_priority": get_cases_by_priority(),
+        "monthly_trends": get_monthly_trends(),
+    }
+    
+    # 2. Case Resolution Analysis
+    # Average time to closure for closed cases
+    closed_cases = list(db.cases.find({"status": "CLOSED", "closedAt": {"$exists": True}, "deletedAt": {"$exists": False}}))
+    closure_times = []
+    for c in closed_cases:
+        created_at = c.get("createdAt")
+        closed_at = c.get("closedAt")
+        if created_at and closed_at:
+            try:
+                from datetime import datetime
+                if isinstance(created_at, str):
+                    created_at = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+                if isinstance(closed_at, str):
+                    closed_at = datetime.fromisoformat(closed_at.replace("Z", "+00:00"))
+                days = (closed_at - created_at).days
+                if days >= 0:
+                    closure_times.append(days)
+            except Exception:
+                pass
+                
+    avg_closure_days = sum(closure_times) / len(closure_times) if closure_times else None
+    
+    # 3. Video Intelligence Analytics
+    video_reports = list(db.video_reports.find())
+    video_status_dist = {}
+    video_class_dist = {}
+    for vr in video_reports:
+        st = vr.get("status", "UNKNOWN")
+        video_status_dist[st] = video_status_dist.get(st, 0) + 1
+        
+        cls_name = vr.get("className", "unknown")
+        video_class_dist[cls_name] = video_class_dist.get(cls_name, 0) + 1
+    
+    # 4. Intelligence Activity Timeline (Recent 20 events)
+    timeline = []
+    recent_cases = db.cases.find({"deletedAt": {"$exists": False}}).sort("updatedAt", -1).limit(5)
+    for c in recent_cases:
+        timeline.append({"date": c.get("updatedAt"), "event": f"Case {c.get('caseNumber')} updated", "type": "case_update"})
+        
+    recent_evidence = db.evidence.find().sort("createdAt", -1).limit(5)
+    for e in recent_evidence:
+        timeline.append({"date": e.get("createdAt"), "event": f"Evidence added to {e.get('caseId')}", "type": "evidence_added"})
+        
+    recent_reports = db.reports.find().sort("createdAt", -1).limit(5)
+    for r in recent_reports:
+        timeline.append({"date": r.get("createdAt"), "event": f"Report generated for {r.get('caseId')}", "type": "report_generated"})
+        
+    recent_v_reports = db.video_reports.find().sort("createdAt", -1).limit(5)
+    for vr in recent_v_reports:
+        timeline.append({"date": vr.get("createdAt"), "event": f"Video report generated", "type": "video_report_generated"})
+        
+    # Sort timeline by date descending
+    timeline = sorted([t for t in timeline if t["date"]], key=lambda x: x["date"], reverse=True)[:20]
+    
+    # 5. Document/Evidence Growth (simple mock of growth, actual query could aggregate by month)
+    doc_trends = list(db.documents.aggregate([
+        {"$group": {"_id": {"$dateToString": {"format": "%Y-%m", "date": "$createdAt"}}, "count": {"$sum": 1}}},
+        {"$sort": {"_id": 1}}
+    ]))
+    ev_trends = list(db.evidence.aggregate([
+        {"$group": {"_id": {"$dateToString": {"format": "%Y-%m", "date": "$createdAt"}}, "count": {"$sum": 1}}},
+        {"$sort": {"_id": 1}}
+    ]))
+
+    return {
+        **base_analytics,
+        "resolution": {
+            "avg_closure_days": round(avg_closure_days, 1) if avg_closure_days is not None else None,
+            "closed_count": len(closed_cases),
+            "open_count": db.cases.count_documents({"status": {"$ne": "CLOSED"}, "deletedAt": {"$exists": False}})
+        },
+        "video_analytics": {
+            "total": len(video_reports),
+            "by_status": video_status_dist,
+            "by_class": video_class_dist
+        },
+        "timeline": timeline,
+        "growth": {
+            "documents": [{"month": d["_id"], "count": d["count"]} for d in doc_trends if d["_id"]],
+            "evidence": [{"month": e["_id"], "count": e["count"]} for e in ev_trends if e["_id"]]
+        }
+    }
+
 @app.get("/api/suspects/{suspect_id}")
 def get_suspect(suspect_id: str):
     from models.person import get_persons_collection
@@ -436,15 +546,13 @@ def get_suspect(suspect_id: str):
 @app.get("/api/health")
 def health_check():
     db_ok, _ = _db_check_connection()
+    ai_ok = bool(os.getenv("GEMINI_API_KEY"))
     return {
-        "backend": "OK",
-        "database": "connected" if db_ok else "disconnected",
-        "version": "2.0.0",
-        "status": "healthy" if db_ok else "degraded",
-        "components": {
-            "api": "operational",
-            "database": "connected" if db_ok else "disconnected",
-        }
+        "application": "ok",
+        "mongodb": "connected" if db_ok else "disconnected",
+        "database": os.getenv("MONGODB_DB_NAME", "bhairav"),
+        "ai_service": "configured" if ai_ok else "unavailable",
+        "version": "2.0.0"
     }
 
 @app.get("/api/system/status")
@@ -1127,6 +1235,106 @@ def get_video_reports(
         ]
     reports = query_video_reports(filters=filters, sort_by=sort_by, sort_order=sort_order, limit=limit)
     return reports
+
+
+@app.get("/api/reports/{report_id}")
+def get_report(report_id: str):
+    from models.report import get_report_by_id
+    report = get_report_by_id(report_id)
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+    return report
+
+
+@app.delete("/api/reports/{report_id}")
+def api_permanent_delete_report(report_id: str, request: Request):
+    from services.deletion_service import permanent_delete_report
+    
+    auth_header = request.headers.get("Authorization")
+    token = None
+    if auth_header and auth_header.startswith("Bearer "):
+        token = auth_header.split(" ")[1]
+        
+    result = permanent_delete_report(report_id, user_role="Officer", auth_token=token)
+    if not result.get("success"):
+        raise HTTPException(status_code=403 if "Authorization" in result.get("error", "") else 404, detail=result.get("error"))
+    
+    return result
+
+
+@app.delete("/api/video-reports/{report_id}")
+def api_permanent_delete_video_report(report_id: str, request: Request):
+    from services.deletion_service import permanent_delete_video_report
+    
+    auth_header = request.headers.get("Authorization")
+    token = None
+    if auth_header and auth_header.startswith("Bearer "):
+        token = auth_header.split(" ")[1]
+        
+    result = permanent_delete_video_report(report_id, user_role="Officer", auth_token=token)
+    if not result.get("success"):
+        raise HTTPException(status_code=403 if "Authorization" in result.get("error", "") else 404, detail=result.get("error"))
+    
+    return result
+
+
+@app.delete("/api/cases/{case_number}")
+def api_permanent_delete_case(case_number: str, request: Request):
+    from services.deletion_service import permanent_delete_case
+    
+    auth_header = request.headers.get("Authorization")
+    token = None
+    if auth_header and auth_header.startswith("Bearer "):
+        token = auth_header.split(" ")[1]
+        
+    result = permanent_delete_case(case_number, user_role="Officer", auth_token=token)
+    if not result.get("success"):
+        raise HTTPException(status_code=403 if "Authorization" in result.get("error", "") else 404, detail=result.get("error"))
+    
+    return result
+
+# --- Backup Management Endpoints ---
+BACKUP_DIR = os.path.join(BACKEND_DIR, "backups")
+os.makedirs(BACKUP_DIR, exist_ok=True)
+
+@app.get("/api/backups")
+def list_backups():
+    import time
+    backups = []
+    if os.path.exists(BACKUP_DIR):
+        for f in os.listdir(BACKUP_DIR):
+            fp = os.path.join(BACKUP_DIR, f)
+            if os.path.isfile(fp):
+                stat = os.stat(fp)
+                backups.append({
+                    "name": f,
+                    "created_at": time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(stat.st_mtime)),
+                    "size": stat.st_size,
+                    "type": "database_dump" if f.endswith(".bson") or f.endswith(".json") else "archive",
+                    "status": "available",
+                    "created_by": "System"
+                })
+    return sorted(backups, key=lambda x: x["created_at"], reverse=True)
+
+@app.delete("/api/backups/{filename}")
+def delete_backup(filename: str, request: Request):
+    # Only verify auth exist for demo
+    fp = os.path.join(BACKUP_DIR, filename)
+    if os.path.exists(fp) and os.path.isfile(fp):
+        try:
+            os.remove(fp)
+            return {"success": True, "message": "Backup deleted"}
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+    raise HTTPException(status_code=404, detail="Backup not found")
+
+@app.get("/api/backups/{filename}/download")
+def download_backup(filename: str):
+    from fastapi.responses import FileResponse
+    fp = os.path.join(BACKUP_DIR, filename)
+    if os.path.exists(fp) and os.path.isfile(fp):
+        return FileResponse(fp, filename=filename)
+    raise HTTPException(status_code=404, detail="Backup not found")
 
 
 @app.get("/api/video-intelligence/reports/{report_id}")

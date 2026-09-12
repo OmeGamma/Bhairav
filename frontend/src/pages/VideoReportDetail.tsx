@@ -5,6 +5,7 @@ import {
   FileImage, Link as LinkIcon, Trash2, ExternalLink
 } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { apiClient } from '../api/client';
 
 interface CaseOption {
   case_number: string;
@@ -30,6 +31,10 @@ interface VideoReport {
   className: string | null;
   videoTimestamp: string | null;
   frameNumber: number | null;
+  humanCount: number | null;
+  objectsDetected: any[] | null;
+  timeline: string | null;
+  videoDurationSec: number | null;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -165,6 +170,22 @@ const VideoReportDetail: React.FC = () => {
       console.error(err);
     } finally {
       setIsLinkingCase(false);
+    }
+  };
+
+  const handleDeleteReport = async () => {
+    if (confirm(`PERMANENT DELETE\n\nReport: ${report?.reportId}\nThis action permanently deletes the video report and associated media from Cloudinary.\n\nContinue?`)) {
+      try {
+        const res = await apiClient.delete(`/api/video-reports/${report?.reportId}`);
+        if (res.ok) {
+          navigate('/video-reports');
+        } else {
+          alert(`Unable to delete video report: ${res.error || 'Unknown error'}`);
+        }
+      } catch (err) {
+        console.error("Delete failed", err);
+        alert("Unable to delete video report due to an unexpected error.");
+      }
     }
   };
 
@@ -316,6 +337,48 @@ const VideoReportDetail: React.FC = () => {
               </dl>
             </div>
 
+            {(report.humanCount !== null && report.humanCount !== undefined) && (
+              <div className="bg-white dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border p-6">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Analysis Summary</h2>
+                <dl className="space-y-3 text-sm">
+                  <div>
+                    <dt className="text-gray-500 dark:text-gray-400">Approximate Humans Observed</dt>
+                    <dd className="text-gray-900 dark:text-white mt-1">{report.humanCount}</dd>
+                  </div>
+                  {report.videoDurationSec !== null && report.videoDurationSec !== undefined && (
+                    <div>
+                      <dt className="text-gray-500 dark:text-gray-400">Video Duration</dt>
+                      <dd className="text-gray-900 dark:text-white mt-1">
+                        {Math.floor(report.videoDurationSec / 60)}m {Math.round(report.videoDurationSec % 60)}s
+                      </dd>
+                    </div>
+                  )}
+                  {report.objectsDetected && report.objectsDetected.length > 0 && (
+                    <div>
+                      <dt className="text-gray-500 dark:text-gray-400">Objects Detected</dt>
+                      <dd className="text-gray-900 dark:text-white mt-1">
+                        <ul className="list-disc list-inside space-y-1">
+                          {report.objectsDetected.map((obj: any, idx: number) => (
+                            <li key={idx}>{obj.class?.charAt(0).toUpperCase() + obj.class?.slice(1)}: {obj.label || obj.count}</li>
+                          ))}
+                        </ul>
+                      </dd>
+                    </div>
+                  )}
+                  {report.timeline && (
+                    <div>
+                      <dt className="text-gray-500 dark:text-gray-400">Detection Timeline</dt>
+                      <dd className="text-gray-900 dark:text-white mt-1">
+                        <pre className="whitespace-pre-wrap text-xs bg-gray-50 dark:bg-gray-800 p-3 rounded-md border border-gray-200 dark:border-gray-700">
+                          {report.timeline}
+                        </pre>
+                      </dd>
+                    </div>
+                  )}
+                </dl>
+              </div>
+            )}
+
             <div className="bg-white dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border p-6">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Status</h2>
               <div className="flex items-center gap-4">
@@ -389,6 +452,15 @@ const VideoReportDetail: React.FC = () => {
                     <LinkIcon className="w-4 h-4" />
                   </button>
                 )}
+              </div>
+              <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                <button
+                  onClick={handleDeleteReport}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 border border-red-200 dark:border-red-800 bg-white dark:bg-dark-card text-red-600 dark:text-red-400 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>Permanently Delete Report</span>
+                </button>
               </div>
             </div>
 

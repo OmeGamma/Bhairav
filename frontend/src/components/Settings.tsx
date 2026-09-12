@@ -16,8 +16,11 @@ import {
   Cpu,
   Video,
   Wifi,
+  Trash2,
+  Download
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { apiClient } from '../api/client';
 
 type Theme = 'dark' | 'light' | 'system';
 
@@ -33,7 +36,36 @@ const Settings: React.FC = () => {
   const [systemStatus, setSystemStatus] = useState<any>(null);
   const [isCheckingStatus, setIsCheckingStatus] = useState(false);
   const [statusError, setStatusError] = useState<string | null>(null);
+  const [backups, setBackups] = useState<any[]>([]);
+  const [isBackupsLoading, setIsBackupsLoading] = useState(false);
   const navigate = useNavigate();
+
+  const fetchBackups = async () => {
+    setIsBackupsLoading(true);
+    try {
+      const res = await apiClient.get<any[]>('/api/backups');
+      if (res.ok && res.data) setBackups(res.data);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsBackupsLoading(false);
+    }
+  };
+
+  const deleteBackup = async (filename: string) => {
+    if (confirm(`PERMANENT DELETE\n\nAre you sure you want to delete backup file: ${filename}?`)) {
+      try {
+        const res = await apiClient.delete(`/api/backups/${filename}`);
+        if (res.ok) {
+          fetchBackups();
+        } else {
+          alert(`Failed to delete backup: ${res.error}`);
+        }
+      } catch (err) {
+        alert('Error deleting backup.');
+      }
+    }
+  };
 
   useEffect(() => {
     const root = document.documentElement;
@@ -68,6 +100,7 @@ const Settings: React.FC = () => {
 
   useEffect(() => {
     checkSystemStatus();
+    fetchBackups();
   }, []);
 
   const handleLogout = () => {
@@ -270,6 +303,67 @@ const Settings: React.FC = () => {
               >
                 RUN CLEANUP NOW
               </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Data Backup & Recovery */}
+        <div className="bg-white dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border p-6">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 border-b border-gray-200 dark:border-gray-700 pb-2 flex items-center">
+            <Database className="w-5 h-5 mr-2" /> Data Backup & Recovery
+          </h2>
+          <div className="space-y-4">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Manage database backups. These are system snapshots separate from the live database.
+            </p>
+
+            <div className="min-w-0 overflow-x-auto border border-gray-200 dark:border-gray-700 rounded-md">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 dark:bg-gray-800/50">
+                  <tr>
+                    <th className="px-4 py-2 text-left text-gray-500 font-medium">Backup File</th>
+                    <th className="px-4 py-2 text-left text-gray-500 font-medium">Created At</th>
+                    <th className="px-4 py-2 text-left text-gray-500 font-medium">Size</th>
+                    <th className="px-4 py-2 text-right text-gray-500 font-medium">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                  {isBackupsLoading ? (
+                    <tr>
+                      <td colSpan={4} className="px-4 py-4 text-center text-gray-500">Loading backups...</td>
+                    </tr>
+                  ) : backups.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="px-4 py-4 text-center text-gray-500">No backup files found.</td>
+                    </tr>
+                  ) : (
+                    backups.map((b) => (
+                      <tr key={b.name} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                        <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{b.name}</td>
+                        <td className="px-4 py-3 text-gray-500">{new Date(b.created_at).toLocaleString()}</td>
+                        <td className="px-4 py-3 text-gray-500">{(b.size / 1024 / 1024).toFixed(2)} MB</td>
+                        <td className="px-4 py-3 flex justify-end gap-2">
+                          <a
+                            href={`/api/backups/${b.name}/download`}
+                            download
+                            className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-colors"
+                            title="Download Backup"
+                          >
+                            <Download className="w-4 h-4" />
+                          </a>
+                          <button
+                            onClick={() => deleteBackup(b.name)}
+                            className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors"
+                            title="Permanently Delete Backup"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>

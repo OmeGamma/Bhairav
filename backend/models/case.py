@@ -212,3 +212,12 @@ def soft_delete_case(case_number: str) -> Optional[Dict[str, Any]]:
 def get_deleted_cases() -> List[Dict[str, Any]]:
     collection = get_cases_collection()
     return [normalize_case(serialize_doc(doc)) for doc in collection.find({"deletedAt": {"$exists": True}}).sort("deletedAt", -1)]
+
+def permanent_delete_case(case_number: str, user_role: str = None, auth_token: str = None) -> Dict[str, Any]:
+    from services.deletion_service import permanent_delete_case as svc_permanent_delete_case
+    return svc_permanent_delete_case(case_number, user_role, auth_token)
+
+def get_case_by_id_including_deleted(case_number: str) -> Optional[Dict[str, Any]]:
+    collection = get_cases_collection()
+    doc = collection.find_one({"caseNumber": case_number})
+    return normalize_case(serialize_doc(doc)) if doc else None

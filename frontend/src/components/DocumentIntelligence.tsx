@@ -273,7 +273,7 @@ const DocumentIntelligence: React.FC = () => {
           ) : existingDocs.length === 0 ? (
             <div className="p-4 text-center text-gray-500">No documents found for this case.</div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="min-w-0 flex-1 overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                 <thead className="bg-gray-50 dark:bg-gray-800">
                   <tr>

@@ -10,6 +10,7 @@ export interface ApiResponse<T> {
 export interface RequestOptions extends RequestInit {
   timeout?: number;
   params?: Record<string, string | number | boolean | undefined>;
+  signal?: AbortSignal;
 }
 
 function buildUrl(path: string, params?: Record<string, string | number | boolean | undefined>): string {
@@ -36,13 +37,23 @@ function buildUrl(path: string, params?: Record<string, string | number | boolea
 }
 
 async function fetchWithTimeout(url: string, options: RequestOptions = {}): Promise<Response> {
-  const { timeout = DEFAULT_TIMEOUT, ...fetchOptions } = options;
+  const { timeout = DEFAULT_TIMEOUT, signal: externalSignal, ...fetchOptions } = options;
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeout);
+  
+  if (externalSignal) {
+    externalSignal.addEventListener('abort', () => {
+      controller.abort();
+    });
+  }
+
   try {
     return await fetch(url, { ...fetchOptions, signal: controller.signal });
   } finally {
     clearTimeout(id);
+    if (externalSignal) {
+      externalSignal.removeEventListener('abort', () => controller.abort());
+    }
   }
 }
 

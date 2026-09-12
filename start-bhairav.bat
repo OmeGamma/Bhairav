@@ -42,7 +42,7 @@ REM Start backend
 echo.
 echo [1/2] Starting Backend (FastAPI on port 8000)...
 echo.
-start "Bhairav Backend" cmd /c "cd backend && venv\Scripts\python.exe -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
+start "Bhairav Backend" cmd /k "cd backend && venv\Scripts\python.exe -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
 
 REM Wait for backend
 echo Waiting for backend to start...
@@ -52,7 +52,7 @@ REM Start frontend
 echo.
 echo [2/2] Starting Frontend (Vite on port 5173)...
 echo.
-start "Bhairav Frontend" cmd /c "cd frontend && npm run dev"
+start "Bhairav Frontend" cmd /k "cd frontend && npm run dev"
 
 echo.
 echo ============================================

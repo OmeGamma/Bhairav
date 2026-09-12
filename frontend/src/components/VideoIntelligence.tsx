@@ -90,6 +90,16 @@ const VideoIntelligence: React.FC = () => {
   }, [cameraStream, ws]);
 
   useEffect(() => {
+    if (cameraStream && videoRef.current) {
+      videoRef.current.srcObject = cameraStream;
+      videoRef.current.play().catch(err => {
+        console.error("Video play failed:", err);
+        setCameraError("Camera feed could not be started.");
+      });
+    }
+  }, [cameraStream]);
+
+  useEffect(() => {
     return () => {
       if (videoUrl) {
         URL.revokeObjectURL(videoUrl);
@@ -103,11 +113,6 @@ const VideoIntelligence: React.FC = () => {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 1280 }, height: { ideal: 720 } } });
       setCameraStream(stream);
       setCameraActive(true);
-
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.play();
-      }
 
       const ws_conn = new WebSocket(wsUrl);
       setWs(ws_conn);
@@ -270,15 +275,20 @@ const VideoIntelligence: React.FC = () => {
     }
   };
 
+  const prevReportCountRef = useRef(0);
+  const timelineEventsRef = useRef(timelineEvents);
+  timelineEventsRef.current = timelineEvents;
+
   const pollReports = useCallback(() => {
     if (!selectedCase) return;
+    prevReportCountRef.current = 0;
     const interval = setInterval(async () => {
       try {
         const res = await fetch(`/api/video-intelligence/reports/by-case/${encodeURIComponent(selectedCase || '')}`);
         if (res.ok) {
           const data = await res.json();
-          const prevCount = timelineEvents.length;
           setExistingReports(data);
+          const prevCount = prevReportCountRef.current;
           if (data.length > prevCount) {
             const newEvents = data.slice(prevCount).map((r: any) => ({
               timestamp: r.timestamp || r.createdAt,
@@ -289,6 +299,7 @@ const VideoIntelligence: React.FC = () => {
               personCropUrl: r.personCropUrl,
             }));
             setTimelineEvents(prev => [...prev, ...newEvents]);
+            prevReportCountRef.current = data.length;
           }
           if (data.length > 0 && processingInfo?.status === "processing_started") {
             setProcessingInfo({
@@ -397,6 +408,32 @@ const VideoIntelligence: React.FC = () => {
             <div className="relative bg-black rounded-lg overflow-hidden flex-1 min-h-[500px] flex items-center justify-center border border-gray-800 shadow-lg">
               {(cameraActive && cameraStream) ? (
                 <>
+                  <div className="absolute top-4 left-4 z-10 bg-black/60 backdrop-blur-sm text-white p-3 rounded-lg border border-white/20 shadow-lg font-mono text-xs w-56">
+                    <div className="flex items-center mb-2">
+                      <span className="w-2 h-2 rounded-full mr-2 bg-red-500 animate-pulse"></span>
+                      <span className="font-bold">LIVE Camera Active</span>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Detection:</span>
+                        <span className={detections.some(d => d.class === 'person') ? "text-red-400 font-bold" : "text-green-400 font-bold"}>
+                          {detections.some(d => d.class === 'person') ? "PERSON DETECTED" : "NO PERSON DETECTED"}
+                        </span>
+                      </div>
+                      {detections.length > 0 && (
+                        <>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Count:</span>
+                            <span className="font-bold">{detections.filter(d => d.class === 'person').length} HUMAN(S)</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Max Conf:</span>
+                            <span className="font-bold">{Math.round(Math.max(...detections.map(d => d.confidence || 0), 0) * 100)}%</span>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
                   <video
                     ref={videoRef}
                     className="w-full h-full object-contain"
@@ -406,28 +443,8 @@ const VideoIntelligence: React.FC = () => {
                   />
                   <canvas
                     ref={canvasRef}
-                    className="absolute top-0 left-0 w-full h-full pointer-events-none"
+                    className="absolute top-0 left-0 w-full h-full object-contain pointer-events-none"
                   />
-                  {detections.map((det, idx) => {
-                    const bbox = det.bounding_box;
-                    if (!bbox) return null;
-                    return (
-                      <div
-                        key={idx}
-                        className="absolute border-2 border-red-400 bg-red-500/20 rounded pointer-events-none"
-                        style={{
-                          left: `${(bbox.x1 / (canvasRef.current?.width || 640)) * 100}%`,
-                          top: `${(bbox.y1 / (canvasRef.current?.height || 480)) * 100}%`,
-                          width: `${((bbox.x2 - bbox.x1) / (canvasRef.current?.width || 640)) * 100}%`,
-                          height: `${((bbox.y2 - bbox.y1) / (canvasRef.current?.height || 480)) * 100}%`,
-                        }}
-                      >
-                        <span className="absolute -top-5 left-0 bg-red-500 text-white text-xs px-1 rounded">
-                          Person {det.track_id || ''} {Math.round(det.confidence * 100)}%
-                        </span>
-                      </div>
-                    );
-                  })}
                 </>
               ) : videoFile && videoUrl ? (
                 <>
@@ -592,15 +609,13 @@ const VideoIntelligence: React.FC = () => {
                 </div>
               )}
 
-              {videoFile && (
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  className="hidden"
-                  accept="video/*"
-                  onChange={handleFileChange}
-                />
-              )}
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                accept="video/*"
+                onChange={handleFileChange}
+              />
             </div>
 
             <div className="bg-white dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border p-6">
@@ -613,7 +628,7 @@ const VideoIntelligence: React.FC = () => {
                   <p>No detection events yet. Start camera or process a video.</p>
                 </div>
               ) : (
-                <div className="space-y-3 max-h-64 overflow-y-auto">
+                <div className="space-y-3">
                   {timelineEvents.map((event, idx) => (
                     <div
                       key={idx}
@@ -660,20 +675,28 @@ const VideoIntelligence: React.FC = () => {
                 <p>No video reports for this case.</p>
               </div>
             ) : (
-              <div className="space-y-3 max-h-96 overflow-y-auto">
+                <div className="space-y-3">
                 {existingReports.map((r) => (
                   <div key={r.reportId || r._id} className="p-3 border border-gray-200 dark:border-gray-700 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
                     <div className="flex items-start gap-3">
-                      {r.personCropUrl ? (
-                        <img src={r.personCropUrl} alt="Evidence" className="w-10 h-10 object-cover rounded border-2 border-gray-200 dark:border-gray-700" />
+                      {r.fullFrameUrl || r.personCropUrl ? (
+                        <img src={r.fullFrameUrl || r.personCropUrl} alt="Evidence" className="w-10 h-10 object-cover rounded border-2 border-gray-200 dark:border-gray-700" />
                       ) : (
-                        <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded flex items-center justify-center"><AlertTriangle className="w-4 h-4 text-gray-400" /></div>
+                        <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded flex items-center justify-center"><Video className="w-4 h-4 text-gray-400" /></div>
                       )}
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm text-gray-900 dark:text-white">{r.eventType || "PERSON_DETECTED"}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          Conf: {Math.round((r.confidence || 0) * 100)}% • {r.sourceName || r.sourceType}
+                        <p className="font-medium text-sm text-gray-900 dark:text-white">
+                          {r.eventType === "VIDEO_ANALYSIS_SUMMARY" ? "Video Analysis Summary" : (r.eventType || "PERSON_DETECTED")}
                         </p>
+                        {r.eventType === "VIDEO_ANALYSIS_SUMMARY" ? (
+                           <p className="text-xs text-gray-500 dark:text-gray-400">
+                             Total Humans: {r.humanCount || 0} • {r.sourceName || "Uploaded Video"}
+                           </p>
+                        ) : (
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            Conf: {Math.round((r.confidence || 0) * 100)}% • {r.sourceName || r.sourceType}
+                          </p>
+                        )}
                         <p className="text-xs text-gray-400 dark:text-gray-500">
                           {r.timestamp ? new Date(r.timestamp).toLocaleString() : 'N/A'}
                         </p>

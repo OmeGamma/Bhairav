@@ -15,12 +15,16 @@
 }
 
 @layer base {
-  html, body, #root {
+  html,
+  body,
+  #root {
     width: 100%;
-    height: 100%;
+    min-width: 0;
+    min-height: 100%;
     margin: 0;
     padding: 0;
-    overflow: hidden;
+    overflow-x: hidden;
+    scrollbar-width: none;
   }
 
   html {
@@ -28,6 +32,7 @@
   }
 
   body {
+    min-height: 100vh;
     background-color: var(--color-light-bg);
     color: var(--color-light-text);
     transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
@@ -39,6 +44,50 @@
     background-color: var(--color-dark-bg);
     color: var(--color-dark-text);
   }
+
+  img,
+  svg,
+  video,
+  canvas {
+    max-width: 100%;
+  }
+
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+  }
+
+  html.dark button:focus-visible,
+  html.dark a:focus-visible,
+  html.dark input:focus-visible,
+  html.dark select:focus-visible,
+  html.dark textarea:focus-visible {
+    outline-color: #60a5fa;
+  }
+
+  html *,
+  body *,
+  #root * {
+    scrollbar-width: none;
+  }
+
+  html *::-webkit-scrollbar,
+  body *::-webkit-scrollbar,
+  #root *::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 @layer components {
@@ -47,6 +96,40 @@
   }
   html.dark .leaflet-container {
     background: #1e293b;
+  }
+
+  /* Hotspot Pulse Animation */
+  @keyframes hotspot-pulse {
+    0% { transform: scale(0.5); opacity: 0; }
+    50% { opacity: 1; }
+    100% { transform: scale(2.5); opacity: 0; }
+  }
+
+  .hotspot-pulse {
+    animation: hotspot-pulse 2s infinite ease-out;
+  }
+
+  .scrollbar-hidden,
+  .custom-scrollbar {
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hidden::-webkit-scrollbar,
+  .custom-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Dark mode support for Leaflet popups */
+  html.dark .leaflet-popup-content-wrapper,
+  html.dark .leaflet-popup-tip {
+    background: var(--color-dark-card);
+    color: var(--color-dark-text);
+  }
+
+  html.dark .leaflet-popup-content p,
+  html.dark .leaflet-popup-content h3,
+  html.dark .leaflet-popup-content span {
+    color: var(--color-dark-text);
   }
 }
 

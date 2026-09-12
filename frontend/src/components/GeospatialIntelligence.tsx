@@ -23,6 +23,23 @@ const createCustomIcon = (color: string) => {
   });
 };
 
+const createHotspotIcon = (severity: string, count: number) => {
+  const color = severity === 'HIGH' ? '#ef4444' : severity === 'MEDIUM' ? '#f97316' : '#3b82f6';
+  return L.divIcon({
+    className: 'custom-hotspot-marker bg-transparent border-none',
+    html: `
+      <div style="position: relative; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
+        <div class="hotspot-pulse" style="position: absolute; width: 100%; height: 100%; border-radius: 50%; background-color: ${color}; opacity: 0.4;"></div>
+        <div style="position: relative; width: 16px; height: 16px; background-color: ${color}; border-radius: 50%; border: 2px solid white; z-index: 2; box-shadow: 0 0 4px rgba(0,0,0,0.5);"></div>
+        ${count > 0 ? `<div style="position: absolute; top: -8px; right: -12px; background: #1f2937; color: white; border-radius: 10px; padding: 0 5px; font-size: 10px; font-weight: bold; border: 1px solid white; z-index: 3;">${count}</div>` : ''}
+      </div>
+    `,
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
+    popupAnchor: [0, -16],
+  });
+};
+
 const MapUpdater: React.FC<{ center: [number, number] }> = ({ center }) => {
   const map = useMap();
   useEffect(() => {
@@ -161,25 +178,19 @@ const GeospatialIntelligence: React.FC = () => {
             <MapUpdater center={center} />
             
             {hotspots.map((h, i) => (
-               <Circle 
+               <Marker 
                  key={'hotspot_'+i}
-                 center={[h.lat, h.lng]}
-                 pathOptions={{ 
-                   color: h.severity === 'HIGH' ? '#ef4444' : h.severity === 'MEDIUM' ? '#f97316' : '#3b82f6',
-                   fillColor: h.severity === 'HIGH' ? '#ef4444' : h.severity === 'MEDIUM' ? '#f97316' : '#3b82f6',
-                   fillOpacity: 0.2,
-                   weight: 2
-                 }}
-                 radius={h.severity === 'HIGH' ? 50000 : h.severity === 'MEDIUM' ? 30000 : 15000}
+                 position={[h.lat, h.lng]}
+                 icon={createHotspotIcon(h.severity, h.count)}
                >
                  <Popup>
-                   <div className="text-sm font-medium">
-                     <p className="font-bold text-gray-900">{h.is_manual ? h.name || 'Intelligence Zone' : 'Auto Hotspot'}</p>
-                     <p>Severity: <span className="font-bold">{h.severity}</span></p>
-                     {!h.is_manual && <p>Cluster size: {h.count} cases</p>}
+                   <div className="text-sm font-medium dark:text-white">
+                     <p className="font-bold text-gray-900 dark:text-white mb-1 pb-1 border-b border-gray-200 dark:border-gray-700">{h.is_manual ? h.name || 'Intelligence Zone' : 'Auto Hotspot'}</p>
+                     <p className="text-gray-700 dark:text-gray-300">Severity: <span className="font-bold">{h.severity}</span></p>
+                     {!h.is_manual && <p className="text-gray-700 dark:text-gray-300">Cluster size: {h.count} cases</p>}
                    </div>
                  </Popup>
-               </Circle>
+               </Marker>
             ))}
 
             {filteredCases.map(c => {
@@ -194,24 +205,24 @@ const GeospatialIntelligence: React.FC = () => {
                   icon={createCustomIcon(markerColor)}
                 >
                   <Popup>
-                    <div className="min-w-[220px]">
-                      <h3 className="font-bold mb-1 border-b border-gray-200 pb-1 text-gray-900">{c.case_number}</h3>
-                      <p className="text-xs my-0.5 text-gray-700"><strong>Title:</strong> {c.title}</p>
-                      <p className="text-xs my-0.5 text-gray-700"><strong>Crime:</strong> {c.crime_type}</p>
-                      <p className="text-xs my-0.5 text-gray-700"><strong>Location:</strong> {c.location?.city || c.city || c.location?.district || c.district || c.location?.state || c.state}</p>
-                      <p className="text-xs my-0.5 text-gray-700"><strong>Date:</strong> {new Date(c.filingDate || c.createdAt).toLocaleDateString()}</p>
+                    <div className="min-w-[220px] dark:text-white">
+                      <h3 className="font-bold mb-1 border-b border-gray-200 dark:border-gray-700 pb-1 text-gray-900 dark:text-white">{c.case_number}</h3>
+                      <p className="text-xs my-0.5 text-gray-700 dark:text-gray-300"><strong>Title:</strong> {c.title}</p>
+                      <p className="text-xs my-0.5 text-gray-700 dark:text-gray-300"><strong>Crime:</strong> {c.crime_type}</p>
+                      <p className="text-xs my-0.5 text-gray-700 dark:text-gray-300"><strong>Location:</strong> {c.location?.city || c.city || c.location?.district || c.district || c.location?.state || c.state}</p>
+                      <p className="text-xs my-0.5 text-gray-700 dark:text-gray-300"><strong>Date:</strong> {new Date(c.filingDate || c.createdAt).toLocaleDateString()}</p>
                       <div className="mt-1.5 flex gap-1">
-                        <span className="bg-gray-100 text-gray-800 px-1.5 py-0.5 rounded text-[10px]">{c.status}</span>
-                        <span className="bg-gray-100 text-gray-800 px-1.5 py-0.5 rounded text-[10px]">{c.priority} Priority</span>
+                        <span className="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-1.5 py-0.5 rounded text-[10px]">{c.status}</span>
+                        <span className="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-1.5 py-0.5 rounded text-[10px]">{c.priority} Priority</span>
                       </div>
                       {c.dataClassification === 'DEMO_SYNTHETIC' && (
                         <div className="mt-2">
-                          <span className="text-[10px] bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded border border-yellow-300">DEMO DATA</span>
+                          <span className="text-[10px] bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400 px-1.5 py-0.5 rounded border border-yellow-300 dark:border-yellow-700">DEMO DATA</span>
                         </div>
                       )}
                       <div className="mt-2 flex gap-2">
-                        <Link to={`/cases/${c.case_number}`} className="flex-1 block bg-light-accent text-white no-underline p-1.5 rounded text-xs text-center">View Case</Link>
-                        <Link to={`/cases/${c.case_number}/edit`} className="flex-1 block bg-gray-700 text-white no-underline p-1.5 rounded text-xs text-center">Edit Case</Link>
+                        <Link to={`/cases/${c.case_number}`} className="flex-1 block bg-light-accent dark:bg-dark-accent text-white no-underline p-1.5 rounded text-xs text-center">View Case</Link>
+                        <Link to={`/cases/${c.case_number}/edit`} className="flex-1 block bg-gray-700 dark:bg-gray-600 text-white no-underline p-1.5 rounded text-xs text-center">Edit Case</Link>
                       </div>
                     </div>
                   </Popup>

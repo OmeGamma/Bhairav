@@ -133,7 +133,7 @@ const Cases: React.FC = () => {
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-light-accent"
               />
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Filter className="w-4 h-4 text-gray-500" />
               <select value={filterCity} onChange={(e) => setFilterCity(e.target.value)} className="bg-light-bg dark:bg-dark-bg border border-light-border dark:border-dark-border text-sm rounded-md px-2 py-2 text-gray-700 dark:text-gray-300">
                 {cities.map(c => <option key={c} value={c}>{c === 'All' ? 'All Cities' : c}</option>)}
@@ -171,7 +171,7 @@ const Cases: React.FC = () => {
           ) : filteredCases.length === 0 ? (
             <div className="p-8 text-center text-gray-500">No matching cases found.</div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="min-w-0 flex-1 overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                 <thead className="bg-gray-50 dark:bg-gray-800">
                   <tr>

@@ -12,6 +12,7 @@ def build_network_graph(suspect_name: str) -> Dict[str, Any]:
         
         # In this schema, suspect names might be stored as strings in 'suspects' array, or 'persons' array, or 'suspect' field.
         cases_cursor = db.cases.find({
+            "deletedAt": {"$exists": False},
             "$or": [
                 {"suspects": search_regex},
                 {"persons": search_regex},

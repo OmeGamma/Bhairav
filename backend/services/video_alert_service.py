@@ -1,11 +1,14 @@
 import os
 import time
+import logging
 from datetime import datetime
 from typing import Optional, Dict, Any, List
 from models.video_report import create_video_report, get_video_reports_collection
 from services.cloudinary_service import upload_image
 from services.telegram_service import send_telegram_photo
 from models.media_file import create_media_file
+
+logger = logging.getLogger(__name__)
 
 _cooldown_registry: Dict[str, float] = {}
 
@@ -51,11 +54,13 @@ def create_person_detection_alert(
 ) -> Optional[Dict[str, Any]]:
     if is_suppressed(track_id, source_type, source_name):
         mark_seen(track_id, source_type, source_name)
+        logger.info(f"[Video] Person detection suppressed (cooldown). Track ID: {track_id}")
         return None
 
     mark_seen(track_id, source_type, source_name)
 
-    # 1. Upload to Cloudinary & Create MediaFiles
+    logger.info(f"[Video] Person detected. Track ID: {track_id}, Confidence: {confidence:.2f}")
+
     full_frame_file_id = None
     full_frame_url = None
     person_crop_file_id = None
@@ -80,6 +85,9 @@ def create_person_detection_alert(
             })
             full_frame_file_id = doc["fileId"]
             full_frame_url = doc["secureUrl"]
+            logger.info(f"[Cloudinary] Full frame uploaded. Public ID: {res.get('public_id')}")
+        else:
+            logger.error("[Cloudinary] Full frame upload failed.")
 
     if person_crop_bytes:
         res = upload_image(person_crop_bytes, folder="bhairav/video-evidence")
@@ -100,6 +108,9 @@ def create_person_detection_alert(
             })
             person_crop_file_id = doc["fileId"]
             person_crop_url = doc["secureUrl"]
+            logger.info(f"[Cloudinary] Person crop uploaded. Public ID: {res.get('public_id')}")
+        else:
+            logger.error("[Cloudinary] Person crop upload failed.")
 
     from models.notification import create_notification
 
@@ -133,19 +144,30 @@ def create_person_detection_alert(
         "userId": "Officer",
     })
 
-    # Telegram Alert
     telegram_caption = (
-        f"⚠️ <b>BHAIRAV VIDEO ALERT</b>\n\n"
+        f"🚨 <b>BHAIRAV VIDEO INTELLIGENCE ALERT</b>\n\n"
         f"Person detected in live camera.\n\n"
-        f"<b>Source:</b> {source_name}\n"
+        f"<b>Source:</b> Live Camera\n"
+        f"<b>Detection:</b> Person\n"
+        f"<b>Track ID:</b> {track_id if track_id is not None else 'Unknown'}\n"
         f"<b>Confidence:</b> {int(confidence*100)}%\n"
-        f"<b>Track ID:</b> {track_id}\n\n"
-        f"Review required."
+        f"<b>Time:</b> {timestamp}\n"
+        f"<b>Status:</b> REVIEW REQUIRED\n\n"
+        f"Evidence has been captured and stored."
     )
-    # Prefer person crop for telegram
-    photo_bytes = person_crop_bytes if person_crop_bytes else full_frame_bytes
-    if photo_bytes:
-        send_telegram_photo(photo_bytes, telegram_caption)
+    photo_url = person_crop_url if person_crop_url else full_frame_url
+    if photo_url:
+        logger.info(f"[Telegram] Sending photo via URL: {photo_url}")
+        sent = send_telegram_photo(photo_url, telegram_caption)
+        logger.info(f"[Telegram] sendPhoto result: {sent}")
+    else:
+        photo_bytes = person_crop_bytes if person_crop_bytes else full_frame_bytes
+        if photo_bytes:
+            logger.info("[Telegram] Sending photo via bytes.")
+            sent = send_telegram_photo(photo_bytes, telegram_caption)
+            logger.info(f"[Telegram] sendPhoto result: {sent}")
+        else:
+            logger.warning("[Telegram] No photo available to send.")
 
     return report
 

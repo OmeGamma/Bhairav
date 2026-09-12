@@ -60,9 +60,26 @@ const [analytics, setAnalytics] = useState<any>(null);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (searchQuery.trim()) {
-      // The AI analyzer is typically where natural language search lives.
-      navigate(`/ai-analyzer?q=${encodeURIComponent(searchQuery)}`);
+    if (!searchQuery.trim()) return;
+
+    const query = searchQuery.trim().toLowerCase();
+
+    if (query.includes('video')) {
+      navigate('/video-intelligence');
+    } else if (query.includes('criminal file') || query.includes('case')) {
+      navigate('/cases');
+    } else if (query.includes('network') || query.includes('criminal network')) {
+      navigate('/criminal-network');
+    } else if (query.includes('geospatial') || query.includes('map')) {
+      navigate('/geospatial');
+    } else if (query.includes('document')) {
+      navigate('/documents');
+    } else if (query.includes('alert') || query.includes('notification')) {
+      navigate('/alerts');
+    } else if (query.includes('report')) {
+      navigate('/reports');
+    } else if (query.includes('analyzer') || query.includes('ai') || query.includes('intelligence')) {
+      navigate('/ai-analyzer');
     }
   };
 
@@ -122,7 +139,7 @@ const [analytics, setAnalytics] = useState<any>(null);
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-gradient-to-r from-light-card to-white dark:from-dark-card dark:to-dark-bg p-8 rounded-2xl shadow-sm border border-light-border dark:border-dark-border">
           <div className="flex-1 w-full">
             <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-light-accent to-blue-600 dark:from-blue-400 dark:to-cyan-300">Bhairav Intelligence Search</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Natural-language grounded search across MongoDB cases, persons, and evidence.</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Quickly navigate to features like Video Intelligence, Criminal Network, or Cases.</p>
             
             <form onSubmit={handleSearch} className="mt-6 relative w-full max-w-2xl group">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -131,7 +148,7 @@ const [analytics, setAnalytics] = useState<any>(null);
               <input
                 type="text"
                 className="block w-full pl-11 pr-4 py-4 bg-white/50 dark:bg-dark-bg/50 border border-gray-200 dark:border-gray-700 rounded-xl leading-5 bg-transparent placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-light-accent dark:focus:ring-blue-500 focus:border-light-accent dark:focus:border-blue-500 transition-all sm:text-sm backdrop-blur-sm"
-                placeholder="E.g., Mumbai vehicle theft involving Rajesh..."
+                placeholder="Search for features (e.g., Video Intelligence, Criminal Network, Cases)..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -274,7 +291,7 @@ const [analytics, setAnalytics] = useState<any>(null);
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Recent MongoDB Cases</h2>
               <Link to="/cases" className="text-sm text-light-accent dark:text-blue-400 font-medium hover:underline">View All</Link>
             </div>
-            <div className="flex-1 overflow-x-auto">
+            <div className="min-w-0 flex-1 overflow-x-auto">
               <table className="w-full text-left text-sm text-gray-500 dark:text-gray-400">
                 <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-800/50 dark:text-gray-300">
                   <tr>
@@ -333,7 +350,7 @@ const [analytics, setAnalytics] = useState<any>(null);
                 <Bell className="w-5 h-5 mr-2 text-rose-500" /> Live Alerts
               </h2>
             </div>
-            <div className="p-0 flex-1 overflow-y-auto max-h-[400px]">
+            <div className="p-0 flex-1">
               {isLoading ? (
                 <div className="p-6 text-center text-gray-500 text-sm">Loading alerts...</div>
               ) : notifications.length === 0 ? (

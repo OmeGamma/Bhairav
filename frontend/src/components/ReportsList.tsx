@@ -63,7 +63,7 @@ const ReportsList: React.FC = () => {
               <p className="text-sm">Generate a report from a case detail page.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="min-w-0 flex-1 overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 dark:bg-gray-800/50 text-left">
                   <tr>

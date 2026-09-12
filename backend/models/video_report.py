@@ -53,6 +53,10 @@ def delete_video_report(report_id: str) -> bool:
         result = collection.delete_one({"_id": report_id})
     return result.deleted_count > 0
 
+def permanent_delete_video_report(report_id: str, user_role: str = None, auth_token: str = None) -> Dict[str, Any]:
+    from services.deletion_service import permanent_delete_video_report as svc_permanent_delete_video_report
+    return svc_permanent_delete_video_report(report_id, user_role, auth_token)
+
 def get_video_report_stats(user_id: str = "Officer") -> Dict[str, Any]:
     collection = get_video_reports_collection()
     total = collection.count_documents({})
