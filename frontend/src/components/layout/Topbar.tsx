@@ -1,17 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Bell, Sun, Moon, ChevronDown, Check, CheckCheck, LogOut, User, Settings as SettingsIcon } from 'lucide-react';
+import { Search, Bell, Sun, Moon, ChevronDown, Check, CheckCheck, LogOut, User, Settings as SettingsIcon, Shield } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '../contexts/NotificationContext';
 import type { Notification } from '../contexts/NotificationContext';
 
-// Hook for click outside
 function useOnClickOutside(ref: React.RefObject<HTMLElement | null>, handler: (event: MouseEvent | TouchEvent) => void) {
+  const handlerRef = useRef(handler);
+
+  useEffect(() => {
+    handlerRef.current = handler;
+  }, [handler]);
+
   useEffect(() => {
     const listener = (event: MouseEvent | TouchEvent) => {
       if (!ref.current || ref.current.contains(event.target as Node)) {
         return;
       }
-      handler(event);
+      handlerRef.current(event);
     };
     document.addEventListener('mousedown', listener);
     document.addEventListener('touchstart', listener);
@@ -19,7 +24,7 @@ function useOnClickOutside(ref: React.RefObject<HTMLElement | null>, handler: (e
       document.removeEventListener('mousedown', listener);
       document.removeEventListener('touchstart', listener);
     };
-  }, [ref, handler]);
+  }, [ref]);
 }
 
 const Topbar: React.FC = () => {
@@ -40,7 +45,6 @@ const Topbar: React.FC = () => {
   const notifRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
 
-  useOnClickOutside(scopeRef, () => setIsScopeOpen(false));
   useOnClickOutside(notifRef, () => setShowNotifications(false));
   useOnClickOutside(profileRef, () => setIsProfileOpen(false));
 
@@ -93,51 +97,13 @@ const Topbar: React.FC = () => {
 
   return (
     <header className="relative z-40 flex min-h-16 w-full flex-wrap items-center justify-between gap-3 px-4 py-3 bg-light-card dark:bg-dark-card border-b border-light-border dark:border-dark-border sm:px-6 transition-colors duration-200">
-      <div className="flex min-w-0 flex-1 items-center">
-        {/* Global Search */}
-        <div className="relative w-full max-w-md min-w-0">
-          <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-            <Search className="h-5 w-5 text-gray-400" />
-          </div>
-          <input
-            type="text"
-            className="block w-full min-w-0 pl-10 pr-3 py-2 border border-light-border dark:border-dark-border rounded-md leading-5 bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-light-accent dark:focus:ring-dark-accent sm:text-sm transition-colors"
-            placeholder="Global Bhairav Search..."
-          />
-        </div>
+      <div className="flex min-w-0 flex-1 items-center px-2 md:px-4">
+        <Shield className="w-8 h-8 text-light-accent dark:text-dark-accent mr-3" />
+        <span className="text-xl font-bold tracking-wider text-gray-900 dark:text-white">BHAIRAV</span>
       </div>
 
       <div className="flex w-full min-w-0 items-center justify-end gap-3 sm:w-auto sm:space-x-6">
-        {/* Scope Selector */}
-        <div className="relative" ref={scopeRef}>
-          <button 
-            onClick={() => setIsScopeOpen(!isScopeOpen)}
-            aria-haspopup="menu"
-            aria-expanded={isScopeOpen}
-            className="flex max-w-full items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-light-accent dark:hover:text-dark-accent focus:outline-none focus:ring-2 focus:ring-light-accent dark:focus:ring-dark-accent rounded"
-          >
-            <span className="mr-2 max-w-[9rem] truncate">Scope: {scope}</span>
-            <ChevronDown className="h-4 w-4 flex-shrink-0" />
-          </button>
-          {isScopeOpen && (
-            <div className="absolute right-0 top-full mt-2 w-48 max-w-[calc(100vw-2rem)] rounded-md shadow-lg bg-light-card dark:bg-dark-card ring-1 ring-black ring-opacity-5 z-50 border border-light-border dark:border-dark-border">
-              <div className="py-1">
-                {scopes.map(s => (
-                  <button
-                    key={s}
-                    onClick={() => {
-                      setScope(s);
-                      setIsScopeOpen(false);
-                    }}
-                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-light-accent dark:hover:text-dark-accent"
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+
 
         {/* Notifications */}
         <div className="relative" ref={notifRef}>
@@ -161,31 +127,39 @@ const Topbar: React.FC = () => {
                 </button>
               </div>
               <div className="max-h-96 overflow-y-auto">
-                {notifications.length === 0 && (
-                  <p className="p-4 text-sm text-gray-500 text-center">No alerts</p>
+                {notifications.filter((n: Notification) => !n.read).length === 0 && (
+                  <p className="p-4 text-sm text-gray-500 text-center">No unread alerts</p>
                 )}
-                {notifications.map((n: Notification) => (
+                {notifications.filter((n: Notification) => !n.read).map((n: Notification) => (
                   <div
                     key={n.id}
-                    className={`p-3 border-b border-light-border dark:border-dark-border hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer ${n.read ? 'opacity-60' : ''}`}
+                    className="p-4 border-b border-light-border dark:border-dark-border hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer group"
+                    onClick={() => { setShowNotifications(false); n.case_id && navigate(`/cases/${n.case_id}`); }}
                   >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1" onClick={() => n.case_id && navigate(`/cases/${n.case_id}`)}>
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">{n.title}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{n.description}</p>
-                        <p className="text-xs text-gray-400 mt-1">{new Date(n.timestamp).toLocaleString()}</p>
+                    <div className="flex flex-col">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white leading-tight">{n.title}</p>
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-sm bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400 tracking-wide">
+                          UNREAD
+                        </span>
                       </div>
-                      {!n.read && (
+                      <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed mb-3 line-clamp-2">{n.description}</p>
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                          {new Date(n.timestamp || Date.now()).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                          <span className="mx-1.5 opacity-50">•</span>
+                          {new Date(n.timestamp || Date.now()).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}
+                        </p>
                         <button 
                           onClick={(e) => {
                             e.stopPropagation();
                             markAsRead(n.id);
                           }} 
-                          className="ml-2 text-gray-400 hover:text-light-accent dark:hover:text-dark-accent focus:outline-none p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
+                          className="text-xs font-semibold text-light-accent dark:text-dark-accent opacity-0 group-hover:opacity-100 transition-opacity hover:underline focus:outline-none"
                         >
-                          <Check className="w-4 h-4" />
+                          MARK AS READ
                         </button>
-                      )}
+                      </div>
                     </div>
                   </div>
                 ))}

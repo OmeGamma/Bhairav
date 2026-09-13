@@ -22,6 +22,19 @@ from models.notification import create_notification
 
 logger = logging.getLogger(__name__)
 
+def _get_video_capture(source):
+    import platform
+    if isinstance(source, str) and source.isdigit():
+        source = int(source)
+    cap = cv2.VideoCapture(source)
+    if not cap.isOpened():
+        system = platform.system()
+        if system == "Windows":
+            cap = cv2.VideoCapture(source, cv2.CAP_DSHOW)
+        elif system == "Darwin":
+            cap = cv2.VideoCapture(source, cv2.CAP_AVFOUNDATION)
+    return cap
+
 
 def _get_env(key: str, default=None):
     val = os.getenv(key, default)
@@ -32,7 +45,7 @@ class VideoAnalysisService:
         self._lock = threading.Lock()
         self._active_streams: Dict[str, bool] = {}
         self._model_cache = None
-        self._confidence = float(_get_env("VIDEO_PERSON_CONFIDENCE", "0.50"))
+        self._confidence = float(_get_env("VIDEO_PERSON_CONFIDENCE", "0.25"))
         self._inference_fps = float(_get_env("VIDEO_INFERENCE_FPS", "10"))
 
     def load_model(self):
@@ -54,16 +67,16 @@ class VideoAnalysisService:
         if frame is None:
             return []
 
-        objects = track_objects(model, frame, self._confidence)
+        objects = detect_objects(model, frame, self._confidence)
 
         now = datetime.utcnow()
         ts_str = now.isoformat()
 
-        persons = [o for o in objects if o["class"] == "person"]
+        targets = [o for o in objects if o["class"] in {"person", "knife", "gun", "weapon"}]
 
         detections: List[Dict[str, Any]] = []
 
-        for p in persons:
+        for p in targets:
             bbox = p["bounding_box"]
 
             full_ok, full_buf = encode_frame_jpeg(frame, quality=80)
@@ -93,6 +106,7 @@ class VideoAnalysisService:
                     full_frame_bytes=full_frame_info,
                     person_crop_bytes=person_crop_info,
                     case_id=case_id,
+                    class_name=p["class"],
                 )
             except Exception as e:
                 logger.error(f"Person detection alert creation failed: {e}")
@@ -100,7 +114,7 @@ class VideoAnalysisService:
             person_crop_url = report.get("personCropUrl") if report else None
 
             detections.append({
-                "class": "person",
+                "class": p["class"],
                 "confidence": p["confidence"],
                 "bounding_box": bbox,
                 "track_id": p["track_id"],
@@ -125,7 +139,7 @@ class VideoAnalysisService:
 
         sample_interval = max(1, int(fps / self._inference_fps)) if fps > 0 else 1
 
-        cap = cv2.VideoCapture(video_path)
+        cap = _get_video_capture(video_path)
         frame_idx = 0
         detection_count = 0
         alert_count = 0
@@ -136,13 +150,23 @@ class VideoAnalysisService:
         if on_progress:
             on_progress({"status": "processing", "message": "Starting analysis...", "progress": 0})
 
+        retry_count = 0
         while True:
-            ret, frame = cap.read()
-            if not ret:
+            try:
+                ret, frame = cap.read()
+                if not ret:
+                    retry_count += 1
+                    if retry_count > 10:
+                        break
+                    time.sleep(0.1)
+                    continue
+                retry_count = 0
+            except Exception as e:
+                logger.error(f"Error reading frame: {e}")
                 break
 
             if frame_idx % sample_interval == 0:
-                persons = track_persons(model, frame, self._confidence)
+                persons = track_objects(model, frame, self._confidence)
 
                 ts_str = now_iso
                 if fps > 0:
@@ -151,7 +175,9 @@ class VideoAnalysisService:
                     secs_rem = secs % 60
                     ts_str = f"{mins:02d}:{secs_rem:05.2f}"
 
-                for p in persons:
+                targets = [o for o in persons if o["class"] in {"person", "knife", "gun", "weapon"}]
+
+                for p in targets:
                     bbox = p["bounding_box"]
                     full_ok, full_buf = encode_frame_jpeg(frame, quality=80)
                     full_frame_info = None
@@ -177,6 +203,7 @@ class VideoAnalysisService:
                         full_frame_bytes=full_frame_info,
                         person_crop_bytes=person_crop_info,
                         case_id=case_id,
+                        class_name=p["class"],
                     )
 
                     detection_count += 1
@@ -240,9 +267,9 @@ class VideoAnalysisService:
             return {"status": "error", "message": "Unsupported or corrupted video file."}
 
         sample_interval = max(1, int(fps / self._inference_fps)) if fps > 0 else 1
-        cap = cv2.VideoCapture(video_path)
+        cap = _get_video_capture(video_path)
         
-        class_counts = {"person": set(), "car": 0, "motorcycle": 0, "bus": 0, "truck": 0, "bicycle": 0}
+        class_counts = {"person": set()}
         timeline = []
         last_event_sec = -10
         total_detections = 0
@@ -250,9 +277,19 @@ class VideoAnalysisService:
         full_frame_info = None
 
         frame_idx = 0
+        retry_count = 0
         while True:
-            ret, frame = cap.read()
-            if not ret:
+            try:
+                ret, frame = cap.read()
+                if not ret:
+                    retry_count += 1
+                    if retry_count > 10:
+                        break
+                    time.sleep(0.1)
+                    continue
+                retry_count = 0
+            except Exception as e:
+                logger.error(f"Error reading frame: {e}")
                 break
 
             if frame_idx % sample_interval == 0:
@@ -278,6 +315,8 @@ class VideoAnalysisService:
                                 full_frame_info = full_buf
 
                 for c, count in frame_objs.items():
+                    if c not in class_counts:
+                        class_counts[c] = 0
                     class_counts[c] = max(class_counts[c], count)
 
                 total_detections += len(objects)
@@ -290,14 +329,13 @@ class VideoAnalysisService:
         
         objects_detected_list = []
         if person_count > 0: objects_detected_list.append({"class": "person", "count": person_count, "label": f"{person_count} approximate"})
-        if class_counts["car"] > 0: objects_detected_list.append({"class": "car", "count": class_counts["car"], "label": str(class_counts["car"])})
-        if class_counts["motorcycle"] > 0: objects_detected_list.append({"class": "motorcycle", "count": class_counts["motorcycle"], "label": str(class_counts["motorcycle"])})
-        if class_counts["truck"] > 0: objects_detected_list.append({"class": "truck", "count": class_counts["truck"], "label": str(class_counts["truck"])})
-        if class_counts["bus"] > 0: objects_detected_list.append({"class": "bus", "count": class_counts["bus"], "label": str(class_counts["bus"])})
-        if class_counts["bicycle"] > 0: objects_detected_list.append({"class": "bicycle", "count": class_counts["bicycle"], "label": str(class_counts["bicycle"])})
         
-        # Format timeline for text if needed, or store structured
-        formatted_timeline = "\n".join([f"{t['time']} — {t['event']}" for t in timeline])
+        for c, count in class_counts.items():
+            if c != "person" and count > 0:
+                objects_detected_list.append({"class": c, "count": count, "label": str(count)})
+        
+        # Keep timeline as JSON string
+        formatted_timeline = json.dumps(timeline)
         
         full_frame_file_id = None
         full_frame_url = None

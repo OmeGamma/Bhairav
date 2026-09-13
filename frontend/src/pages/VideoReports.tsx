@@ -122,6 +122,7 @@ const VideoReports: React.FC = () => {
               placeholder="Search by event type, source, case ID..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
               className="w-full pl-10 pr-4 py-2 bg-white dark:bg-dark-bg border border-light-border dark:border-dark-border rounded-md text-gray-900 dark:text-white focus:ring-2 focus:ring-light-accent dark:focus:ring-blue-500 focus:border-transparent"
             />
           </div>

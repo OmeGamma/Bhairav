@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import Layout from './layout/Layout';
 import {
   ReactFlow,
@@ -123,6 +123,7 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'TB') => 
 
 const CriminalNetwork: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const initialCaseId = searchParams.get('case') || '';
 
   const [selectedCase, setSelectedCase] = useState(initialCaseId);
@@ -132,6 +133,15 @@ const CriminalNetwork: React.FC = () => {
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const handleNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
+    const nodeData = node.data as { type: string };
+    if (nodeData.type === 'Case' || nodeData.type === 'case') {
+      navigate(`/cases/${encodeURIComponent(node.id)}`);
+    } else if (nodeData.type === 'Suspect' || nodeData.type === 'Person' || nodeData.type === 'person') {
+      navigate(`/suspect/${encodeURIComponent(node.id)}`);
+    }
+  }, [navigate]);
 
   useEffect(() => {
     const fetchCases = async () => {
@@ -271,6 +281,7 @@ const CriminalNetwork: React.FC = () => {
               onNodesChange={onNodesChange}
               onEdgesChange={onEdgesChange}
               onConnect={onConnect}
+              onNodeClick={handleNodeClick}
               fitView
               nodeTypes={nodeTypes}
               attributionPosition="bottom-right"

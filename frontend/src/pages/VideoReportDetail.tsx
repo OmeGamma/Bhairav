@@ -370,7 +370,7 @@ const VideoReportDetail: React.FC = () => {
                       <dt className="text-gray-500 dark:text-gray-400">Detection Timeline</dt>
                       <dd className="text-gray-900 dark:text-white mt-1">
                         <pre className="whitespace-pre-wrap text-xs bg-gray-50 dark:bg-gray-800 p-3 rounded-md border border-gray-200 dark:border-gray-700">
-                          {report.timeline}
+                          {typeof report.timeline === 'string' ? report.timeline : Array.isArray(report.timeline) ? report.timeline.map((t: any) => `${t.time || t.timestamp || ''} — ${t.event || t.action || ''}`).join('\n') : JSON.stringify(report.timeline, null, 2)}
                         </pre>
                       </dd>
                     </div>

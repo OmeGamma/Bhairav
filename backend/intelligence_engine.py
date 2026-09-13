@@ -134,8 +134,10 @@ def process_nl_query(query: str) -> Dict[str, Any]:
             
             if not cases:
                 tokens = [t.lower() for t in query.split() if t.strip()]
-                stopwords = {"case", "cases", "the", "in", "at", "of", "and", "or", "for", "to", "a", "an", "is", "are", "was", "were", "on", "from", "by", "with", "without", "into", "new", "old", "show", "find", "search", "look", "get", "all", "any", "some", "no", "not", "yes", "please", "help", "me", "my", "we", "you", "your", "like", "as", "it", "its", "be", "been", "being", "have", "has", "had", "do", "does", "did", "will", "would", "shall", "should", "can", "could", "may", "might", "must", "here", "there", "where", "when", "why", "how", "what", "who", "whom", "which", "this", "that", "these", "those"}
+                stopwords = {"the", "in", "at", "of", "and", "or", "for", "to", "a", "an", "is", "are", "was", "were", "on", "from", "by", "with", "without", "into", "new", "old", "show", "find", "search", "look", "get", "all", "any", "some", "no", "not", "yes", "please", "help", "me", "my", "we", "you", "your", "like", "as", "it", "its", "be", "been", "being", "have", "has", "had", "do", "does", "did", "will", "would", "shall", "should", "can", "could", "may", "might", "must", "here", "there", "where", "when", "why", "how", "what", "who", "whom", "which", "this", "that", "these", "those"}
                 tokens = [t for t in tokens if t not in stopwords and len(t) > 2]
+                if query.lower() not in tokens:
+                    tokens.insert(0, query.lower())
                 
                 if tokens:
                     or_clauses = []
@@ -159,10 +161,10 @@ def process_nl_query(query: str) -> Dict[str, Any]:
                             "status": "success",
                             "type": "DATA_RETRIEVAL",
                             "data": [],
-                            "message": "No matching records found in the Bhairav database."
+                            "message": "AI service unavailable. Showing database search results: No matching records found."
                         }
         except Exception as e:
-            return {"status": "error", "message": f"Database connection unavailable or query failed: {str(e)}"}
+            return {"status": "error", "message": f"AI service unavailable. Database connection unavailable or query failed: {str(e)}"}
         
         case_ids = [c["caseNumber"] for c in cases]
         
@@ -182,5 +184,5 @@ def process_nl_query(query: str) -> Dict[str, Any]:
             "documents": documents,
             "evidence": evidence,
             "videos": videos,
-            "message": f"Found {len(cases)} cases, {len(documents)} documents, {len(evidence)} evidence items, {len(videos)} videos."
+            "message": f"AI service unavailable. Showing database search results: Found {len(cases)} cases, {len(documents)} documents, {len(evidence)} evidence items, {len(videos)} videos."
         }

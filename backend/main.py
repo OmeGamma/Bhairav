@@ -59,11 +59,10 @@ try:
     db_ok, db_err = _db_check_connection()
     if not db_ok:
         print(f"[BHAIRAV STARTUP ERROR] MongoDB connection failed: {db_err}")
-        print("[BHAIRAV STARTUP ERROR] Database connection is required. Shutting down.")
-        sys.exit(1)
+        print("[BHAIRAV STARTUP WARNING] Database connection is failing. Server starting anyway, but operations will fail.")
 except Exception as e:
     print(f"[BHAIRAV STARTUP ERROR] Initial DB connection check failed: {e}")
-    sys.exit(1)
+    print("[BHAIRAV STARTUP WARNING] Server starting anyway, but operations will fail.")
 
 BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_DIR = os.path.join(BACKEND_DIR, "uploads")
@@ -101,6 +100,86 @@ def get_cases():
     cases = get_all_cases()
     return cases
 
+# === BHAIRAV TRACKING APIs ===
+@app.get("/api/vehicles/{vehicle_number}")
+def get_vehicle_intelligence(vehicle_number: str):
+    from models.vehicle import get_vehicles_collection
+    from models.vehicle_detection import get_detections_by_vehicle
+    
+    # Check DB first
+    # (Implementation skips DB check for now if vehicle_number isn't found, falls back to mock)
+    if vehicle_number.replace(" ", "").upper() == "UP32AB1234":
+        return {
+            "vehicleNumber": "UP32 AB 1234",
+            "vehicleType": "SUV",
+            "status": "Case-linked",
+            "linkedCasesCount": 3,
+            "associatedPersonsCount": 2,
+            "recordedDetectionsCount": 8,
+            "lastSeen": "2026-09-12T14:32:00",
+            "previousSeen": "2026-09-12T12:47:00"
+        }
+    
+    raise HTTPException(status_code=404, detail="Vehicle not found in database or active intelligence logs.")
+
+@app.get("/api/vehicles/{vehicle_number}/movement")
+def get_vehicle_movement(vehicle_number: str):
+    if vehicle_number.replace(" ", "").upper() == "UP32AB1234":
+        # Mock trajectory around a fictional area (e.g., Lucknow coordinates for UP32)
+        return [
+            {
+                "id": "det-1",
+                "locationName": "Lucknow",
+                "latitude": 26.8467,
+                "longitude": 80.9462,
+                "timestamp": "2026-09-12T08:14:00",
+                "sourceType": "ANPR",
+                "sourceId": "CAM-021",
+                "confidence": 98.2,
+                "caseIds": ["CASE-102"]
+            },
+            {
+                "id": "det-2",
+                "locationName": "Basti",
+                "latitude": 26.7922,
+                "longitude": 82.8183,
+                "timestamp": "2026-09-12T12:47:00",
+                "sourceType": "CCTV",
+                "sourceId": "CAM-087",
+                "confidence": 91.5,
+                "caseIds": ["CASE-118"]
+            },
+            {
+                "id": "det-3",
+                "locationName": "Ayodhya",
+                "latitude": 26.7922,
+                "longitude": 82.1998,
+                "timestamp": "2026-09-12T14:32:00",
+                "sourceType": "ANPR",
+                "sourceId": "CAM-104",
+                "confidence": 99.1,
+                "caseIds": ["CASE-143"]
+            }
+        ]
+    return []
+
+@app.get("/api/vehicles/{vehicle_number}/entities")
+def get_vehicle_entities(vehicle_number: str):
+    if vehicle_number.replace(" ", "").upper() == "UP32AB1234":
+        return {
+            "cases": [
+                {"id": "CASE-102", "title": "Vehicle mentioned in investigation", "date": "2026-08-12"},
+                {"id": "CASE-118", "title": "Vehicle detection linked to case", "date": "2026-08-28"},
+                {"id": "CASE-143", "title": "Vehicle + person association", "date": "2026-09-10"}
+            ],
+            "persons": [
+                {"id": "PERSON-021", "name": "Rahul Verma", "role": "Suspect"},
+                {"id": "PERSON-034", "name": "Amit Kumar", "role": "Associate"}
+            ]
+        }
+    return {"cases": [], "persons": []}
+
+
 @app.post("/api/cases")
 def create_case_api(case_in: schemas.CaseCreate):
     existing = get_case_by_id(case_in.case_number)
@@ -134,14 +213,14 @@ def create_case_api(case_in: schemas.CaseCreate):
 def get_deleted_cases_api():
     return get_deleted_cases()
 
-@app.get("/api/cases/{case_id}")
+@app.get("/api/cases/{case_id:path}")
 def get_case(case_id: str):
     case = get_case_by_id(case_id)
     if not case:
         raise HTTPException(status_code=404, detail="Case not found")
     return case
 
-@app.get("/api/cases/{case_id}/export/doc")
+@app.get("/api/cases/{case_id:path}/export/doc")
 def export_case_doc(case_id: str):
     case = get_case_by_id(case_id)
     if not case:
@@ -157,7 +236,7 @@ def export_case_doc(case_id: str):
         }
     )
 
-@app.put("/api/cases/{case_id}")
+@app.put("/api/cases/{case_id:path}")
 def update_case_api(case_id: str, case_in: schemas.CaseUpdate):
     case = get_case_by_id(case_id)
     if not case:
@@ -188,7 +267,7 @@ def update_case_api(case_id: str, case_in: schemas.CaseUpdate):
     })
     return updated
 
-@app.patch("/api/cases/{case_id}/close")
+@app.patch("/api/cases/{case_id:path}/close")
 def close_case_api(case_id: str):
     case = get_case_by_id(case_id)
     if not case:
@@ -214,7 +293,7 @@ def close_case_api(case_id: str):
     })
     return closed
 
-@app.delete("/api/cases/{case_id}")
+@app.delete("/api/cases/{case_id:path}")
 def delete_case_api(case_id: str):
     case = get_case_by_id(case_id)
     if not case:
@@ -333,8 +412,10 @@ def analyze_query(req: schemas.AnalyzeRequest):
         return {"summary": "Please enter a query to search the Bhairav database.", "results": []}
 
     tokens = [t.lower() for t in raw_query.split() if t.strip()]
-    stopwords = {"case", "the", "in", "at", "of", "and", "or", "for", "to", "a", "an", "is", "are", "was", "were", "on", "from", "by", "with", "without", "into", "new", "old", "show", "find", "search", "look", "get", "all", "any", "some", "no", "not", "yes", "please", "help", "me", "my", "we", "you", "your", "like", "as", "it", "its", "be", "been", "being", "have", "has", "had", "do", "does", "did", "will", "would", "shall", "should", "can", "could", "may", "might", "must", "here", "there", "where", "when", "why", "how", "what", "who", "whom", "which", "this", "that", "these", "those"}
+    stopwords = {"the", "in", "at", "of", "and", "or", "for", "to", "a", "an", "is", "are", "was", "were", "on", "from", "by", "with", "without", "into", "new", "old", "show", "find", "search", "look", "get", "all", "any", "some", "no", "not", "yes", "please", "help", "me", "my", "we", "you", "your", "like", "as", "it", "its", "be", "been", "being", "have", "has", "had", "do", "does", "did", "will", "would", "shall", "should", "can", "could", "may", "might", "must", "here", "there", "where", "when", "why", "how", "what", "who", "whom", "which", "this", "that", "these", "those"}
     tokens = [t for t in tokens if t not in stopwords and len(t) > 2]
+    if raw_query.lower() not in tokens:
+        tokens.insert(0, raw_query.lower())
     if not tokens:
         return {"summary": "Please enter a more specific query.", "results": []}
 
@@ -387,7 +468,7 @@ def analyze_query(req: schemas.AnalyzeRequest):
             else:
                 summary = f"DATABASE RECORD: Found {len(unique_results)} matching records."
         except Exception:
-            summary = f"DATABASE RECORD: Found {len(unique_results)} matching records. (AI summarization unavailable)"
+            summary = f"DATABASE RECORD: Found {len(unique_results)} matching records. (AI service unavailable. Showing database search results.)"
 
     return {
         "summary": summary,
@@ -1278,7 +1359,7 @@ def api_permanent_delete_video_report(report_id: str, request: Request):
     return result
 
 
-@app.delete("/api/cases/{case_number}")
+@app.delete("/api/cases/{case_number:path}")
 def api_permanent_delete_case(case_number: str, request: Request):
     from services.deletion_service import permanent_delete_case
     

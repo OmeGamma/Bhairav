@@ -49,6 +49,7 @@ const ReportsList: React.FC = () => {
             placeholder="Search reports by case number or title..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
             className="w-full pl-10 pr-4 py-2 bg-white dark:bg-dark-bg border border-light-border dark:border-dark-border rounded-md text-gray-900 dark:text-white"
           />
         </div>

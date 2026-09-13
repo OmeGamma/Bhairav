@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Layout from './layout/Layout';
-import { FolderOpen, Search, Plus, Filter, X, Edit3, CheckCircle } from 'lucide-react';
+import { FolderOpen, Search, Plus, Filter, X, Edit3, CheckCircle, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const Cases: React.FC = () => {
@@ -34,6 +34,25 @@ const Cases: React.FC = () => {
   useEffect(() => {
     fetchCases(viewMode);
   }, [viewMode]);
+
+  const handleCloseCase = async (caseId: string) => {
+    try {
+      const res = await fetch(`/api/cases/${encodeURIComponent(caseId)}/close`, { method: 'PATCH' });
+      if (res.ok) fetchCases(viewMode);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteCase = async (caseId: string) => {
+    if (!window.confirm('Are you sure you want to delete this case? It will be moved to the deleted view.')) return;
+    try {
+      const res = await fetch(`/api/cases/${encodeURIComponent(caseId)}`, { method: 'DELETE' });
+      if (res.ok) fetchCases(viewMode);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const cities = ['All', ...Array.from(new Set(casesData.map(c => c.location?.city || c.city).filter(Boolean)))];
   const states = ['All', ...Array.from(new Set(casesData.map(c => c.location?.state || c.state).filter(Boolean)))];
@@ -130,6 +149,7 @@ const Cases: React.FC = () => {
                 placeholder="Search by Case ID, Title, Keyword..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-light-accent"
               />
             </div>
@@ -213,17 +233,20 @@ const Cases: React.FC = () => {
                         {new Date(caseItem.filingDate || caseItem.createdAt).toLocaleDateString()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium flex items-center gap-2">
-                        <Link to={`/cases/${caseItem.case_number}`} className="text-light-accent dark:text-dark-accent hover:underline">View</Link>
+                        <Link to={`/cases/${encodeURIComponent(caseItem.case_number)}`} className="text-light-accent dark:text-dark-accent hover:underline">View</Link>
                         {viewMode === 'active' && (
                           <>
-                            <Link to={`/cases/${caseItem.case_number}/edit`} className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
+                            <Link to={`/cases/${encodeURIComponent(caseItem.case_number)}/edit`} className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
                               <Edit3 className="w-4 h-4" />
                             </Link>
                             {caseItem.status !== 'Closed' && (
-                              <Link to={`/cases/${caseItem.case_number}`} className="text-green-600 hover:text-green-800" title="Close Case">
+                              <button onClick={() => handleCloseCase(caseItem.case_number)} className="text-green-600 hover:text-green-800" title="Close Case">
                                 <CheckCircle className="w-4 h-4" />
-                              </Link>
+                              </button>
                             )}
+                            <button onClick={() => handleDeleteCase(caseItem.case_number)} className="text-red-500 hover:text-red-700 ml-1" title="Delete Case">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
                           </>
                         )}
                       </td>

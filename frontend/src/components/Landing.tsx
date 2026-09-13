@@ -7,49 +7,49 @@ const features = [
     title: 'AI Criminal Analyzer',
     description: 'Natural language intelligence queries with grounded database search and AI-assisted summarization.',
     icon: BrainCircuit,
-    gradient: 'from-blue-500 to-cyan-500',
+    gradient: 'from-blue-600 to-blue-800',
   },
   {
     title: 'Video Intelligence',
     description: 'Upload footage for automated event detection, timeline analysis, and evidence linking.',
     icon: Video,
-    gradient: 'from-pink-500 to-rose-500',
+    gradient: 'from-rose-600 to-rose-800',
   },
   {
     title: 'Criminal Network',
     description: 'Visualize associations between suspects, cases, locations, and evidence in an interactive graph.',
     icon: Network,
-    gradient: 'from-purple-500 to-indigo-500',
+    gradient: 'from-indigo-600 to-indigo-800',
   },
   {
     title: 'Geospatial Intelligence',
     description: 'Interactive map with case markers, hotspot zones, and location-based filtering.',
     icon: Map,
-    gradient: 'from-green-500 to-emerald-500',
+    gradient: 'from-emerald-600 to-emerald-800',
   },
   {
     title: 'Document Intelligence',
     description: 'Upload case documents to extract structured intelligence entities using AI.',
     icon: FileSearch,
-    gradient: 'from-orange-500 to-amber-500',
+    gradient: 'from-amber-600 to-amber-800',
   },
   {
     title: 'Case Intelligence Reports',
     description: 'Generate professional PDF reports with case details, evidence, and AI-assisted analysis.',
     icon: FileText,
-    gradient: 'from-gray-700 to-gray-900',
+    gradient: 'from-slate-600 to-slate-800',
   },
   {
     title: 'Real-time Notifications',
     description: 'Stay updated with case creation, updates, closures, and document processing alerts.',
     icon: Bell,
-    gradient: 'from-red-500 to-orange-500',
+    gradient: 'from-red-600 to-red-800',
   },
   {
     title: 'Analytics Dashboard',
     description: 'Comprehensive analytics on cases by city, crime type, priority, and temporal trends.',
     icon: BarChart,
-    gradient: 'from-teal-500 to-cyan-600',
+    gradient: 'from-cyan-600 to-cyan-800',
   },
 ];
 
@@ -94,7 +94,7 @@ const Landing: React.FC = () => {
         {/* Subtle grid background */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:40px_40px]"></div>
         {/* Subtle glow */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-500/10 dark:bg-blue-500/5 rounded-full blur-[100px] pointer-events-none"></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-500/5 dark:bg-blue-500/5 rounded-full blur-[100px] pointer-events-none"></div>
         
         <div className="relative max-w-5xl mx-auto text-center z-10">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800/50 text-blue-700 dark:text-blue-300 text-xs font-semibold uppercase tracking-widest mb-8">

@@ -31,8 +31,14 @@ const Settings: React.FC = () => {
     if (saved === 'dark') return 'dark';
     return 'system';
   });
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [compactMode, setCompactMode] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(() => {
+    const saved = localStorage.getItem('bhairav-notifications');
+    return saved !== 'false';
+  });
+  const [compactMode, setCompactMode] = useState(() => {
+    const saved = localStorage.getItem('bhairav-compact');
+    return saved === 'true';
+  });
   const [systemStatus, setSystemStatus] = useState<any>(null);
   const [isCheckingStatus, setIsCheckingStatus] = useState(false);
   const [statusError, setStatusError] = useState<string | null>(null);
@@ -82,6 +88,19 @@ const Settings: React.FC = () => {
     }
     localStorage.setItem('bhairav-theme', theme);
   }, [theme]);
+
+  useEffect(() => {
+    localStorage.setItem('bhairav-notifications', notificationsEnabled.toString());
+  }, [notificationsEnabled]);
+
+  useEffect(() => {
+    localStorage.setItem('bhairav-compact', compactMode.toString());
+    if (compactMode) {
+      document.documentElement.classList.add('compact');
+    } else {
+      document.documentElement.classList.remove('compact');
+    }
+  }, [compactMode]);
 
   const checkSystemStatus = async () => {
     setIsCheckingStatus(true);

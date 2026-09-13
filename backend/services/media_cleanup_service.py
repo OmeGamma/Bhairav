@@ -41,14 +41,45 @@ def run_cleanup():
     logger.info(f"Cleanup finished. Deleted: {deleted_count}, Failed: {failed_count}")
     return {"deleted": deleted_count, "failed": failed_count}
 
+def run_case_retention_cleanup():
+    logger.info("Running case retention cleanup job (7-day policy)...")
+    from config.database import db
+    from services.deletion_service import permanent_delete_case
+    from datetime import datetime, timedelta
+    
+    threshold_date = datetime.utcnow() - timedelta(days=7)
+    
+    # Find soft-deleted cases older than 7 days
+    expired_cases = list(db.cases.find({
+        "deletedAt": {"$lt": threshold_date.isoformat()}
+    }))
+    
+    deleted_count = 0
+    demo_role = os.getenv("DEMO_AUTH_ROLE", "Officer")
+    for case in expired_cases:
+        case_number = case.get("caseNumber")
+        if case_number:
+            try:
+                res = permanent_delete_case(case_number, user_role=demo_role)
+                if res.get("success"):
+                    deleted_count += 1
+                else:
+                    logger.error(f"Failed to permanent delete case {case_number}: {res.get('error')}")
+            except Exception as e:
+                logger.error(f"Error purging case {case_number}: {e}")
+                
+    logger.info(f"Case retention cleanup finished. Purged: {deleted_count}")
+    return {"purged": deleted_count}
+
 def start_cleanup_scheduler():
     global _scheduler
     if _scheduler is None:
         _scheduler = BackgroundScheduler()
         # Run cleanup every day at 02:00 AM server time
         _scheduler.add_job(run_cleanup, trigger=CronTrigger(hour=2, minute=0), id='media_cleanup', replace_existing=True)
+        _scheduler.add_job(run_case_retention_cleanup, trigger=CronTrigger(hour=3, minute=0), id='case_retention_cleanup', replace_existing=True)
         _scheduler.start()
-        logger.info("Media cleanup scheduler started.")
+        logger.info("Media & Case retention cleanup scheduler started.")
 
 def stop_cleanup_scheduler():
     global _scheduler

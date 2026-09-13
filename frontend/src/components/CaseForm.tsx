@@ -109,7 +109,7 @@ const CaseForm: React.FC = () => {
       }
 
       const savedCase = await res.json();
-      navigate(`/cases/${savedCase.case_number}`);
+      navigate(`/cases/${encodeURIComponent(savedCase.case_number)}`);
     } catch (err: any) {
       setError(err.message);
     }

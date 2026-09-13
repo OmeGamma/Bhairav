@@ -51,6 +51,7 @@ def create_person_detection_alert(
     full_frame_bytes: Optional[bytes],
     person_crop_bytes: Optional[bytes],
     case_id: Optional[str] = None,
+    class_name: str = "person",
 ) -> Optional[Dict[str, Any]]:
     if is_suppressed(track_id, source_type, source_name):
         mark_seen(track_id, source_type, source_name)
@@ -59,7 +60,7 @@ def create_person_detection_alert(
 
     mark_seen(track_id, source_type, source_name)
 
-    logger.info(f"[Video] Person detected. Track ID: {track_id}, Confidence: {confidence:.2f}")
+    logger.info(f"[Video] {class_name} detected. Track ID: {track_id}, Confidence: {confidence:.2f}")
 
     full_frame_file_id = None
     full_frame_url = None
@@ -114,8 +115,12 @@ def create_person_detection_alert(
 
     from models.notification import create_notification
 
+    event_type = "THREAT_DETECTED" if class_name in ["knife", "gun", "weapon"] else "PERSON_DETECTED"
+    title = f"{class_name.upper()} DETECTED"
+    message = f"A {class_name} was detected in the camera. Check Video Intelligence."
+
     report = create_video_report({
-        "eventType": "PERSON_DETECTED",
+        "eventType": event_type,
         "sourceType": source_type,
         "sourceName": source_name,
         "sourceFileId": None,
@@ -125,7 +130,7 @@ def create_person_detection_alert(
         "frameNumber": frame_number,
         "trackId": track_id,
         "confidence": round(confidence, 4),
-        "className": "person",
+        "className": class_name,
         "boundingBox": bounding_box or {},
         "fullFrameFileId": full_frame_file_id,
         "personCropFileId": person_crop_file_id,
@@ -137,18 +142,18 @@ def create_person_detection_alert(
     })
 
     create_notification({
-        "type": "PERSON_DETECTED",
-        "title": "PERSON DETECTED",
-        "message": "Someone is visible in the camera. Check Video Intelligence.",
+        "type": event_type,
+        "title": title,
+        "message": message,
         "caseId": case_id,
         "userId": "Officer",
     })
 
     telegram_caption = (
         f"🚨 <b>BHAIRAV VIDEO INTELLIGENCE ALERT</b>\n\n"
-        f"Person detected in live camera.\n\n"
-        f"<b>Source:</b> Live Camera\n"
-        f"<b>Detection:</b> Person\n"
+        f"<b>Alert:</b> {title}\n"
+        f"<b>Source:</b> {source_name}\n"
+        f"<b>Detection:</b> {class_name.capitalize()}\n"
         f"<b>Track ID:</b> {track_id if track_id is not None else 'Unknown'}\n"
         f"<b>Confidence:</b> {int(confidence*100)}%\n"
         f"<b>Time:</b> {timestamp}\n"

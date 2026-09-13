@@ -80,7 +80,7 @@ const AIAnalyzer: React.FC = () => {
                   </p>
                 </div>
                 <div className="flex gap-2 ml-4">
-                  <Link to={`/cases/${caseId}`} className="text-xs text-light-accent hover:underline">View Case</Link>
+                  <Link to={`/cases/${encodeURIComponent(caseId)}`} className="text-xs text-light-accent hover:underline">View Case</Link>
                   <a href={`/api/files/${item.documentId || item.evidenceId || item.videoId || item._id}`} target="_blank" rel="noopener noreferrer" className="text-xs text-green-600 hover:underline">Download</a>
                 </div>
               </div>
@@ -109,8 +109,8 @@ const AIAnalyzer: React.FC = () => {
                 <p className="text-sm font-mono text-light-accent dark:text-dark-accent mt-1">{item.caseNumber}</p>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 line-clamp-2">{item.crimeType} - {item.city || item.district}</p>
               </div>
-              <Link to={`/cases/${item.caseNumber}`} className="mt-4 text-center text-sm font-semibold text-light-accent dark:text-dark-accent hover:underline">
-                View Case Details
+              <Link to={`/cases/${encodeURIComponent(item.caseNumber)}`} className="mt-4 text-center text-sm font-semibold text-light-accent dark:text-dark-accent hover:underline">
+                View Related Case
               </Link>
             </div>
           ))}

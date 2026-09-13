@@ -206,7 +206,7 @@ const VideoIntelligence: React.FC = () => {
         ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
 
         const imageData = canvas.toDataURL('image/jpeg', 70);
-        const frameBase64 = imageData.replace(/^data:image\/jpeg;base64,/, '');
+        const frameBase64 = imageData.split(',')[1];
 
         if (ws && ws.readyState === WebSocket.OPEN) {
           ws.send(JSON.stringify({

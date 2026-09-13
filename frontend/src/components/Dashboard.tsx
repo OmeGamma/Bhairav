@@ -331,8 +331,8 @@ const [analytics, setAnalytics] = useState<any>(null);
                         </td>
                         <td className="px-6 py-4 text-right">
                           <div className="flex justify-end gap-3">
-                            <Link to={`/cases/${c.case_number}`} className="font-medium text-light-accent dark:text-blue-400 hover:underline">View</Link>
-                            <Link to={`/cases/${c.case_number}/edit`} className="font-medium text-gray-500 hover:text-gray-900 dark:hover:text-white">Edit</Link>
+                            <Link to={`/cases/${encodeURIComponent(c.case_number)}`} className="font-medium text-light-accent dark:text-blue-400 hover:underline">View</Link>
+                            <Link to={`/cases/${encodeURIComponent(c.case_number)}/edit`} className="font-medium text-gray-500 hover:text-gray-900 dark:hover:text-white">Edit</Link>
                           </div>
                         </td>
                       </tr>

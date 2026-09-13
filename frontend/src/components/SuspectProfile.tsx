@@ -109,27 +109,32 @@ const SuspectProfile: React.FC = () => {
                 <button className="text-sm text-light-accent dark:text-dark-accent hover:underline">View All</button>
               </div>
               <div className="space-y-3">
-                {data.case_number && (
-                  <Link to={`/cases/${data.case_number}`} className="flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md border border-gray-100 dark:border-gray-800 transition-colors cursor-pointer">
-                    <div className="flex items-center">
-                      <Shield className="w-5 h-5 text-gray-400 mr-3" />
-                      <div>
-                        <p className="font-medium text-gray-900 dark:text-white text-sm">{data.case_number}: {data.case_title || 'Unknown'}</p>
-                        <p className="text-xs text-gray-500 flex items-center mt-1"><Calendar className="w-3 h-3 mr-1" /> Today</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {data.case_number && (
+                    <Link to={`/cases/${encodeURIComponent(data.case_number)}`} className="flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md border border-gray-100 dark:border-gray-800 transition-colors cursor-pointer">
+                      <div className="flex items-center">
+                        <FolderOpen className="w-5 h-5 text-gray-400 mr-3" />
+                        <div>
+                          <p className="font-medium text-gray-900 dark:text-white text-sm">{data.case_number}: {data.case_title || 'Unknown'}</p>
+                          <p className="text-xs text-gray-500 flex items-center mt-1"><Calendar className="w-3 h-3 mr-1" /> Today</p>
+                        </div>
                       </div>
-                    </div>
-                    <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700">Active</span>
-                  </Link>
-                )}
+                      <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700">Active</span>
+                    </Link>
+                  )}
+                </div>
               </div>
             </div>
 
             <div className="bg-white dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border p-6 min-h-[300px]">
               <div className="flex justify-between items-center mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Network Preview</h2>
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Network Preview</h2>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">View connections and associates</p>
+                </div>
                 {data.case_number && (
-                  <Link to={`/criminal-network?case=${data.case_number}`} className="text-sm text-light-accent dark:text-dark-accent flex items-center hover:underline">
-                    <GitBranch className="w-4 h-4 mr-1" /> Open Graph
+                  <Link to={`/criminal-network?case=${encodeURIComponent(data.case_number)}`} className="text-sm text-light-accent dark:text-dark-accent flex items-center hover:underline">
+                    Explore Network <ArrowRight className="w-4 h-4 ml-1" />
                   </Link>
                 )}
               </div>

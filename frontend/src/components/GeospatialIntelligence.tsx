@@ -220,9 +220,9 @@ const GeospatialIntelligence: React.FC = () => {
                           <span className="text-[10px] bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400 px-1.5 py-0.5 rounded border border-yellow-300 dark:border-yellow-700">DEMO DATA</span>
                         </div>
                       )}
-                      <div className="mt-2 flex gap-2">
-                        <Link to={`/cases/${c.case_number}`} className="flex-1 block bg-light-accent dark:bg-dark-accent text-white no-underline p-1.5 rounded text-xs text-center">View Case</Link>
-                        <Link to={`/cases/${c.case_number}/edit`} className="flex-1 block bg-gray-700 dark:bg-gray-600 text-white no-underline p-1.5 rounded text-xs text-center">Edit Case</Link>
+                      <div className="mt-4 flex gap-2">
+                        <Link to={`/cases/${encodeURIComponent(c.case_number)}`} className="flex-1 block bg-light-accent dark:bg-dark-accent text-white no-underline p-1.5 rounded text-xs text-center">View Case</Link>
+                        <Link to={`/cases/${encodeURIComponent(c.case_number)}/edit`} className="flex-1 block bg-gray-700 dark:bg-gray-600 text-white no-underline p-1.5 rounded text-xs text-center">Edit Case</Link>
                       </div>
                     </div>
                   </Popup>
