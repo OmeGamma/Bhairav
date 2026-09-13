@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import Layout from './layout/Layout';
-import { User, AlertTriangle, Shield, Calendar, GitBranch } from 'lucide-react';
+import { User, AlertTriangle, Shield, Calendar, GitBranch, FolderOpen, ArrowRight } from 'lucide-react';
 
 interface SuspectApi {
   id: number;

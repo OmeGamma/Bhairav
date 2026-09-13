@@ -67,17 +67,22 @@ class VideoAnalysisService:
         if frame is None:
             return []
 
-        objects = detect_objects(model, frame, self._confidence)
+        objects = track_objects(model, frame, self._confidence)
 
         now = datetime.utcnow()
         ts_str = now.isoformat()
 
-        targets = [o for o in objects if o["class"] in {"person", "knife", "gun", "weapon"}]
-
+        targets = [o for o in objects if o["class"] == "person"]
+        
+        person_count = len(targets)
+        track_ids = [o["track_id"] for o in targets if o["track_id"] is not None]
+        
         detections: List[Dict[str, Any]] = []
 
-        for p in targets:
-            bbox = p["bounding_box"]
+        if person_count > 0:
+            # We'll use the bounding box and confidence of the most confident person as a representative for the alert
+            best_target = max(targets, key=lambda x: x["confidence"])
+            bbox = best_target["bounding_box"]
 
             full_ok, full_buf = encode_frame_jpeg(frame, quality=80)
             full_frame_info = None
@@ -97,30 +102,36 @@ class VideoAnalysisService:
                 report = create_person_detection_alert(
                     source_type="CAMERA",
                     source_name=source_name,
-                    confidence=p["confidence"],
+                    person_count=person_count,
+                    track_ids=track_ids,
+                    confidence=best_target["confidence"],
                     bounding_box=bbox,
-                    track_id=p["track_id"],
                     frame_number=frame_number,
                     timestamp=ts_str,
                     video_timestamp=video_timestamp,
                     full_frame_bytes=full_frame_info,
                     person_crop_bytes=person_crop_info,
                     case_id=case_id,
-                    class_name=p["class"],
+                    class_name="person",
                 )
             except Exception as e:
                 logger.error(f"Person detection alert creation failed: {e}")
 
-            person_crop_url = report.get("personCropUrl") if report else None
-
-            detections.append({
-                "class": p["class"],
-                "confidence": p["confidence"],
-                "bounding_box": bbox,
-                "track_id": p["track_id"],
-                "event_type": "PERSON_DETECTED",
-                "personCropUrl": person_crop_url,
-            })
+            # Prepare the detections array to return to the frontend
+            for p in targets:
+                # We return the shared person_crop_url from the report to all targets just so the frontend gets it
+                person_crop_url = report.get("personCropUrl") if report else None
+                detections.append({
+                    "class": p["class"],
+                    "confidence": p["confidence"],
+                    "bounding_box": p["bounding_box"],
+                    "track_id": p["track_id"],
+                    "event_type": "PERSON_DETECTED",
+                    "personCropUrl": person_crop_url,
+                })
+        else:
+            from services.video_alert_service import should_alert
+            should_alert("CAMERA", source_name, 0)
 
         return detections
 
@@ -175,10 +186,15 @@ class VideoAnalysisService:
                     secs_rem = secs % 60
                     ts_str = f"{mins:02d}:{secs_rem:05.2f}"
 
-                targets = [o for o in persons if o["class"] in {"person", "knife", "gun", "weapon"}]
+                targets = [o for o in persons if o["class"] == "person"]
+                
+                person_count = len(targets)
+                track_ids = [o["track_id"] for o in targets if o["track_id"] is not None]
 
-                for p in targets:
-                    bbox = p["bounding_box"]
+                if person_count > 0:
+                    best_target = max(targets, key=lambda x: x["confidence"])
+                    bbox = best_target["bounding_box"]
+                    
                     full_ok, full_buf = encode_frame_jpeg(frame, quality=80)
                     full_frame_info = None
                     person_crop_info = None
@@ -195,19 +211,22 @@ class VideoAnalysisService:
                     report = create_person_detection_alert(
                         source_type="UPLOADED_VIDEO",
                         source_name=source_name,
+                        person_count=person_count,
+                        track_ids=track_ids,
                         frame_number=frame_idx,
                         video_timestamp=ts_str,
-                        bbox=bbox,
-                        confidence=round(p["confidence"], 4),
-                        track_id=p["track_id"],
+                        timestamp=now_iso,
+                        bounding_box=bbox,
+                        confidence=round(best_target["confidence"], 4),
                         full_frame_bytes=full_frame_info,
                         person_crop_bytes=person_crop_info,
                         case_id=case_id,
-                        class_name=p["class"],
+                        class_name="person",
                     )
 
-                    detection_count += 1
-                    alert_count += 1
+                    detection_count += person_count
+                    if report:
+                        alert_count += 1
 
                     if on_progress:
                         on_progress({

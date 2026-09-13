@@ -10,41 +10,57 @@ from models.media_file import create_media_file
 
 logger = logging.getLogger(__name__)
 
-_cooldown_registry: Dict[str, float] = {}
+# State machine for deduplication based on person count
+# Key: f"{source_type}:{source_name}"
+# Value: {"count": int, "last_alert_time": float}
+_alert_state: Dict[str, Dict[str, Any]] = {}
 
 def get_cooldown_seconds():
     return float(os.getenv("VIDEO_ALERT_COOLDOWN_SECONDS", "10"))
 
-def _get_cooldown_key(track_id: Optional[int], source_type: str, source_name: str):
-    if track_id is not None:
-        return f"{source_type}:{source_name}:track:{track_id}"
-    return f"{source_type}:{source_name}:generic"
-
-def is_suppressed(track_id: Optional[int], source_type: str, source_name: str) -> bool:
-    key = _get_cooldown_key(track_id, source_type, source_name)
-    cooldown = get_cooldown_seconds()
+def should_alert(source_type: str, source_name: str, current_count: int) -> bool:
+    key = f"{source_type}:{source_name}"
+    state = _alert_state.get(key)
     now = time.time()
-    last_seen = _cooldown_registry.get(key)
-    if last_seen is not None and (now - last_seen) < cooldown:
+    
+    if current_count == 0:
+        if state is not None and state["count"] > 0:
+            _alert_state[key] = {"count": 0, "last_alert_time": now}
+        return False
+    
+    if state is None:
+        _alert_state[key] = {"count": current_count, "last_alert_time": now}
         return True
+        
+    previous_count = state["count"]
+    last_alert = state["last_alert_time"]
+    cooldown = get_cooldown_seconds()
+    
+    # If the count changed, we alert immediately
+    if current_count != previous_count:
+        _alert_state[key] = {"count": current_count, "last_alert_time": now}
+        return True
+        
+    # If the count is the same, we only alert if the cooldown has expired
+    if (now - last_alert) >= cooldown:
+        _alert_state[key]["last_alert_time"] = now
+        return True
+        
     return False
-
-def mark_seen(track_id: Optional[int], source_type: str, source_name: str):
-    key = _get_cooldown_key(track_id, source_type, source_name)
-    _cooldown_registry[key] = time.time()
 
 def clear_stale_entries(max_age_seconds: float = 3600):
     now = time.time()
-    stale_keys = [k for k, v in _cooldown_registry.items() if (now - v) > max_age_seconds]
+    stale_keys = [k for k, v in _alert_state.items() if (now - v.get("last_alert_time", 0)) > max_age_seconds]
     for k in stale_keys:
-        del _cooldown_registry[k]
+        del _alert_state[k]
 
 def create_person_detection_alert(
     source_type: str,
     source_name: str,
+    person_count: int,
+    track_ids: List[int],
     confidence: float,
     bounding_box: Dict[str, int],
-    track_id: Optional[int],
     frame_number: Optional[int],
     timestamp: str,
     video_timestamp: str,
@@ -53,14 +69,11 @@ def create_person_detection_alert(
     case_id: Optional[str] = None,
     class_name: str = "person",
 ) -> Optional[Dict[str, Any]]:
-    if is_suppressed(track_id, source_type, source_name):
-        mark_seen(track_id, source_type, source_name)
-        logger.info(f"[Video] Person detection suppressed (cooldown). Track ID: {track_id}")
+    
+    if not should_alert(source_type, source_name, person_count):
         return None
 
-    mark_seen(track_id, source_type, source_name)
-
-    logger.info(f"[Video] {class_name} detected. Track ID: {track_id}, Confidence: {confidence:.2f}")
+    logger.info(f"[Video Event] Count changed or cooldown expired. Persons detected: {person_count}")
 
     full_frame_file_id = None
     full_frame_url = None
@@ -81,7 +94,6 @@ def create_person_detection_alert(
                 "bytes": res.get("bytes"),
                 "folder": "bhairav/video-evidence",
                 "caseId": case_id,
-                "eventId": track_id,
                 "dataClassification": "EVIDENCE"
             })
             full_frame_file_id = doc["fileId"]
@@ -104,7 +116,6 @@ def create_person_detection_alert(
                 "bytes": res.get("bytes"),
                 "folder": "bhairav/video-evidence",
                 "caseId": case_id,
-                "eventId": track_id,
                 "dataClassification": "EVIDENCE"
             })
             person_crop_file_id = doc["fileId"]
@@ -115,9 +126,9 @@ def create_person_detection_alert(
 
     from models.notification import create_notification
 
-    event_type = "THREAT_DETECTED" if class_name in ["knife", "gun", "weapon"] else "PERSON_DETECTED"
-    title = f"{class_name.upper()} DETECTED"
-    message = f"A {class_name} was detected in the camera. Check Video Intelligence."
+    event_type = "PERSON_DETECTED"
+    title = f"{person_count} PERSON{'S' if person_count > 1 else ''} DETECTED"
+    message = f"{person_count} person{'s' if person_count > 1 else ''} detected in the camera. Check Video Intelligence."
 
     report = create_video_report({
         "eventType": event_type,
@@ -128,7 +139,8 @@ def create_person_detection_alert(
         "caseId": case_id,
         "timestamp": timestamp,
         "frameNumber": frame_number,
-        "trackId": track_id,
+        "trackId": track_ids[0] if track_ids else None,
+        "humanCount": person_count,
         "confidence": round(confidence, 4),
         "className": class_name,
         "boundingBox": bounding_box or {},
@@ -149,17 +161,19 @@ def create_person_detection_alert(
         "userId": "Officer",
     })
 
+    track_id_str = ", ".join([str(t) for t in track_ids if t is not None]) if track_ids else 'Unknown'
+    
     telegram_caption = (
         f"🚨 <b>BHAIRAV VIDEO INTELLIGENCE ALERT</b>\n\n"
-        f"<b>Alert:</b> {title}\n"
+        f"<b>Alert:</b> {person_count} PERSON{'S' if person_count > 1 else ''} DETECTED\n"
         f"<b>Source:</b> {source_name}\n"
-        f"<b>Detection:</b> {class_name.capitalize()}\n"
-        f"<b>Track ID:</b> {track_id if track_id is not None else 'Unknown'}\n"
-        f"<b>Confidence:</b> {int(confidence*100)}%\n"
         f"<b>Time:</b> {timestamp}\n"
+        f"<b>Confidence:</b> {int(confidence*100)}%\n"
+        f"<b>Track IDs:</b> {track_id_str}\n"
         f"<b>Status:</b> REVIEW REQUIRED\n\n"
         f"Evidence has been captured and stored."
     )
+    
     photo_url = person_crop_url if person_crop_url else full_frame_url
     if photo_url:
         logger.info(f"[Telegram] Sending photo via URL: {photo_url}")
@@ -175,4 +189,3 @@ def create_person_detection_alert(
             logger.warning("[Telegram] No photo available to send.")
 
     return report
-

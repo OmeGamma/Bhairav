@@ -416,16 +416,12 @@ const VideoIntelligence: React.FC = () => {
                     <div className="space-y-1">
                       <div className="flex justify-between">
                         <span className="text-gray-400">Detection:</span>
-                        <span className={detections.some(d => d.class === 'person') ? "text-red-400 font-bold" : "text-green-400 font-bold"}>
-                          {detections.some(d => d.class === 'person') ? "PERSON DETECTED" : "NO PERSON DETECTED"}
+                        <span className={detections.some(d => d.class === 'person') ? "text-red-400 font-bold uppercase" : "text-green-400 font-bold uppercase"}>
+                          {detections.some(d => d.class === 'person') ? `${detections.filter(d => d.class === 'person').length} PERSON${detections.filter(d => d.class === 'person').length > 1 ? 'S' : ''} DETECTED` : "NO PERSON DETECTED"}
                         </span>
                       </div>
                       {detections.length > 0 && (
                         <>
-                          <div className="flex justify-between">
-                            <span className="text-gray-400">Count:</span>
-                            <span className="font-bold">{detections.filter(d => d.class === 'person').length} HUMAN(S)</span>
-                          </div>
                           <div className="flex justify-between">
                             <span className="text-gray-400">Max Conf:</span>
                             <span className="font-bold">{Math.round(Math.max(...detections.map(d => d.confidence || 0), 0) * 100)}%</span>

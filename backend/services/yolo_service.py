@@ -68,7 +68,7 @@ def get_yolo_service():
 def get_yolo_status():
     return dict(_yolo_status)
 
-SUPPORTED_CLASSES = {"person", "car", "motorcycle", "bus", "truck", "bicycle"}
+SUPPORTED_CLASSES = {"person"}
 
 def detect_objects(model, frame, confidence_threshold=0.50):
     if model is None:

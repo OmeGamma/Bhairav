@@ -1593,6 +1593,7 @@ async def websocket_video_intelligence(ws: WebSocket):
                         await ws.send_text(json.dumps({"type": "video_error", "message": "Failed to decode frame"}))
                         continue
 
+                    from services.video_analysis_service import video_analysis_service
                     persons = video_analysis_service.analyze_camera_frame(
                         frame_bytes=frame_bytes,
                         source_name=source_name,
@@ -1604,18 +1605,23 @@ async def websocket_video_intelligence(ws: WebSocket):
 
                     detections = []
                     for p in persons:
-                        detections.append({
-                            "class": "person",
-                            "confidence": p["confidence"] if isinstance(p, dict) else p,
-                            "bounding_box": p.get("bounding_box", {}) if isinstance(p, dict) else {},
-                            "track_id": p.get("track_id") if isinstance(p, dict) else None,
-                            "event_type": p.get("event_type", "PERSON_DETECTED") if isinstance(p, dict) else "PERSON_DETECTED",
-                        })
+                        if isinstance(p, dict):
+                            detections.append({
+                                "class": p.get("class", "person"),
+                                "confidence": p.get("confidence"),
+                                "bounding_box": p.get("bounding_box", {}),
+                                "track_id": p.get("track_id"),
+                                "event_type": p.get("event_type", "PERSON_DETECTED"),
+                                "personCropUrl": p.get("personCropUrl"),
+                            })
+
+                    person_count = len([d for d in detections if d["class"] == "person"])
 
                     await ws.send_text(json.dumps({
                         "type": "detections",
                         "source": source_name,
                         "frame_number": frame_number,
+                        "person_count": person_count,
                         "detections": detections,
                     }))
 
