@@ -1,6 +1,6 @@
 import json
 import re
-import google.generativeai as genai
+from google import genai
 from typing import Dict, Any, Tuple
 import os
 
@@ -35,8 +35,11 @@ def classify_intent(query: str) -> Tuple[str, Dict[str, Any]]:
     """
     
     try:
-        model = genai.GenerativeModel('gemini-flash-latest')
-        response = model.generate_content(prompt)
+        client = genai.Client()
+        response = client.models.generate_content(
+            model='gemini-2.0-flash',
+            contents=prompt
+        )
         text = response.text.strip()
         if text.startswith("```json"):
             text = text[7:-3]
@@ -55,6 +58,9 @@ def build_mongo_filter(entities: Dict[str, Any]) -> Dict[str, Any]:
     location = entities.get("location")
     if location:
         filter_query["$or"] = [
+            {"city": {"$regex": location, "$options": "i"}},
+            {"district": {"$regex": location, "$options": "i"}},
+            {"state": {"$regex": location, "$options": "i"}},
             {"location.city": {"$regex": location, "$options": "i"}},
             {"location.district": {"$regex": location, "$options": "i"}},
             {"location.state": {"$regex": location, "$options": "i"}}
@@ -88,10 +94,9 @@ def process_data_retrieval(entities: Dict[str, Any]) -> Dict[str, Any]:
 
 def search_case_metadata(case_ids: list, collection_name: str, fields: list) -> list:
     results = []
-    for case_id in case_ids:
-        case = db.cases.find_one({"caseNumber": case_id})
-        if not case:
-            continue
+    cases = db.cases.find({"caseNumber": {"$in": case_ids}})
+    for case in cases:
+        case_id = case.get("caseNumber")
         items = case.get(collection_name, [])
         for item in items:
             if isinstance(item, dict):
@@ -123,34 +128,39 @@ def process_nl_query(query: str) -> Dict[str, Any]:
     else:
         cases = []
         filter_query = build_mongo_filter(entities)
+        has_filters = len(filter_query) > 0
         filter_query["deletedAt"] = {"$exists": False}
         
         try:
-            if filter_query:
+            if has_filters:
                 cases_cursor = db.cases.find(filter_query).limit(50)
                 for c in cases_cursor:
                     c["_id"] = str(c["_id"])
                     cases.append(c)
             
             if not cases:
-                tokens = [t.lower() for t in query.split() if t.strip()]
+                # Split tokens by space or comma
+                tokens = [t.lower() for t in re.split(r'[\s,]+', query) if t.strip()]
                 stopwords = {"the", "in", "at", "of", "and", "or", "for", "to", "a", "an", "is", "are", "was", "were", "on", "from", "by", "with", "without", "into", "new", "old", "show", "find", "search", "look", "get", "all", "any", "some", "no", "not", "yes", "please", "help", "me", "my", "we", "you", "your", "like", "as", "it", "its", "be", "been", "being", "have", "has", "had", "do", "does", "did", "will", "would", "shall", "should", "can", "could", "may", "might", "must", "here", "there", "where", "when", "why", "how", "what", "who", "whom", "which", "this", "that", "these", "those"}
                 tokens = [t for t in tokens if t not in stopwords and len(t) > 2]
                 if query.lower() not in tokens:
                     tokens.insert(0, query.lower())
                 
                 if tokens:
-                    or_clauses = []
+                    and_clauses = []
                     for token in tokens:
-                        or_clauses.append({"caseNumber": {"$regex": token, "$options": "i"}})
-                        or_clauses.append({"city": {"$regex": token, "$options": "i"}})
-                        or_clauses.append({"district": {"$regex": token, "$options": "i"}})
-                        or_clauses.append({"state": {"$regex": token, "$options": "i"}})
-                        or_clauses.append({"crimeType": {"$regex": token, "$options": "i"}})
-                        or_clauses.append({"title": {"$regex": token, "$options": "i"}})
+                        and_clauses.append({"$or": [
+                            {"caseNumber": {"$regex": token, "$options": "i"}},
+                            {"city": {"$regex": token, "$options": "i"}},
+                            {"district": {"$regex": token, "$options": "i"}},
+                            {"state": {"$regex": token, "$options": "i"}},
+                            {"crimeType": {"$regex": token, "$options": "i"}},
+                            {"title": {"$regex": token, "$options": "i"}}
+                        ]})
                     
+                    fallback_query = {"$and": and_clauses, "deletedAt": {"$exists": False}}
                     matched_case_numbers = set()
-                    for c in db.cases.find({"$or": or_clauses, "deletedAt": {"$exists": False}}).limit(100):
+                    for c in db.cases.find(fallback_query).limit(100):
                         c["_id"] = str(c["_id"])
                         matched_case_numbers.add(c["caseNumber"])
                         if c["caseNumber"] not in [x["caseNumber"] for x in cases]:
@@ -161,10 +171,10 @@ def process_nl_query(query: str) -> Dict[str, Any]:
                             "status": "success",
                             "type": "DATA_RETRIEVAL",
                             "data": [],
-                            "message": "AI service unavailable. Showing database search results: No matching records found."
+                            "message": "No matching records found."
                         }
         except Exception as e:
-            return {"status": "error", "message": f"AI service unavailable. Database connection unavailable or query failed: {str(e)}"}
+            return {"status": "error", "message": f"Database query failed: {str(e)}"}
         
         case_ids = [c["caseNumber"] for c in cases]
         
@@ -184,5 +194,5 @@ def process_nl_query(query: str) -> Dict[str, Any]:
             "documents": documents,
             "evidence": evidence,
             "videos": videos,
-            "message": f"AI service unavailable. Showing database search results: Found {len(cases)} cases, {len(documents)} documents, {len(evidence)} evidence items, {len(videos)} videos."
+            "message": f"Found {len(cases)} cases, {len(documents)} documents, {len(evidence)} evidence items, {len(videos)} videos."
         }

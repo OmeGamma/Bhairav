@@ -9,7 +9,7 @@ export default defineConfig({
     exclude: ['maplibre-gl']
   },
   define: {
-    'import.meta.env.VITE_API_BASE_URL': JSON.stringify(process.env.VITE_API_BASE_URL || 'http://localhost:8000'),
+    'import.meta.env.VITE_API_BASE_URL': JSON.stringify(process.env.VITE_API_BASE_URL || ''),
   },
   resolve: {
     alias: {
@@ -21,6 +21,11 @@ export default defineConfig({
       '/api': {
         target: 'http://127.0.0.1:8000',
         changeOrigin: true,
+      },
+      '/ws': {
+        target: 'http://127.0.0.1:8000',
+        changeOrigin: true,
+        ws: true,
       }
     }
   }

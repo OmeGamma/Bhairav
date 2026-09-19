@@ -87,25 +87,39 @@ const Analytics: React.FC = () => {
   }
 
   // Pre-process for Lollipop Chart
-  const lollipopData = data.cases_by_crime.map((c: any, i: number) => ({
+  const lollipopData = (data.cases_by_crime || []).map((c: any, i: number) => ({
     name: c.crime_type,
     count: c.count,
     fill: COLORS[i % COLORS.length]
   })).sort((a: any, b: any) => b.count - a.count);
 
   // Pre-process for Radial Status
-  const statusData = data.cases_by_status.map((s: any, i: number) => ({
+  const statusData = (data.cases_by_status || []).map((s: any, i: number) => ({
     name: s.status,
     count: s.count,
     fill: s.status === 'Closed' ? '#10b981' : s.status === 'Open' ? '#ef4444' : '#3b82f6'
   }));
 
   // Pre-process for Radial Priority
-  const priorityData = data.cases_by_priority.map((p: any, i: number) => ({
+  const priorityData = (data.cases_by_priority || []).map((p: any, i: number) => ({
     name: p.priority,
     count: p.count,
     fill: p.priority === 'High' ? '#ef4444' : p.priority === 'Medium' ? '#f59e0b' : '#10b981'
   }));
+
+  // Pre-process Growth Data
+  const growthMap = new Map();
+  (data.growth?.documents || []).forEach((d: any) => {
+    growthMap.set(d.month, { month: d.month, documents: d.count, evidence: 0 });
+  });
+  (data.growth?.evidence || []).forEach((e: any) => {
+    if (growthMap.has(e.month)) {
+      growthMap.get(e.month).evidence = e.count;
+    } else {
+      growthMap.set(e.month, { month: e.month, documents: 0, evidence: e.count });
+    }
+  });
+  const growthData = Array.from(growthMap.values()).sort((a, b) => a.month.localeCompare(b.month));
 
   return (
     <Layout>
@@ -316,6 +330,41 @@ const Analytics: React.FC = () => {
           </div>
         </section>
 
+        {/* GROWTH TRENDS (Area) */}
+        <section className="bg-white dark:bg-[#13151c] rounded-[2.5rem] p-10 lg:p-14 border border-gray-100 dark:border-gray-800/80 shadow-[0_8px_30px_rgb(0,0,0,0.02)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)]">
+          <div className="mb-14">
+            <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white uppercase">EVIDENCE & DOCUMENT GROWTH</h2>
+            <p className="text-gray-500 dark:text-gray-400 mt-2 font-medium">Accumulation trends over time</p>
+          </div>
+          <div className="h-[400px]">
+             {growthData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={growthData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="colorDocs" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                      </linearGradient>
+                      <linearGradient id="colorEv" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" opacity={0.05} vertical={false} />
+                    <XAxis dataKey="month" stroke="#9ca3af" fontSize={13} tickLine={false} axisLine={false} allowDuplicatedCategory={false} />
+                    <YAxis stroke="#6b7280" fontSize={13} tickLine={false} axisLine={false} />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Legend verticalAlign="top" height={36} iconType="circle" />
+                    <Area type="monotone" dataKey="documents" name="Documents" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorDocs)" />
+                    <Area type="monotone" dataKey="evidence" name="Evidence" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorEv)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+             ) : (
+                <div className="h-full flex items-center justify-center text-gray-400 font-medium">INSUFFICIENT DATA FOR TRENDS</div>
+             )}
+          </div>
+        </section>
+
         {/* GEOGRAPHIC HOTSPOTS */}
         <section className="bg-white dark:bg-[#13151c] rounded-[2.5rem] p-10 lg:p-14 border border-gray-100 dark:border-gray-800/80 shadow-[0_8px_30px_rgb(0,0,0,0.02)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.1)]">
            <div className="mb-14">
@@ -326,9 +375,9 @@ const Analytics: React.FC = () => {
              {/* Simulated Node Visualization for hotspots since actual map isn't in rechart */}
              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-900/5 to-transparent pointer-events-none"></div>
              
-             {data.cases_by_city.length > 0 ? (
+             {(data.cases_by_city || []).length > 0 ? (
                <div className="relative w-full h-full flex flex-wrap items-center justify-center gap-12 p-8">
-                 {data.cases_by_city.map((loc: any, idx: number) => {
+                 {(data.cases_by_city || []).map((loc: any, idx: number) => {
                    const size = Math.max(80, Math.min(200, (loc.count / data.total_cases) * 400));
                    return (
                      <div key={idx} className="relative flex flex-col items-center justify-center" style={{ width: size, height: size }}>
@@ -358,9 +407,9 @@ const Analytics: React.FC = () => {
           </div>
           
           <div className="max-w-4xl mx-auto pl-4">
-             {data.timeline.length > 0 ? (
+             {(data.timeline || []).length > 0 ? (
                <div className="relative border-l-2 border-gray-100 dark:border-gray-800 space-y-12 pb-4">
-                 {data.timeline.map((item: any, idx: number) => (
+                 {(data.timeline || []).map((item: any, idx: number) => (
                    <div key={idx} className="relative pl-10 group">
                       <div className="absolute -left-[13px] top-1 w-6 h-6 rounded-full bg-white dark:bg-[#13151c] border-4 border-blue-500 shadow-sm group-hover:scale-125 transition-transform"></div>
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -386,7 +435,7 @@ const Analytics: React.FC = () => {
           </div>
           
           <div className="flex flex-wrap justify-center gap-16 lg:gap-24">
-             {Object.entries(data.video_analytics?.detections || {}).map(([objType, count]: any, idx: number) => (
+             {Object.entries(data.video_analytics?.by_class || {}).map(([objType, count]: any, idx: number) => (
                <div key={idx} className="flex flex-col items-center">
                  <div className="relative w-32 h-32 flex items-center justify-center mb-6">
                     <div className="absolute inset-0 rounded-full border-4 border-gray-100 dark:border-gray-800"></div>
@@ -396,7 +445,7 @@ const Analytics: React.FC = () => {
                  <span className="text-sm font-bold uppercase tracking-widest text-gray-500">{objType}</span>
                </div>
              ))}
-             {Object.keys(data.video_analytics?.detections || {}).length === 0 && (
+             {Object.keys(data.video_analytics?.by_class || {}).length === 0 && (
                 <div className="text-center text-gray-400 font-medium uppercase tracking-widest w-full">NO VIDEO DETECTIONS</div>
              )}
           </div>

@@ -20,6 +20,8 @@ import clsx from 'clsx';
 
 const navItems = [
   { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+  { name: 'Identity Intelligence', path: '/identity-intelligence', icon: BrainCircuit },
+  { name: 'AI Action Center', path: '/ai-action-center', icon: Shield },
   { name: 'AI Criminal Analyzer', path: '/ai-analyzer', icon: BrainCircuit },
   { name: 'Video Intelligence', path: '/video-intelligence', icon: Video },
   { name: 'Criminal Network', path: '/criminal-network', icon: Network },
@@ -36,8 +38,8 @@ const navItems = [
 
 const Sidebar: React.FC = () => {
   return (
-    <div className="flex w-full flex-col border-b border-light-border bg-light-card dark:border-dark-border dark:bg-dark-card transition-colors duration-200 md:h-screen md:w-64 md:flex-shrink-0 md:border-b-0 md:border-r md:sticky md:top-0">
-      <div className="grid grid-cols-2 gap-1 px-3 py-3 sm:grid-cols-4 md:flex md:flex-col md:overflow-y-auto md:py-4 md:space-y-1">
+    <div className="flex w-full flex-col border-b border-light-border bg-light-card dark:border-dark-border dark:bg-dark-card transition-colors duration-200 md:h-full md:w-64 md:flex-shrink-0 md:border-b-0 md:border-r">
+      <div className="grid grid-cols-2 gap-1 px-3 py-3 sm:grid-cols-4 md:flex md:flex-col md:flex-1 md:overflow-y-auto md:py-4 md:space-y-1 custom-scrollbar">
         <nav className="contents">
           {navItems.map((item) => {
             const Icon = item.icon;

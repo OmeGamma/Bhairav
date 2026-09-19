@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:8000/api';
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '');
+const encodePathValue = (value: string) => encodeURIComponent(value.trim());
 
 export interface VehicleIntelligence {
   vehicleNumber: string;
@@ -32,17 +33,17 @@ export interface VehicleEntities {
 
 export const trackingApi = {
   getVehicleIntelligence: async (vehicleNumber: string): Promise<VehicleIntelligence> => {
-    const res = await axios.get(`${API_BASE_URL}/vehicles/${vehicleNumber}`);
+    const res = await axios.get(`${API_BASE_URL}/vehicles/${encodePathValue(vehicleNumber)}`);
     return res.data;
   },
 
   getVehicleMovement: async (vehicleNumber: string): Promise<VehicleDetection[]> => {
-    const res = await axios.get(`${API_BASE_URL}/vehicles/${vehicleNumber}/movement`);
+    const res = await axios.get(`${API_BASE_URL}/vehicles/${encodePathValue(vehicleNumber)}/movement`);
     return res.data;
   },
 
   getVehicleEntities: async (vehicleNumber: string): Promise<VehicleEntities> => {
-    const res = await axios.get(`${API_BASE_URL}/vehicles/${vehicleNumber}/entities`);
+    const res = await axios.get(`${API_BASE_URL}/vehicles/${encodePathValue(vehicleNumber)}/entities`);
     return res.data;
   }
 };

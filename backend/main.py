@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, File, UploadFile, Query, WebSocket, WebSocketDisconnect, Request
+from fastapi import FastAPI, Depends, HTTPException, File, UploadFile, Query, WebSocket, WebSocketDisconnect, Request, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse, FileResponse
 import os
@@ -8,7 +8,7 @@ import math
 import io
 import cv2
 import base64
-import google.generativeai as genai
+from google import genai
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 
@@ -80,8 +80,9 @@ app.add_middleware(
 )
 
 api_key = os.getenv("GEMINI_API_KEY")
+gemini_client = None
 if api_key:
-    genai.configure(api_key=api_key)
+    gemini_client = genai.Client(api_key=api_key)
 
 def snake_to_camel(data: Dict[str, Any]) -> Dict[str, Any]:
     import re
@@ -99,6 +100,103 @@ def read_root():
 def get_cases():
     cases = get_all_cases()
     return cases
+
+# === TRASH & RECOVERY APIs ===
+from pydantic import BaseModel
+class BulkDeleteRequest(BaseModel):
+    ids: List[str]
+
+@app.delete("/api/cases/bulk")
+def bulk_delete_cases(req: BulkDeleteRequest):
+    for cid in req.ids:
+        soft_delete_case(cid)
+    return {"message": f"Deleted {len(req.ids)} cases"}
+
+@app.delete("/api/video-reports/bulk")
+def bulk_delete_video_reports(req: BulkDeleteRequest):
+    from models.video_report import soft_delete_video_report
+    for rid in req.ids:
+        soft_delete_video_report(rid)
+    return {"message": f"Deleted {len(req.ids)} video reports"}
+
+@app.delete("/api/reports/bulk")
+def bulk_delete_reports(req: BulkDeleteRequest):
+    from models.report import soft_delete_report
+    for rid in req.ids:
+        soft_delete_report(rid)
+    return {"message": f"Deleted {len(req.ids)} reports"}
+
+@app.delete("/api/documents/bulk")
+def bulk_delete_documents(req: BulkDeleteRequest):
+    from models.document import soft_delete_document
+    for did in req.ids:
+        soft_delete_document(did)
+    return {"message": f"Deleted {len(req.ids)} documents"}
+
+@app.get("/api/trash")
+def get_trash_items():
+    from models.video_report import get_deleted_video_reports
+    from models.report import get_deleted_reports
+    from models.document import get_deleted_documents
+    
+    trash = []
+    
+    cases = get_deleted_cases()
+    for c in cases:
+        trash.append({"id": c.get("caseNumber"), "type": "case", "title": c.get("title", f"Case {c.get('caseNumber')}"), "deletedAt": c.get("deletedAt")})
+        
+    vrs = get_deleted_video_reports()
+    for vr in vrs:
+        trash.append({"id": vr.get("reportId"), "type": "video_report", "title": f"Video Report {vr.get('sourceName')}", "deletedAt": vr.get("deletedAt")})
+        
+    reps = get_deleted_reports()
+    for r in reps:
+        trash.append({"id": r.get("reportId"), "type": "report", "title": r.get("title", "Report"), "deletedAt": r.get("deletedAt")})
+        
+    docs = get_deleted_documents()
+    for d in docs:
+        trash.append({"id": d.get("documentId"), "type": "document", "title": d.get("title", "Document"), "deletedAt": d.get("deletedAt")})
+        
+    return {"items": trash}
+
+class RestoreTrashRequest(BaseModel):
+    items: List[Dict[str, str]] # {"id": "", "type": ""}
+    
+@app.post("/api/trash/restore")
+def restore_trash(req: RestoreTrashRequest):
+    from config.database import db
+    for item in req.items:
+        t = item.get("type")
+        i = item.get("id")
+        if t == "case":
+            db.cases.update_one({"caseNumber": i}, {"$unset": {"deletedAt": ""}})
+        elif t == "video_report":
+            db.video_reports.update_one({"reportId": i}, {"$unset": {"deletedAt": ""}})
+        elif t == "report":
+            db.reports.update_one({"reportId": i}, {"$unset": {"deletedAt": ""}})
+        elif t == "document":
+            db.documents.update_one({"documentId": i}, {"$unset": {"deletedAt": ""}})
+    return {"message": "Items restored"}
+
+@app.post("/api/trash/permanent-delete")
+def permanent_delete_trash(req: RestoreTrashRequest):
+    from models.case import permanent_delete_case
+    from models.video_report import permanent_delete_video_report
+    from models.report import permanent_delete_report
+    from models.document import permanent_delete_document
+    
+    for item in req.items:
+        t = item.get("type")
+        i = item.get("id")
+        if t == "case":
+            permanent_delete_case(i)
+        elif t == "video_report":
+            permanent_delete_video_report(i)
+        elif t == "report":
+            permanent_delete_report(i)
+        elif t == "document":
+            permanent_delete_document(i)
+    return {"message": "Items permanently deleted"}
 
 # === BHAIRAV TRACKING APIs ===
 @app.get("/api/vehicles/{vehicle_number}")
@@ -435,14 +533,15 @@ def analyze_query(req: schemas.AnalyzeRequest):
             "link": link
         })
 
-    for token in tokens:
-        matched_cases = search_cases(token)
-        for c in matched_cases:
-            add_result("Case", c.get("caseNumber", ""), c.get("title", ""), f"{c.get('crimeType', '')} - {c.get('filingDate', '')}", "Matched case details", f"/cases/{c.get('caseNumber', '')}")
+    query_regex_str = "|".join(re.escape(token) for token in tokens)
 
-        matched_persons = search_persons(token)
-        for p in matched_persons:
-            add_result("Person", f"PER-{p.get('_id', '')}", p.get("name", ""), f"Role: {p.get('role', '')}", "Matched person name", f"/cases/{p.get('caseId', '')}")
+    matched_cases = search_cases(query_regex_str)
+    for c in matched_cases:
+        add_result("Case", c.get("caseNumber", ""), c.get("title", ""), f"{c.get('crimeType', '')} - {c.get('filingDate', '')}", "Matched case details", f"/cases/{c.get('caseNumber', '')}")
+
+    matched_persons = search_persons(query_regex_str)
+    for p in matched_persons:
+        add_result("Person", f"PER-{p.get('_id', '')}", p.get("name", ""), f"Role: {p.get('role', '')}", "Matched person name", f"/cases/{p.get('caseId', '')}")
 
     unique_results = results
 
@@ -450,8 +549,7 @@ def analyze_query(req: schemas.AnalyzeRequest):
         summary = "No matching Bhairav records were found for your query."
     else:
         try:
-            if api_key:
-                model = genai.GenerativeModel('gemini-flash-latest')
+            if gemini_client:
                 context_lines = []
                 for r in unique_results[:10]:
                     context_lines.append(f"- {r['type']}: {r['title']} ({r['id']}) - {r['description']}")
@@ -463,7 +561,10 @@ def analyze_query(req: schemas.AnalyzeRequest):
                     "Start with 'AI-ASSISTED ANALYSIS: '.\n\n"
                     f"Query: {raw_query}\nMatched Records ({len(unique_results)}):\n{context}"
                 )
-                response = model.generate_content(prompt)
+                response = gemini_client.models.generate_content(
+                    model='gemini-2.0-flash',
+                    contents=prompt
+                )
                 summary = response.text.strip()
             else:
                 summary = f"DATABASE RECORD: Found {len(unique_results)} matching records."
@@ -483,6 +584,8 @@ def get_analytics():
         "total_suspects": get_collection("persons").count_documents({}),
         "total_evidence": get_collection("evidence").count_documents({}),
         "total_videos": get_collection("videos").count_documents({}),
+        "total_identities": get_collection("synthetic_identities").count_documents({}),
+        "total_reports": get_collection("reports").count_documents({}),
         "cases_by_city": get_cases_by_city(),
         "cases_by_crime": get_cases_by_crime_type(),
         "cases_by_status": get_cases_by_status(),
@@ -504,6 +607,8 @@ def get_analytics_full():
         "total_suspects": db.persons.count_documents({}),
         "total_evidence": db.evidence.count_documents({}),
         "total_videos": db.videos.count_documents({}),
+        "total_identities": db.synthetic_identities.count_documents({}),
+        "total_reports": db.reports.count_documents({}),
         "cases_by_city": get_cases_by_city(),
         "cases_by_crime": get_cases_by_crime_type(),
         "cases_by_status": get_cases_by_status(),
@@ -565,13 +670,27 @@ def get_analytics_full():
     # Sort timeline by date descending
     timeline = sorted([t for t in timeline if t["date"]], key=lambda x: x["date"], reverse=True)[:20]
     
-    # 5. Document/Evidence Growth (simple mock of growth, actual query could aggregate by month)
+    # 5. Document/Evidence Growth (safely converting string dates to BSON Date if needed)
+    safe_date_expr = {
+        "$convert": {
+            "input": "$createdAt",
+            "to": "date",
+            "onError": None,
+            "onNull": None
+        }
+    }
+    
     doc_trends = list(db.documents.aggregate([
-        {"$group": {"_id": {"$dateToString": {"format": "%Y-%m", "date": "$createdAt"}}, "count": {"$sum": 1}}},
+        {"$project": {"month": {"$dateToString": {"format": "%Y-%m", "date": safe_date_expr}}}},
+        {"$match": {"month": {"$ne": None}}},
+        {"$group": {"_id": "$month", "count": {"$sum": 1}}},
         {"$sort": {"_id": 1}}
     ]))
+    
     ev_trends = list(db.evidence.aggregate([
-        {"$group": {"_id": {"$dateToString": {"format": "%Y-%m", "date": "$createdAt"}}, "count": {"$sum": 1}}},
+        {"$project": {"month": {"$dateToString": {"format": "%Y-%m", "date": safe_date_expr}}}},
+        {"$match": {"month": {"$ne": None}}},
+        {"$group": {"_id": "$month", "count": {"$sum": 1}}},
         {"$sort": {"_id": 1}}
     ]))
 
@@ -1041,15 +1160,17 @@ async def upload_document(file: UploadFile = File(...)):
             "extracted": False
         }
     try:
-        if api_key:
-            model = genai.GenerativeModel('gemini-flash-latest')
+        if gemini_client:
             prompt = (
                 "Extract the following entities from the crime document text and return ONLY a JSON object with these keys:\n"
                 "caseNumber, firNumber, persons, suspects, victims, locations, dates, crimeType, vehicles, organizations, evidenceReferences\n"
                 "If a field is not found, use null or empty list. Do not invent information.\n\n"
                 f"Text:\n{text}"
             )
-            response = model.generate_content(prompt)
+            response = gemini_client.models.generate_content(
+                model='gemini-2.0-flash',
+                contents=prompt
+            )
             match = re.search(r'\{.*\}', response.text, re.DOTALL)
             entities = json.loads(match.group(0)) if match else {}
             document_doc = create_document({
@@ -1635,7 +1756,259 @@ async def websocket_video_intelligence(ws: WebSocket):
     finally:
         ws_manager.disconnect(ws)
 
+# --- SYNTHETIC AI IDENTITY ROUTES ---
+
+@app.get("/api/synthetic/identities")
+def get_identities(search: Optional[str] = Query(None)):
+    from models.synthetic import get_synthetic_identities, search_synthetic_identities
+    if search:
+        return search_synthetic_identities(search)
+    return get_synthetic_identities()
+
+@app.get("/api/synthetic/identities/{identity_id}")
+def get_identity(identity_id: str):
+    from models.synthetic import get_synthetic_identity_by_id
+    doc = get_synthetic_identity_by_id(identity_id)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Identity not found")
+    return doc
+
+@app.get("/api/synthetic/sims/{aadhaar}")
+def get_sims(aadhaar: str):
+    from models.synthetic import get_synthetic_sims_by_aadhaar
+    return get_synthetic_sims_by_aadhaar(aadhaar)
+
+@app.get("/api/synthetic/banks/{aadhaar}")
+def get_banks(aadhaar: str):
+    from models.synthetic import get_synthetic_banks_by_aadhaar
+    return get_synthetic_banks_by_aadhaar(aadhaar)
+
+@app.get("/api/synthetic/correlation/{identity_id}")
+def get_ai_correlation(identity_id: str, case_id: Optional[str] = Query(None)):
+    from services.ai_correlation_service import get_ai_intelligence_summary
+    return get_ai_intelligence_summary(identity_id, case_id)
+
+@app.get("/api/synthetic/correlation/video-location")
+def get_video_location_correlation(identity_id: str = Query(...), video_timestamp: str = Query(...)):
+    from services.ai_correlation_service import generate_video_location_correlation
+    return generate_video_location_correlation(identity_id, video_timestamp)
+
+@app.post("/api/synthetic/action")
+def perform_synthetic_action(data: dict):
+    from models.synthetic import update_synthetic_sim_status, update_synthetic_bank_status
+    from models.audit_log import create_audit_log
+    action_type = data.get("actionType")
+    target_id = data.get("targetId")
+    new_status = data.get("newStatus")
+    
+    if action_type == "SIM_STATUS_CHANGE":
+        update_synthetic_sim_status(target_id, new_status)
+    elif action_type == "BANK_STATUS_CHANGE":
+        update_synthetic_bank_status(target_id, new_status)
+    
+    create_audit_log({
+        "action": action_type,
+        "entityType": "SYNTHETIC_DATA",
+        "entityId": target_id,
+        "description": f"Changed status to {new_status}",
+        "userId": "Officer"
+    })
+    return {"status": "success"}
+
+@app.post("/api/synthetic/seed")
+def seed_synthetic_data():
+    from services.synthetic_seed_service import generate_demo_dataset
+    return generate_demo_dataset()
+
+@app.delete("/api/synthetic/reset")
+def reset_synthetic_data():
+    from models.synthetic import delete_all_synthetic_data
+    delete_all_synthetic_data()
+    return {"status": "success"}
+
+@app.delete("/api/synthetic/identities/{identity_id}")
+def delete_single_synthetic_identity(identity_id: str):
+    from models.synthetic import delete_synthetic_identity
+    success = delete_synthetic_identity(identity_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Identity not found")
+    return {"status": "success", "message": "Identity deleted"}
+
+@app.post("/api/synthetic/upload")
+async def upload_synthetic_identity(
+    document: UploadFile = File(...),
+    photo: Optional[UploadFile] = File(None),
+    caseId: Optional[str] = Form(None)
+):
+    from models.synthetic import create_synthetic_identity
+    from services.cloudinary_service import upload_image, upload_raw
+    from models.audit_log import create_audit_log
+    import uuid
+    import time
+    
+    # 1. Simulate Document Intelligence / OCR
+    # Read files
+    doc_bytes = await document.read()
+    photo_bytes = await photo.read() if photo else None
+    
+    photo_url = ""
+    # 2. Upload photo and document to Cloudinary
+    if photo_bytes:
+        res = upload_image(photo_bytes, folder="bhairav/synthetic_photos")
+        if res:
+            photo_url = res.get("secure_url", "")
+            
+    document_url = ""
+    res_doc = upload_image(doc_bytes, folder="bhairav/synthetic_documents")
+    if res_doc:
+        document_url = res_doc.get("secure_url", "")
+    
+    # 3. Simulate AI Field Extraction & Contextual Mock Generation
+    demo_id = f"DEMO-ID-{int(time.time())}"
+    synthetic_aadhaar = f"DEMO-AADHAAR-{str(uuid.uuid4())[:6].upper()}"
+    
+    extracted_data = None
+    try:
+        from google import genai
+        import os
+        import json
+        
+        gemini_key = os.getenv("GEMINI_API_KEY")
+        if gemini_key:
+            client = genai.Client(api_key=gemini_key)
+            prompt = """
+            Analyze the attached Aadhaar card image. Extract Name, DOB (DD/MM/YYYY), Gender, Address, City, State, and Aadhaar Number.
+            Based on the location (City/State), generate 2-3 highly realistic fictional SIM cards (Operator, masked +91 phone number) and 1-2 fictional Bank Accounts (Bank popular in that region, fake balance formatted with commas).
+            Return JSON only with exact keys: name, dob, gender, address, city, state, aadhaarNumber, sims (list of objects with operator, number), banks (list of objects with bankName, balance).
+            Do not wrap in markdown tags like ```json.
+            """
+            
+            response = client.models.generate_content(
+                model='gemini-1.5-flash',
+                contents=[{"mime_type": document.content_type or "image/jpeg", "data": doc_bytes}, prompt],
+                config={"response_mime_type": "application/json"}
+            )
+            
+            raw_text = response.text.strip()
+            if raw_text.startswith("```json"):
+                raw_text = raw_text[7:-3].strip()
+            elif raw_text.startswith("```"):
+                raw_text = raw_text[3:-3].strip()
+                
+            extracted_data = json.loads(raw_text)
+    except Exception as e:
+        print(f"Gemini Extraction Failed: {e}")
+        extracted_data = None
+
+    if extracted_data:
+        identity_data = {
+            "identityId": demo_id,
+            "syntheticAadhaarId": str(extracted_data.get("aadhaarNumber", synthetic_aadhaar)),
+            "maskedAadhaar": "XXXX-XXXX-" + str(extracted_data.get("aadhaarNumber", synthetic_aadhaar))[-4:],
+            "name": extracted_data.get("name", "Extracted Person"),
+            "dateOfBirth": extracted_data.get("dob", "01/01/1990"),
+            "gender": str(extracted_data.get("gender", "M"))[:1].upper(),
+            "address": extracted_data.get("address", "Demo Address"),
+            "city": extracted_data.get("city", "Demo City"),
+            "state": extracted_data.get("state", "Demo State"),
+            "photoUrl": photo_url,
+            "documentUrl": document_url,
+            "caseIds": [caseId] if caseId else [],
+            "criminalCaseStatus": "CASE-ASSOCIATED" if caseId else "CLEARED",
+            "riskStatus": "HIGH" if caseId else "LOW",
+            "dataClassification": "DEMO_SYNTHETIC",
+            "digilockerAuth": True
+        }
+        synthetic_aadhaar_ref = identity_data["syntheticAadhaarId"]
+    else:
+        identity_data = {
+            "identityId": demo_id,
+            "syntheticAadhaarId": synthetic_aadhaar,
+            "maskedAadhaar": "XXXX-XXXX-" + synthetic_aadhaar[-4:],
+            "name": "Demo Person A",
+            "dateOfBirth": "01/01/1990",
+            "gender": "M",
+            "address": "Demo Address",
+            "city": "Demo City",
+            "state": "Demo State",
+            "photoUrl": photo_url,
+            "documentUrl": document_url,
+            "caseIds": [caseId] if caseId else [],
+            "criminalCaseStatus": "CASE-ASSOCIATED" if caseId else "CLEARED",
+            "riskStatus": "HIGH" if caseId else "LOW",
+            "dataClassification": "DEMO_SYNTHETIC",
+            "digilockerAuth": True
+        }
+        synthetic_aadhaar_ref = synthetic_aadhaar
+    
+    # 4. Create Synthetic Identity Record
+    new_identity = create_synthetic_identity(identity_data)
+    
+    # 5. Generate Associated Mock Data (SIMs, Banks)
+    from models.synthetic import create_synthetic_sim, create_synthetic_bank_account
+    import random
+    
+    if extracted_data and "sims" in extracted_data:
+        for sim in extracted_data["sims"]:
+            create_synthetic_sim({
+                "syntheticAadhaarId": synthetic_aadhaar_ref,
+                "operator": sim.get("operator", "Unknown"),
+                "maskedPhoneNumber": sim.get("number", f"+91 {random.randint(6,9)}{random.randint(100,999)} XXXXX"),
+                "status": "ACTIVE",
+                "caseLinked": bool(caseId)
+            })
+    else:
+        sim_providers = ["Jio", "Airtel", "VI", "BSNL"]
+        for _ in range(random.randint(2, 3)):
+            create_synthetic_sim({
+                "syntheticAadhaarId": synthetic_aadhaar_ref,
+                "operator": random.choice(sim_providers),
+                "maskedPhoneNumber": f"+91 {random.randint(6,9)}{random.randint(100,999)} XXXXX",
+                "status": "ACTIVE",
+                "caseLinked": bool(caseId)
+            })
+            
+    if extracted_data and "banks" in extracted_data:
+        for bank in extracted_data["banks"]:
+            bal = str(bank.get("balance", f"{random.randint(5000, 500000):,}"))
+            if not bal.startswith("₹"): bal = "₹" + bal
+            create_synthetic_bank_account({
+                "syntheticAadhaarId": synthetic_aadhaar_ref,
+                "bankName": bank.get("bankName", "Unknown Bank"),
+                "maskedAccountNumber": f"XXXX XXXX {random.randint(1000, 9999)}",
+                "accountType": random.choice(["SAVINGS", "CURRENT"]),
+                "status": "ACTIVE",
+                "linkedCases": [caseId] if caseId else [],
+                "balance": bal
+            })
+    else:
+        bank_providers = ["SBI", "HDFC Bank", "ICICI Bank", "Axis Bank", "Punjab National Bank"]
+        for _ in range(random.randint(1, 2)):
+            create_synthetic_bank_account({
+                "syntheticAadhaarId": synthetic_aadhaar_ref,
+                "bankName": random.choice(bank_providers),
+                "maskedAccountNumber": f"XXXX XXXX {random.randint(1000, 9999)}",
+                "accountType": random.choice(["SAVINGS", "CURRENT"]),
+                "status": "ACTIVE",
+                "linkedCases": [caseId] if caseId else [],
+                "balance": f"₹{random.randint(5000, 500000):,}"
+            })
+    
+    # 6. Audit Log
+    create_audit_log({
+        "action": "IDENTITY_UPLOADED",
+        "entityType": "SYNTHETIC_DATA",
+        "entityId": demo_id,
+        "description": f"Synthetic identity uploaded and extracted by AI",
+        "userId": "Officer"
+    })
+    
+    return {
+        "status": "success",
+        "message": "Identity data uploaded and extracted successfully",
+        "identity": new_identity
+    }
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
-

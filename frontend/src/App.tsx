@@ -20,6 +20,8 @@ import Landing from './components/Landing';
 import Analytics from './components/Analytics';
 import BhairavTracking from './components/BhairavTracking';
 import { NotificationProvider } from './components/contexts/NotificationContext';
+import IdentityIntelligence from './pages/IdentityIntelligence';
+import AiActionCenter from './pages/AiActionCenter';
 
 import { Shield, Lock } from 'lucide-react';
 
@@ -144,6 +146,8 @@ function App() {
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/identity-intelligence" element={<IdentityIntelligence />} />
+          <Route path="/ai-action-center" element={<AiActionCenter />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>

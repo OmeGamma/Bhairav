@@ -102,10 +102,10 @@ const [analytics, setAnalytics] = useState<any>(null);
         { name: 'Open Cases', value: statusCounts.open.toLocaleString(), icon: Clock, color: 'text-yellow-500', bg: 'bg-yellow-500/20' },
         { name: 'Under Investigation', value: statusCounts.investigation.toLocaleString(), icon: AlertTriangle, color: 'text-orange-500', bg: 'bg-orange-500/20' },
         { name: 'Closed Cases', value: statusCounts.closed.toLocaleString(), icon: CheckCircle, color: 'text-green-500', bg: 'bg-green-500/20' },
-         { name: 'High Priority', value: (analytics.cases_by_priority?.find((p: any) => p.priority.toUpperCase() === 'HIGH')?.count || 0).toLocaleString(), icon: AlertTriangle, color: 'text-red-500', bg: 'bg-red-500/20' },
+        { name: 'High Priority', value: (analytics.cases_by_priority?.find((p: any) => p.priority.toUpperCase() === 'HIGH')?.count || 0).toLocaleString(), icon: AlertTriangle, color: 'text-red-500', bg: 'bg-red-500/20' },
         { name: 'Evidence Items', value: analytics.total_evidence.toLocaleString(), icon: FileText, color: 'text-purple-500', bg: 'bg-purple-500/20' },
-         { name: 'Documents', value: 0, icon: FileText, color: 'text-indigo-500', bg: 'bg-indigo-500/20' },
-         { name: 'Videos', value: analytics.total_videos.toLocaleString(), icon: Video, color: 'text-teal-500', bg: 'bg-teal-500/20' },
+         { name: 'Identities (AI)', value: (analytics.total_identities || 0).toLocaleString(), icon: Cpu, color: 'text-indigo-500', bg: 'bg-indigo-500/20' },
+         { name: 'Reports', value: (analytics.total_reports || 0).toLocaleString(), icon: FileText, color: 'text-teal-500', bg: 'bg-teal-500/20' },
          { name: 'Video Events', value: (videoStats?.total_events ?? 0).toLocaleString(), icon: Activity, color: 'text-rose-500', bg: 'bg-rose-500/20' },
          { name: 'Today Events', value: (videoStats?.today_events ?? 0).toLocaleString(), icon: Clock, color: 'text-amber-500', bg: 'bg-amber-500/20' },
       ]
@@ -183,10 +183,54 @@ const [analytics, setAnalytics] = useState<any>(null);
           </div>
         </div>
 
-        {/* Triple Lens Area */}
+        {/* AI Intelligence Suite Area */}
         <div>
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 px-1">Triple-Lens Analysis</h2>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 px-1">AI Intelligence Suite</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            
+            {/* 0. Identity Intelligence */}
+            <Link to="/identity-intelligence" className="block group">
+              <div className="h-full bg-gradient-to-br from-blue-50 to-white dark:from-gray-800 dark:to-dark-card rounded-2xl shadow-sm border border-blue-100 dark:border-gray-700 p-6 transition-all hover:shadow-lg hover:border-blue-300 dark:hover:border-blue-500 relative overflow-hidden">
+                <div className="absolute -right-4 -top-4 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl group-hover:bg-blue-500/20 transition-all"></div>
+                <div className="flex justify-between items-start mb-4">
+                  <div className="p-3 rounded-xl bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400">
+                    <Search className="w-6 h-6" />
+                  </div>
+                  <span className="text-xs font-bold text-red-500 bg-red-500/10 px-2 py-1 rounded-full border border-red-500/20">NEW</span>
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Identity Intelligence</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 line-clamp-3">
+                  Search through synthetic identities, correlate SIM and bank records, and identify potential matches for cases.
+                </p>
+                <div className="mt-auto">
+                  <div className="text-xs font-medium text-blue-600 dark:text-blue-400 flex items-center">
+                    Launch Identity Engine <ChevronRight className="w-3 h-3 ml-1" />
+                  </div>
+                </div>
+              </div>
+            </Link>
+
+            {/* 0.5. AI Action Center */}
+            <Link to="/ai-action-center" className="block group">
+              <div className="h-full bg-gradient-to-br from-red-50 to-white dark:from-gray-800 dark:to-dark-card rounded-2xl shadow-sm border border-red-100 dark:border-gray-700 p-6 transition-all hover:shadow-lg hover:border-red-300 dark:hover:border-red-500 relative overflow-hidden">
+                <div className="absolute -right-4 -top-4 w-24 h-24 bg-red-500/10 rounded-full blur-2xl group-hover:bg-red-500/20 transition-all"></div>
+                <div className="flex justify-between items-start mb-4">
+                  <div className="p-3 rounded-xl bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400">
+                    <AlertTriangle className="w-6 h-6" />
+                  </div>
+                  <span className="text-xs font-bold text-red-500 bg-red-500/10 px-2 py-1 rounded-full border border-red-500/20">NEW</span>
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">AI Action Center</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 line-clamp-3">
+                  Review cross-domain correlations from the AI Engine and approve actions (e.g. SIM suspension, bank hold).
+                </p>
+                <div className="mt-auto">
+                  <div className="text-xs font-medium text-red-600 dark:text-red-400 flex items-center">
+                    Review Pending Actions <ChevronRight className="w-3 h-3 ml-1" />
+                  </div>
+                </div>
+              </div>
+            </Link>
             
             {/* 1. AI Intelligence */}
             <Link to="/ai-analyzer" className="block group">

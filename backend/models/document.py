@@ -14,4 +14,29 @@ def create_document(data: Dict[str, Any]) -> Dict[str, Any]:
 
 def get_documents_by_case(case_id: str) -> List[Dict[str, Any]]:
     collection = get_documents_collection()
-    return [serialize_doc(doc) for doc in collection.find({"caseId": case_id})]
+    return [serialize_doc(doc) for doc in collection.find({"caseId": case_id, "deletedAt": {"$exists": False}})]
+
+def soft_delete_document(document_id: str) -> Optional[Dict[str, Any]]:
+    collection = get_documents_collection()
+    from datetime import datetime
+    now = datetime.utcnow()
+    result = collection.find_one_and_update(
+        {"documentId": document_id},
+        {"$set": {"deletedAt": now}},
+        return_document=True
+    )
+    if not result:
+        result = collection.find_one_and_update(
+            {"_id": document_id},
+            {"$set": {"deletedAt": now}},
+            return_document=True
+        )
+    return serialize_doc(result) if result else None
+
+def get_deleted_documents() -> List[Dict[str, Any]]:
+    collection = get_documents_collection()
+    return [serialize_doc(doc) for doc in collection.find({"deletedAt": {"$exists": True}}).sort("deletedAt", -1)]
+
+def permanent_delete_document(document_id: str, user_role: str = None, auth_token: str = None) -> Dict[str, Any]:
+    from services.deletion_service import permanent_delete_document as svc_permanent_delete_document
+    return svc_permanent_delete_document(document_id, user_role, auth_token)

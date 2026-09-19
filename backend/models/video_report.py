@@ -16,6 +16,7 @@ def create_video_report(data: Dict[str, Any]) -> Dict[str, Any]:
 def get_all_video_reports(filters: Dict[str, Any] = None, sort_by: str = "createdAt", sort_order: int = -1, limit: int = 100) -> List[Dict[str, Any]]:
     collection = get_video_reports_collection()
     query = filters or {}
+    query["deletedAt"] = {"$exists": False}
     cursor = collection.find(query).sort(sort_by, sort_order).limit(limit)
     return [serialize_doc(doc) for doc in cursor]
 
@@ -28,7 +29,7 @@ def get_video_report_by_id(report_id: str) -> Optional[Dict[str, Any]]:
 
 def get_video_reports_by_case(case_id: str) -> List[Dict[str, Any]]:
     collection = get_video_reports_collection()
-    return [serialize_doc(doc) for doc in collection.find({"caseId": case_id}).sort("createdAt", -1)]
+    return [serialize_doc(doc) for doc in collection.find({"caseId": case_id, "deletedAt": {"$exists": False}}).sort("createdAt", -1)]
 
 def update_video_report(report_id: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     collection = get_video_reports_collection()
@@ -46,12 +47,25 @@ def update_video_report(report_id: str, data: Dict[str, Any]) -> Optional[Dict[s
         )
     return serialize_doc(result) if result else None
 
-def delete_video_report(report_id: str) -> bool:
+def soft_delete_video_report(report_id: str) -> Optional[Dict[str, Any]]:
     collection = get_video_reports_collection()
-    result = collection.delete_one({"reportId": report_id})
-    if result.deleted_count == 0:
-        result = collection.delete_one({"_id": report_id})
-    return result.deleted_count > 0
+    now = datetime.utcnow()
+    result = collection.find_one_and_update(
+        {"reportId": report_id},
+        {"$set": {"deletedAt": now}},
+        return_document=True
+    )
+    if not result:
+        result = collection.find_one_and_update(
+            {"_id": report_id},
+            {"$set": {"deletedAt": now}},
+            return_document=True
+        )
+    return serialize_doc(result) if result else None
+
+def get_deleted_video_reports() -> List[Dict[str, Any]]:
+    collection = get_video_reports_collection()
+    return [serialize_doc(doc) for doc in collection.find({"deletedAt": {"$exists": True}}).sort("deletedAt", -1)]
 
 def permanent_delete_video_report(report_id: str, user_role: str = None, auth_token: str = None) -> Dict[str, Any]:
     from services.deletion_service import permanent_delete_video_report as svc_permanent_delete_video_report

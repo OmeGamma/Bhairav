@@ -16,11 +16,69 @@ import {
   type NodeProps,
   Handle,
   Position,
+  BaseEdge,
+  getBezierPath,
+  type EdgeProps
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { Network } from 'lucide-react';
 import dagre from 'dagre';
 
+const AnimatedThreadEdge = ({
+  sourceX,
+  sourceY,
+  targetX,
+  targetY,
+  sourcePosition,
+  targetPosition,
+  style,
+  markerEnd,
+}: EdgeProps) => {
+  const [edgePath] = getBezierPath({
+    sourceX,
+    sourceY,
+    sourcePosition,
+    targetX,
+    targetY,
+    targetPosition,
+  });
+
+  const strokeColor = style?.stroke || '#94A3B8';
+
+  return (
+    <>
+      <style>
+        {`
+          .thread-edge {
+            animation: dashdraw 30s linear infinite;
+          }
+          @keyframes dashdraw {
+            from {
+              stroke-dashoffset: 1000;
+            }
+            to {
+              stroke-dashoffset: 0;
+            }
+          }
+        `}
+      </style>
+      {/* Base solid semi-transparent line */}
+      <BaseEdge path={edgePath} markerEnd={markerEnd} style={{ ...style, strokeWidth: 1, opacity: 0.3 }} />
+      {/* Animated thread dashed line on top */}
+      <path
+        d={edgePath}
+        fill="none"
+        stroke={strokeColor as string}
+        strokeWidth={3}
+        strokeDasharray="5, 10"
+        className="thread-edge"
+        style={{ filter: `drop-shadow(0px 0px 3px ${strokeColor})` }}
+      />
+    </>
+  );
+};
+
+const edgeTypes = { animatedThread: AnimatedThreadEdge };
 
 const statusColors: Record<string, { bg: string; border: string; text: string; icon?: string }> = {
   Case: { bg: '#EFF6FF', border: '#3B82F6', text: '#1E3A8A', icon: '◇' },
@@ -43,43 +101,55 @@ const CustomNode = ({ data, selected }: NodeProps) => {
   const isCase = nodeData.type === 'Case';
   
   const nodeStyle: React.CSSProperties = {
-    background: colors.bg,
-    border: `2px solid ${colors.border}`,
     color: colors.text,
     fontWeight: 700,
     fontSize: 10,
     textAlign: 'center',
-    overflow: 'hidden',
-    boxShadow: selected ? `0 0 0 4px ${colors.border}55` : '0 4px 6px -1px rgba(0,0,0,0.1)',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
     padding: '8px',
-    minWidth: 70,
+    minWidth: 90,
     maxWidth: 120,
-    height: isCase ? 70 : 70,
-    borderRadius: isCase ? '4px' : '50%',
+    height: 90,
+    position: 'relative',
+  };
+
+  const bgStyle: React.CSSProperties = {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: colors.bg,
+    border: `2px solid ${colors.border}`,
+    borderRadius: isCase ? '8px' : '50%',
     transform: isCase ? 'rotate(45deg)' : 'none',
-    transformOrigin: 'center center',
+    boxShadow: selected ? `0 0 0 4px ${colors.border}55` : '0 4px 6px -1px rgba(0,0,0,0.1)',
+    zIndex: -1,
   };
 
   const innerStyle: React.CSSProperties = {
-    transform: isCase ? 'rotate(-45deg)' : 'none',
     lineHeight: 1.1,
     wordBreak: 'break-word',
     maxWidth: '100%',
+    zIndex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
   };
 
   return (
     <div style={nodeStyle}>
-      <Handle type="target" position={Position.Top} className="!bg-gray-400" style={{ transform: isCase ? 'rotate(-45deg)' : 'none' }} />
+      <Handle type="target" position={Position.Top} style={{ background: '#94A3B8', width: 6, height: 6, border: 'none' }} />
+      <div style={bgStyle} />
       <div style={innerStyle}>
-        <div style={{ fontSize: 14, marginBottom: 2 }}>{colors.icon}</div>
-        <div style={{ fontSize: 9, opacity: 0.9, maxHeight: 24, overflow: 'hidden' }}>{label}</div>
-        <div style={{ fontSize: 8, opacity: 0.7, marginTop: 1 }}>{nodeData.type || 'Case'}</div>
+        <div style={{ fontSize: 16, marginBottom: 2 }}>{colors.icon}</div>
+        <div style={{ fontSize: 10, opacity: 0.9, maxHeight: 28, overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</div>
+        <div style={{ fontSize: 9, opacity: 0.7, marginTop: 1 }}>{nodeData.type || 'Case'}</div>
       </div>
-      <Handle type="source" position={Position.Bottom} className="!bg-gray-400" style={{ transform: isCase ? 'rotate(-45deg)' : 'none' }} />
+      <Handle type="source" position={Position.Bottom} style={{ background: '#94A3B8', width: 6, height: 6, border: 'none' }} />
     </div>
   );
 };
@@ -139,9 +209,13 @@ const CriminalNetwork: React.FC = () => {
     if (nodeData.type === 'Case' || nodeData.type === 'case') {
       navigate(`/cases/${encodeURIComponent(node.id)}`);
     } else if (nodeData.type === 'Suspect' || nodeData.type === 'Person' || nodeData.type === 'person') {
-      navigate(`/suspect/${encodeURIComponent(node.id)}`);
+      if (node.id.startsWith("ID-DEMO-")) {
+        navigate(`/ai-action-center?identityId=${encodeURIComponent(node.id)}&caseId=${encodeURIComponent(selectedCase)}`);
+      } else {
+        navigate(`/suspect/${encodeURIComponent(node.id)}`);
+      }
     }
-  }, [navigate]);
+  }, [navigate, selectedCase]);
 
   useEffect(() => {
     const fetchCases = async () => {
@@ -182,9 +256,10 @@ const CriminalNetwork: React.FC = () => {
 
         const mappedEdges = data.edges.map((e: any) => ({
           ...e,
+          type: 'animatedThread',
           markerEnd: { type: MarkerType.ArrowClosed, color: (e.style?.stroke as string) || '#94A3B8' },
           style: { ...e.style, strokeWidth: 2 },
-          animated: true,
+          animated: true, 
         }));
 
         const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(mappedNodes, mappedEdges);
@@ -284,6 +359,7 @@ const CriminalNetwork: React.FC = () => {
               onNodeClick={handleNodeClick}
               fitView
               nodeTypes={nodeTypes}
+              edgeTypes={edgeTypes}
               attributionPosition="bottom-right"
             >
               <Controls className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 fill-gray-900 dark:fill-gray-100" />

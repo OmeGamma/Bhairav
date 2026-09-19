@@ -14,6 +14,7 @@ const Cases: React.FC = () => {
   const [filterPriority, setFilterPriority] = useState('All');
   const [filterStatus, setFilterStatus] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCases, setSelectedCases] = useState<string[]>([]);
 
   const fetchCases = async (mode: 'active' | 'deleted') => {
     setIsLoading(true);
@@ -49,6 +50,23 @@ const Cases: React.FC = () => {
     try {
       const res = await fetch(`/api/cases/${encodeURIComponent(caseId)}`, { method: 'DELETE' });
       if (res.ok) fetchCases(viewMode);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (!window.confirm(`Are you sure you want to delete ${selectedCases.length} selected cases?`)) return;
+    try {
+      const res = await fetch('/api/cases/bulk', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: selectedCases })
+      });
+      if (res.ok) {
+        setSelectedCases([]);
+        fetchCases(viewMode);
+      }
     } catch (err) {
       console.error(err);
     }
@@ -123,13 +141,24 @@ const Cases: React.FC = () => {
               </button>
             </div>
             {viewMode === 'active' && (
-              <Link
-                to="/cases/new"
-                className="px-4 py-2 bg-light-accent dark:bg-dark-accent text-white rounded-md font-medium hover:bg-opacity-90 transition-colors flex items-center"
-              >
-                <Plus className="w-5 h-5 mr-2" />
-                New Case
-              </Link>
+              <div className="flex gap-2">
+                {selectedCases.length > 0 && (
+                  <button
+                    onClick={handleBulkDelete}
+                    className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md font-medium transition-colors flex items-center"
+                  >
+                    <Trash2 className="w-5 h-5 mr-2" />
+                    Delete Selected ({selectedCases.length})
+                  </button>
+                )}
+                <Link
+                  to="/cases/new"
+                  className="bg-light-accent hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium transition-colors flex items-center"
+                >
+                  <Plus className="w-5 h-5 mr-2" />
+                  New Case
+                </Link>
+              </div>
             )}
           </div>
         </div>
@@ -195,6 +224,14 @@ const Cases: React.FC = () => {
               <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                 <thead className="bg-gray-50 dark:bg-gray-800">
                   <tr>
+                    <th scope="col" className="px-6 py-3 text-left">
+                      <input 
+                        type="checkbox" 
+                        checked={filteredCases.length > 0 && selectedCases.length === filteredCases.length}
+                        onChange={(e) => setSelectedCases(e.target.checked ? filteredCases.map(c => c.case_number) : [])}
+                        className="rounded border-gray-300 text-light-accent focus:ring-light-accent"
+                      />
+                    </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Case ID</th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">City</th>
@@ -208,6 +245,14 @@ const Cases: React.FC = () => {
                 <tbody className="bg-white dark:bg-dark-card divide-y divide-gray-200 dark:divide-gray-700">
                   {filteredCases.map((caseItem) => (
                     <tr key={caseItem._id || caseItem.case_number} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <input 
+                          type="checkbox" 
+                          checked={selectedCases.includes(caseItem.case_number)}
+                          onChange={(e) => setSelectedCases(e.target.checked ? [...selectedCases, caseItem.case_number] : selectedCases.filter(id => id !== caseItem.case_number))}
+                          className="rounded border-gray-300 text-light-accent focus:ring-light-accent"
+                        />
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-light-accent dark:text-dark-accent">{caseItem.case_number}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                         <div className="flex items-center">

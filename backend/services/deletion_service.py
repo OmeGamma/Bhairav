@@ -209,8 +209,8 @@ def permanent_delete_case(case_number: str, user_role: Optional[str], auth_token
     }
     create_audit_entry(
         action="PERMANENT_DELETE_CASE",
-        entityType="case",
-        entityId=case_number,
+        entity_type="case",
+        entity_id=case_number,
         user_id=user_role or DEMO_ROLE,
         description=f"Permanently deleted case {case_number} and all owned records",
         metadata=audit_metadata
@@ -250,8 +250,8 @@ def permanent_delete_video_report(report_id: str, user_role: Optional[str], auth
     }
     create_audit_entry(
         action="PERMANENT_DELETE_VIDEO_REPORT",
-        entityType="video_report",
-        entityId=report_id,
+        entity_type="video_report",
+        entity_id=report_id,
         user_id=user_role or DEMO_ROLE,
         description=f"Permanently deleted video report {report_id}",
         metadata=audit_metadata
@@ -310,8 +310,8 @@ def permanent_delete_report(report_id: str, user_role: Optional[str], auth_token
     }
     create_audit_entry(
         action="PERMANENT_DELETE_REPORT",
-        entityType="report",
-        entityId=report_id,
+        entity_type="report",
+        entity_id=report_id,
         user_id=user_role or DEMO_ROLE,
         description=f"Permanently deleted report {report_id}",
         metadata=audit_metadata
@@ -322,5 +322,69 @@ def permanent_delete_report(report_id: str, user_role: Optional[str], auth_token
         "report_id": report_id,
         "media_cleanup": media_cleanup,
         "report_deleted": report_deleted,
+        "audit_metadata": audit_metadata
+    }
+
+def permanent_delete_document(document_id: str, user_role: Optional[str], auth_token: Optional[str] = None) -> Dict[str, Any]:
+    authorized, auth_msg = authorize_deletion(user_role, auth_token)
+    if not authorized:
+        return {"success": False, "error": auth_msg}
+    
+    doc_item = db.documents.find_one({"documentId": document_id})
+    if not doc_item:
+        doc_item = db.documents.find_one({"_id": document_id})
+    if not doc_item:
+        return {"success": False, "error": f"Document {document_id} not found"}
+    
+    case_id = doc_item.get("caseId")
+    
+    media_file = None
+    if doc_item.get("fileUrl"):
+        media_file = db.media_files.find_one({"cloudinaryPublicId": doc_item.get("fileUrl")})
+    
+    media_cleanup = {"local_deleted": 0, "cloudinary_deleted": 0, "cloudinary_skipped_shared": 0, "errors": []}
+    if media_file:
+        file_id = media_file.get("fileId")
+        public_id = media_file.get("cloudinaryPublicId")
+        resource_type = media_file.get("resourceType", "image")
+        
+        if public_id:
+            ref_count = count_media_references(public_id, exclude_case=case_id)
+            if ref_count == 0:
+                if init_cloudinary():
+                    try:
+                        if delete_resource(public_id, resource_type=resource_type):
+                            media_cleanup["cloudinary_deleted"] += 1
+                    except Exception as e:
+                        media_cleanup["errors"].append(f"Cloudinary delete error: {str(e)}")
+            else:
+                media_cleanup["cloudinary_skipped_shared"] += 1
+        
+        db.media_files.delete_one({"fileId": file_id})
+        media_cleanup["local_deleted"] += 1
+    
+    doc_deleted = db.documents.delete_one({"documentId": document_id}).deleted_count
+    if doc_deleted == 0:
+        doc_deleted = db.documents.delete_one({"_id": document_id}).deleted_count
+    
+    audit_metadata = {
+        "media_cleanup": media_cleanup,
+        "document_deleted": doc_deleted,
+        "case_id": case_id
+    }
+    create_audit_entry(
+        action="PERMANENT_DELETE_DOCUMENT",
+        entity_type="document",
+        entity_id=document_id,
+        user_id=user_role or DEMO_ROLE,
+        description=f"Permanently deleted document {document_id}",
+        metadata=audit_metadata
+    )
+    
+    return {
+        "success": True,
+        "document_id": document_id,
+        "media_cleanup": media_cleanup,
+        "document_deleted": doc_deleted,
         "audit_metadata": audit_metadata
     }

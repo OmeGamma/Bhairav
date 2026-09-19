@@ -24,14 +24,22 @@ db = client[MONGODB_DB_NAME]
 def get_collection(collection_name: str):
     return db[collection_name]
 
+import threading
+
 def setup_indexes():
     try:
-        db["cases"].create_index("deletedAt", expireAfterSeconds=1296000)
+        db["cases"].create_index("deletedAt", expireAfterSeconds=1296000, background=True)
+        db["cases"].create_index([
+            ("caseNumber", "text"),
+            ("title", "text"),
+            ("city", "text"),
+            ("crimeType", "text")
+        ], background=True)
         print("MongoDB indexes verified/created.")
     except Exception as e:
         print(f"MongoDB index creation warning: {e}")
 
-setup_indexes()
+threading.Thread(target=setup_indexes, daemon=True).start()
 
 def check_connection():
     try:

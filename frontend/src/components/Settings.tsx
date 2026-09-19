@@ -17,7 +17,8 @@ import {
   Video,
   Wifi,
   Trash2,
-  Download
+  Download,
+  ArchiveRestore
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { apiClient } from '../api/client';
@@ -44,6 +45,9 @@ const Settings: React.FC = () => {
   const [statusError, setStatusError] = useState<string | null>(null);
   const [backups, setBackups] = useState<any[]>([]);
   const [isBackupsLoading, setIsBackupsLoading] = useState(false);
+  const [trashItems, setTrashItems] = useState<any[]>([]);
+  const [selectedTrashItems, setSelectedTrashItems] = useState<any[]>([]);
+  const [isTrashLoading, setIsTrashLoading] = useState(false);
   const navigate = useNavigate();
 
   const fetchBackups = async () => {
@@ -70,6 +74,58 @@ const Settings: React.FC = () => {
       } catch (err) {
         alert('Error deleting backup.');
       }
+    }
+  };
+
+  const fetchTrash = async () => {
+    setIsTrashLoading(true);
+    try {
+      const res = await fetch('/api/trash');
+      if (res.ok) {
+        const data = await res.json();
+        setTrashItems(data.items || []);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsTrashLoading(false);
+    }
+  };
+
+  const handleRestoreTrash = async () => {
+    if (selectedTrashItems.length === 0) return;
+    try {
+      const res = await fetch('/api/trash/restore', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: selectedTrashItems })
+      });
+      if (res.ok) {
+        setSelectedTrashItems([]);
+        fetchTrash();
+        alert('Items restored successfully.');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handlePermanentDeleteTrash = async () => {
+    if (selectedTrashItems.length === 0) return;
+    if (!confirm(`Are you sure you want to permanently delete ${selectedTrashItems.length} items? This cannot be undone.`)) return;
+    try {
+      const res = await fetch('/api/trash/permanent-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: selectedTrashItems })
+      });
+      if (res.ok) {
+        setSelectedTrashItems([]);
+        fetchTrash();
+        alert('Items permanently deleted.');
+      }
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -120,6 +176,7 @@ const Settings: React.FC = () => {
   useEffect(() => {
     checkSystemStatus();
     fetchBackups();
+    fetchTrash();
   }, []);
 
   const handleLogout = () => {
@@ -383,6 +440,130 @@ const Settings: React.FC = () => {
                   )}
                 </tbody>
               </table>
+            </div>
+          </div>
+        </div>
+
+        {/* Trash & Recovery */}
+        <div className="bg-white dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border p-6">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 border-b border-gray-200 dark:border-gray-700 pb-2 flex items-center justify-between">
+            <div className="flex items-center">
+              <Trash2 className="w-5 h-5 mr-2" /> Trash & Recovery
+            </div>
+            {selectedTrashItems.length > 0 && (
+              <div className="flex gap-2">
+                <button
+                  onClick={handleRestoreTrash}
+                  className="px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded-md font-medium text-sm transition-colors flex items-center"
+                >
+                  <ArchiveRestore className="w-4 h-4 mr-1" /> Restore ({selectedTrashItems.length})
+                </button>
+                <button
+                  onClick={handlePermanentDeleteTrash}
+                  className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-md font-medium text-sm transition-colors flex items-center"
+                >
+                  <Trash2 className="w-4 h-4 mr-1" /> Permanent Delete ({selectedTrashItems.length})
+                </button>
+              </div>
+            )}
+          </h2>
+          <div className="space-y-4">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Items here have been soft-deleted. Select items to restore them or permanently delete them from storage.
+            </p>
+
+            <div className="min-w-0 overflow-x-auto border border-gray-200 dark:border-gray-700 rounded-md max-h-64 overflow-y-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 dark:bg-gray-800/50 sticky top-0">
+                  <tr>
+                    <th className="px-4 py-2 text-left w-10">
+                      <input 
+                        type="checkbox" 
+                        checked={trashItems.length > 0 && selectedTrashItems.length === trashItems.length}
+                        onChange={(e) => setSelectedTrashItems(e.target.checked ? [...trashItems] : [])}
+                        className="rounded border-gray-300 text-light-accent focus:ring-light-accent"
+                      />
+                    </th>
+                    <th className="px-4 py-2 text-left text-gray-500 font-medium">Type</th>
+                    <th className="px-4 py-2 text-left text-gray-500 font-medium">Title/ID</th>
+                    <th className="px-4 py-2 text-left text-gray-500 font-medium">Deleted At</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                  {isTrashLoading ? (
+                    <tr>
+                      <td colSpan={4} className="px-4 py-4 text-center text-gray-500">Loading trash...</td>
+                    </tr>
+                  ) : trashItems.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="px-4 py-4 text-center text-gray-500">Trash is empty.</td>
+                    </tr>
+                  ) : (
+                    trashItems.map((item, idx) => (
+                      <tr key={item.id + idx} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                        <td className="px-4 py-3">
+                          <input 
+                            type="checkbox" 
+                            checked={selectedTrashItems.some(i => i.id === item.id && i.type === item.type)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedTrashItems([...selectedTrashItems, item]);
+                              } else {
+                                setSelectedTrashItems(selectedTrashItems.filter(i => !(i.id === item.id && i.type === item.type)));
+                              }
+                            }}
+                            className="rounded border-gray-300 text-light-accent focus:ring-light-accent"
+                          />
+                        </td>
+                        <td className="px-4 py-3 font-medium text-gray-900 dark:text-white capitalize">{item.type.replace('_', ' ')}</td>
+                        <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{item.title}</td>
+                        <td className="px-4 py-3 text-gray-500">{new Date(item.deletedAt).toLocaleString()}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        {/* SIH Demo Data Controls */}
+        <div className="bg-white dark:bg-dark-card rounded-lg shadow-sm border border-red-500/50 p-6">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 border-b border-gray-200 dark:border-gray-700 pb-2 flex items-center text-red-600 dark:text-red-400">
+            <Shield className="w-5 h-5 mr-2" /> SIH Demo Data Controls
+          </h2>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <p className="text-sm font-medium text-gray-900 dark:text-white">Generate Demo Dataset</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Seeds MongoDB with 10 synthetic identities, SIMs, bank accounts, and tower events.</p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={async () => {
+                  try {
+                    const res = await fetch('/api/synthetic/seed', { method: 'POST' });
+                    if (res.ok) alert("Synthetic Demo dataset generated successfully!");
+                  } catch (e) {
+                    alert("Error generating dataset");
+                  }
+                }}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors text-sm font-bold"
+              >
+                Seed Dataset
+              </button>
+              <button
+                onClick={async () => {
+                  try {
+                    const res = await fetch('/api/synthetic/reset', { method: 'DELETE' });
+                    if (res.ok) alert("Synthetic Demo data cleared.");
+                  } catch (e) {
+                    alert("Error clearing data");
+                  }
+                }}
+                className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors text-sm font-bold"
+              >
+                Clear Data
+              </button>
             </div>
           </div>
         </div>

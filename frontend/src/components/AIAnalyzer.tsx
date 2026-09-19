@@ -1,8 +1,10 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { apiClient } from '../api/client';
 import { Link } from 'react-router-dom';
 import Layout from './layout/Layout';
 import { Search, BrainCircuit, ShieldAlert, Database, MapPin, Users, Network, Video, FileText } from 'lucide-react';
+import { ReactFlow, Background, Controls, MarkerType } from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
 
 const AIAnalyzer: React.FC = () => {
   const [query, setQuery] = useState('');
@@ -167,38 +169,55 @@ const AIAnalyzer: React.FC = () => {
 
   const renderNetwork = (data: any) => {
     if (!data || !data.graph || data.graph.nodes.length === 0) return <p className="text-gray-500">No network found.</p>;
+    
+    // Convert to ReactFlow nodes and edges
+    const nodes = data.graph.nodes.map((n: any, idx: number) => ({
+      id: n.id,
+      position: { x: (idx % 3) * 200, y: Math.floor(idx / 3) * 150 },
+      data: { label: n.label + (n.type ? ` (${n.type})` : '') },
+      style: {
+        background: n.is_seed ? '#EFF6FF' : '#ffffff',
+        border: `2px solid ${n.is_seed ? '#3B82F6' : '#94A3B8'}`,
+        borderRadius: '8px',
+        padding: '10px',
+        fontWeight: 'bold',
+        fontSize: '12px',
+        color: '#1E293B',
+        boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)'
+      }
+    }));
+    
+    const edges = data.graph.links.map((link: any, idx: number) => ({
+      id: `e${idx}`,
+      source: link.source,
+      target: link.target,
+      animated: true,
+      style: { stroke: '#3B82F6', strokeWidth: 2, strokeDasharray: '5,5' },
+      markerEnd: { type: MarkerType.ArrowClosed, color: '#3B82F6' },
+    }));
+
     return (
       <div className="bg-white dark:bg-dark-card border border-light-border dark:border-dark-border rounded-lg p-6">
         <h3 className="font-bold text-lg mb-4 text-gray-900 dark:text-white flex items-center">
           <Network className="w-5 h-5 mr-2 text-blue-500" />
           Co-Accused Graph (2-hop)
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <h4 className="text-sm font-semibold text-gray-500 uppercase mb-2">Entities ({data.graph.nodes.length})</h4>
-            <ul className="space-y-2">
-              {data.graph.nodes.map((node: any) => (
-                <li key={node.id} className={`p-2 rounded border ${node.is_seed ? 'bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800' : 'bg-gray-50 border-gray-200 dark:bg-dark-bg dark:border-gray-700'}`}>
-                  <span className="font-medium text-gray-900 dark:text-white">{node.label}</span>
-                  <span className="ml-2 text-xs text-gray-500">({node.type})</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <h4 className="text-sm font-semibold text-gray-500 uppercase mb-2">Connections ({data.graph.links.length})</h4>
-            <ul className="space-y-2">
-              {data.graph.links.map((link: any, idx: number) => {
-                const sourceNode = data.graph.nodes.find((n: any) => n.id === link.source)?.label;
-                const targetNode = data.graph.nodes.find((n: any) => n.id === link.target)?.label;
-                return (
-                  <li key={idx} className="p-2 rounded border bg-gray-50 border-gray-200 dark:bg-dark-bg dark:border-gray-700 text-sm">
-                    <span className="font-medium">{sourceNode}</span> <span className="text-gray-400">↔</span> <span className="font-medium">{targetNode}</span>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
+        <style>
+          {`
+            .react-flow__edge-path {
+              animation: dashdraw 30s linear infinite;
+            }
+            @keyframes dashdraw {
+              from { stroke-dashoffset: 1000; }
+              to { stroke-dashoffset: 0; }
+            }
+          `}
+        </style>
+        <div className="h-[400px] w-full border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-900">
+          <ReactFlow nodes={nodes} edges={edges} fitView>
+            <Background color="#ccc" gap={16} />
+            <Controls />
+          </ReactFlow>
         </div>
       </div>
     );
@@ -259,13 +278,37 @@ const AIAnalyzer: React.FC = () => {
 
         {isSearching && (
           <div className="bg-white dark:bg-dark-card rounded-lg shadow-sm border border-light-border dark:border-dark-border p-6 animate-pulse">
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Bhairav Pipeline Running</h3>
-            <div className="space-y-3 text-sm text-gray-600 dark:text-gray-400">
-              <p className="flex items-center text-green-500"><span className="mr-2">✓</span> Classify NL Intent & Extract Entities</p>
-              <p className="flex items-center text-light-accent dark:text-dark-accent">
-                <div className="animate-spin h-3 w-3 border-b-2 border-current rounded-full mr-2"></div> 
-                Running Aggregations & Graph Expansions
-              </p>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-6 flex items-center">
+              <BrainCircuit className="w-5 h-5 mr-2 text-light-accent dark:text-dark-accent animate-pulse" />
+              Bhairav AI Pipeline Active
+            </h3>
+            <div className="relative mt-6 ml-2 pb-2">
+              {/* The explicit vertical thread line */}
+              <div className="absolute top-2 bottom-4 left-[7px] w-0.5 bg-gray-300 dark:bg-gray-700 z-0"></div>
+
+              <div className="space-y-8">
+                <div className="relative flex items-start z-10">
+                  <div className="absolute top-0.5 left-0 w-4 h-4 rounded-full bg-green-500 shadow-[0_0_0_4px_var(--bg-card)] dark:shadow-[0_0_0_4px_#1c1f26]"></div>
+                  <div className="ml-8">
+                    <p className="text-sm font-bold text-green-600 dark:text-green-400 flex items-center leading-none">
+                      <span className="mr-2">✓</span> Classify NL Intent & Extract Entities
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5 font-mono">Parsing semantic tokens and identifying entities...</p>
+                  </div>
+                </div>
+                
+                <div className="relative flex items-start z-10">
+                  <div className="absolute top-0.5 left-0 w-4 h-4 rounded-full bg-light-accent dark:bg-dark-accent shadow-[0_0_0_4px_var(--bg-card)] dark:shadow-[0_0_0_4px_#1c1f26]"></div>
+                  <div className="absolute top-0.5 left-0 w-4 h-4 rounded-full bg-light-accent dark:bg-dark-accent animate-ping opacity-75"></div>
+                  <div className="ml-8">
+                    <p className="text-sm font-bold text-light-accent dark:text-dark-accent flex items-center leading-none">
+                      <div className="animate-spin h-3.5 w-3.5 border-b-2 border-current rounded-full mr-2"></div> 
+                      Running Aggregations & Graph Expansions
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5 font-mono">Traversing database relationships and resolving aliases...</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}

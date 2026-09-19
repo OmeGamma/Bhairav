@@ -131,6 +131,41 @@
   html.dark .leaflet-popup-content span {
     color: var(--color-dark-text);
   }
+
+  /* Fix Leaflet Map Controls (+ / -) in dark mode */
+  html.dark .leaflet-bar a,
+  html.dark .leaflet-control-layers-toggle,
+  html.dark .leaflet-control-zoom-in,
+  html.dark .leaflet-control-zoom-out {
+    background-color: var(--color-dark-card) !important;
+    color: var(--color-dark-text) !important;
+    border-color: var(--color-dark-border) !important;
+  }
+  
+  html.dark .leaflet-bar a:hover {
+    background-color: var(--color-dark-border) !important;
+  }
+
+  /* Fix Select and Inputs globally in dark mode */
+  html.dark select,
+  html.dark input,
+  html.dark textarea {
+    background-color: var(--color-dark-card);
+    color: var(--color-dark-text);
+  }
+
+  html.dark select option {
+    background-color: var(--color-dark-card);
+    color: var(--color-dark-text);
+  }
 }
 
 @custom-variant dark (&:is(.dark *));
+
+  /* Leaflet Popups in dark mode */
+  html.dark .leaflet-popup-content-wrapper,
+  html.dark .leaflet-popup-tip {
+    background-color: #1a1b21 !important;
+    color: #e5e7eb !important;
+  }
+

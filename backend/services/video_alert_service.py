@@ -36,14 +36,9 @@ def should_alert(source_type: str, source_name: str, current_count: int) -> bool
     last_alert = state["last_alert_time"]
     cooldown = get_cooldown_seconds()
     
-    # If the count changed, we alert immediately
-    if current_count != previous_count:
-        _alert_state[key] = {"count": current_count, "last_alert_time": now}
-        return True
-        
-    # If the count is the same, we only alert if the cooldown has expired
+    # Always enforce the cooldown strictly, regardless of count change
     if (now - last_alert) >= cooldown:
-        _alert_state[key]["last_alert_time"] = now
+        _alert_state[key] = {"count": current_count, "last_alert_time": now}
         return True
         
     return False
@@ -68,6 +63,7 @@ def create_person_detection_alert(
     person_crop_bytes: Optional[bytes],
     case_id: Optional[str] = None,
     class_name: str = "person",
+    candidate_match: Optional[Dict[str, Any]] = None,
 ) -> Optional[Dict[str, Any]]:
     
     if not should_alert(source_type, source_name, person_count):
@@ -151,6 +147,7 @@ def create_person_detection_alert(
         "videoTimestamp": video_timestamp,
         "status": "NEW",
         "dataClassification": "LIVE_VIDEO_EVENT",
+        "candidateMatch": candidate_match,
     })
 
     create_notification({
@@ -163,16 +160,27 @@ def create_person_detection_alert(
 
     track_id_str = ", ".join([str(t) for t in track_ids if t is not None]) if track_ids else 'Unknown'
     
-    telegram_caption = (
-        f"🚨 <b>BHAIRAV VIDEO INTELLIGENCE ALERT</b>\n\n"
-        f"<b>Alert:</b> {person_count} PERSON{'S' if person_count > 1 else ''} DETECTED\n"
-        f"<b>Source:</b> {source_name}\n"
-        f"<b>Time:</b> {timestamp}\n"
-        f"<b>Confidence:</b> {int(confidence*100)}%\n"
-        f"<b>Track IDs:</b> {track_id_str}\n"
-        f"<b>Status:</b> REVIEW REQUIRED\n\n"
-        f"Evidence has been captured and stored."
-    )
+    if candidate_match:
+        telegram_caption = (
+            f"🚨 SYNTHETIC MATCH DETECTED 🚨\n"
+            f"Camera: {source_name}\n"
+            f"Matched Target: {candidate_match['name']}\n"
+            f"Confidence: {candidate_match['confidence']}%\n"
+            f"Associated Case: {case_id or 'Unknown'}\n"
+            f"Time: {timestamp}\n"
+            f"Location: {candidate_match.get('city', 'Unknown')}, {candidate_match.get('state', 'Unknown')}"
+        )
+    else:
+        telegram_caption = (
+            f"🚨 <b>BHAIRAV VIDEO INTELLIGENCE ALERT</b>\n\n"
+            f"<b>Alert:</b> {person_count} PERSON{'S' if person_count > 1 else ''} DETECTED\n"
+            f"<b>Source:</b> {source_name}\n"
+            f"<b>Time:</b> {timestamp}\n"
+            f"<b>Confidence:</b> {int(confidence*100)}%\n"
+            f"<b>Track IDs:</b> {track_id_str}\n"
+            f"<b>Status:</b> REVIEW REQUIRED\n\n"
+            f"Evidence has been captured and stored."
+        )
     
     photo_url = person_crop_url if person_crop_url else full_frame_url
     if photo_url:

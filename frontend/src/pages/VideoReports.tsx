@@ -5,6 +5,7 @@ import {
   ChevronLeft, ChevronRight, RefreshCw
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { Trash2 } from 'lucide-react';
 
 interface VideoReport {
   id: string;
@@ -43,6 +44,7 @@ const VideoReports: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [sourceFilter, setSourceFilter] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedReports, setSelectedReports] = useState<string[]>([]);
   const itemsPerPage = 20;
 
   const fetchReports = async () => {
@@ -63,6 +65,23 @@ const VideoReports: React.FC = () => {
   useEffect(() => {
     fetchReports();
   }, []);
+
+  const handleBulkDelete = async () => {
+    if (!window.confirm(`Are you sure you want to delete ${selectedReports.length} selected video reports?`)) return;
+    try {
+      const res = await fetch('/api/video-reports/bulk', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: selectedReports })
+      });
+      if (res.ok) {
+        setSelectedReports([]);
+        fetchReports();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const filteredReports = reports.filter((r) => {
     const matchesSearch =
@@ -93,6 +112,15 @@ const VideoReports: React.FC = () => {
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Video Reports</h1>
           </div>
           <div className="flex items-center gap-2">
+            {selectedReports.length > 0 && (
+              <button
+                onClick={handleBulkDelete}
+                className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md font-medium transition-colors flex items-center text-sm"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete Selected ({selectedReports.length})
+              </button>
+            )}
             <button
               onClick={fetchReports}
               disabled={isLoading}
@@ -173,6 +201,14 @@ const VideoReports: React.FC = () => {
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 dark:bg-gray-800/50 text-left">
                   <tr>
+                    <th className="px-6 py-3">
+                      <input 
+                        type="checkbox" 
+                        checked={paginated.length > 0 && selectedReports.length === paginated.length}
+                        onChange={(e) => setSelectedReports(e.target.checked ? paginated.map(r => r.reportId || r.id) : [])}
+                        className="rounded border-gray-300 text-light-accent focus:ring-light-accent"
+                      />
+                    </th>
                     <th className="px-6 py-3 text-gray-500 dark:text-gray-400 font-medium">Status</th>
                     <th className="px-6 py-3 text-gray-500 dark:text-gray-400 font-medium">Source</th>
                     <th className="px-6 py-3 text-gray-500 dark:text-gray-400 font-medium">Event</th>
@@ -188,6 +224,17 @@ const VideoReports: React.FC = () => {
                       key={r.reportId || r.id}
                       className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
                     >
+                      <td className="px-6 py-4">
+                        <input 
+                          type="checkbox" 
+                          checked={selectedReports.includes(r.reportId || r.id)}
+                          onChange={(e) => {
+                            const id = r.reportId || r.id;
+                            setSelectedReports(e.target.checked ? [...selectedReports, id] : selectedReports.filter(rid => rid !== id));
+                          }}
+                          className="rounded border-gray-300 text-light-accent focus:ring-light-accent"
+                        />
+                      </td>
                       <td className="px-6 py-4">
                         <span
                           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${

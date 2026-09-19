@@ -72,7 +72,7 @@ class VideoAnalysisService:
         now = datetime.utcnow()
         ts_str = now.isoformat()
 
-        targets = [o for o in objects if o["class"] == "person"]
+        targets = [o for o in objects if o["class"] == "person" and o["confidence"] >= self._confidence]
         
         person_count = len(targets)
         track_ids = [o["track_id"] for o in targets if o["track_id"] is not None]
@@ -96,6 +96,27 @@ class VideoAnalysisService:
                 crop_ok, crop_buf = encode_frame_jpeg(crop, quality=90)
                 if crop_ok:
                     person_crop_info = crop_buf
+            
+            # Synthetic Identity Matching (Demo Simulation)
+            candidate_match = None
+            if best_target["confidence"] > 0.6:
+                from models.synthetic import get_synthetic_identities
+                syn_ids = get_synthetic_identities()
+                if syn_ids:
+                    # Pick the first synthetic identity for demo purposes to simulate a match
+                    # Only match if there's a photo or it's a demo
+                    syn = syn_ids[0]
+                    # Simulate similarity score
+                    sim_score = int(best_target["confidence"] * 95)
+                    if sim_score > 75:
+                        candidate_match = {
+                            "syntheticId": syn.get("identityId"),
+                            "name": syn.get("name"),
+                            "confidence": sim_score,
+                            "status": "POSSIBLE MATCH",
+                            "city": syn.get("city", "Unknown"),
+                            "state": syn.get("state", "Unknown")
+                        }
 
             report = None
             try:
@@ -113,6 +134,7 @@ class VideoAnalysisService:
                     person_crop_bytes=person_crop_info,
                     case_id=case_id,
                     class_name="person",
+                    candidate_match=candidate_match
                 )
             except Exception as e:
                 logger.error(f"Person detection alert creation failed: {e}")
@@ -121,6 +143,11 @@ class VideoAnalysisService:
             for p in targets:
                 # We return the shared person_crop_url from the report to all targets just so the frontend gets it
                 person_crop_url = report.get("personCropUrl") if report else None
+                
+                det_candidate = None
+                if p["confidence"] > 0.6 and candidate_match:
+                    det_candidate = candidate_match
+
                 detections.append({
                     "class": p["class"],
                     "confidence": p["confidence"],
@@ -128,6 +155,7 @@ class VideoAnalysisService:
                     "track_id": p["track_id"],
                     "event_type": "PERSON_DETECTED",
                     "personCropUrl": person_crop_url,
+                    "candidateMatch": det_candidate
                 })
         else:
             from services.video_alert_service import should_alert
@@ -208,6 +236,24 @@ class VideoAnalysisService:
                         if crop_ok:
                             person_crop_info = crop_buf
 
+                    # Synthetic Identity Matching (Demo Simulation)
+                    candidate_match = None
+                    if best_target["confidence"] > 0.6:
+                        from models.synthetic import get_synthetic_identities
+                        syn_ids = get_synthetic_identities()
+                        if syn_ids:
+                            syn = syn_ids[0]
+                            sim_score = int(best_target["confidence"] * 95)
+                            if sim_score > 75:
+                                candidate_match = {
+                                    "syntheticId": syn.get("identityId"),
+                                    "name": syn.get("name"),
+                                    "confidence": sim_score,
+                                    "status": "POSSIBLE MATCH",
+                                    "city": syn.get("city", "Unknown"),
+                                    "state": syn.get("state", "Unknown")
+                                }
+
                     report = create_person_detection_alert(
                         source_type="UPLOADED_VIDEO",
                         source_name=source_name,
@@ -222,6 +268,7 @@ class VideoAnalysisService:
                         person_crop_bytes=person_crop_info,
                         case_id=case_id,
                         class_name="person",
+                        candidate_match=candidate_match
                     )
 
                     detection_count += person_count

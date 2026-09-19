@@ -187,17 +187,25 @@ def get_cases_by_priority() -> List[Dict[str, Any]]:
 
 def get_monthly_trends() -> List[Dict[str, Any]]:
     collection = get_cases_collection()
+    safe_date_expr = {
+        "$convert": {
+            "input": "$createdAt",
+            "to": "date",
+            "onError": None,
+            "onNull": None
+        }
+    }
     pipeline = [
         {"$match": {"deletedAt": {"$exists": False}}},
         {
             "$group": {
-                "_id": {"$dateToString": {"format": "%Y-%m", "date": "$createdAt"}},
+                "_id": {"$dateToString": {"format": "%Y-%m", "date": safe_date_expr}},
                 "count": {"$sum": 1},
             }
         },
         {"$sort": {"_id": 1}},
     ]
-    return [{"month": doc["_id"], "count": doc["count"]} for doc in collection.aggregate(pipeline)]
+    return [{"month": doc["_id"], "count": doc["count"]} for doc in collection.aggregate(pipeline) if doc["_id"] is not None]
 
 def soft_delete_case(case_number: str) -> Optional[Dict[str, Any]]:
     collection = get_cases_collection()

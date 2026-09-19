@@ -6,7 +6,7 @@ from models.video_report import (
     get_video_report_by_id,
     get_video_reports_by_case,
     update_video_report,
-    delete_video_report,
+    soft_delete_video_report,
     get_video_report_stats,
 )
 from models.notification import create_notification
@@ -68,7 +68,7 @@ def update_report(report_id: str, data: Dict[str, Any]) -> Optional[Dict[str, An
     return update_video_report(report_id, data)
 
 def delete_report(report_id: str) -> bool:
-    return delete_video_report(report_id)
+    return bool(soft_delete_video_report(report_id))
 
 def get_stats(user_id: str = "Officer") -> Dict[str, Any]:
     return get_video_report_stats(user_id)
